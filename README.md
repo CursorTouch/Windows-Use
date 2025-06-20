@@ -91,8 +91,6 @@ Will add soon
 
 Talk to your computer. Watch it get things done.
 
-Absolutely! Here's an improved and more structured version of your **Roadmap**. It groups features by themes, improves clarity, and uses more action-driven phrasing while retaining your core goals:
-
 ---
 
 ## Roadmap
