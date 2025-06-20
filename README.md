@@ -22,8 +22,6 @@
 
 **Windows-Use** is a powerful automation agent that interact directly with the Windows at GUI layer. It bridges the gap between AI Agents and the Windows OS to perform tasks such as opening apps, clicking buttons, typing, executing shell commands, and capturing UI state all without relying on traditional computer vision models. Enabling any LLM to perform computer automation instead of relying on specific models for it.
 
----
-
 ## 🛠️Installation Guide
 
 ### **Prerequisites**
@@ -31,8 +29,6 @@
 - Python 3.12 or higher
 - [UV](https://github.com/astral-sh/uv) (or `pip`)
 - Windows 10 or 11
-
----
 
 ### **Installation Steps**
 
@@ -47,8 +43,6 @@ Or with pip:
 ```bash
 pip install windows-use
 ```
-
----
 
 ## ⚙️Basic Usage
 
@@ -67,8 +61,6 @@ agent_result=agent.invoke(query=query)
 print(agent_result.content)
 ```
 
----
-
 ## 🤖 Run Agent
 
 You can use the following to run from a script:
@@ -85,13 +77,10 @@ Enter your query: <YOUR TASK>
 ```
 Will add soon
 ```
----
 
 ## Vision
 
 Talk to your computer. Watch it get things done.
-
----
 
 ## Roadmap
 
@@ -126,8 +115,6 @@ Agent interacts directly with your Windows OS at GUI layer to perform actions. W
 ## 🪪 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
 
 ## 🤝 Contributing
 
