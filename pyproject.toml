@@ -1,0 +1,30 @@
+[project]
+name = "windows-use"
+version = "0.1.0"
+description = "An AI Agent that interacts with Windows OS at GUI level."
+readme = "README.md"
+authors = [
+    { name = "Jeomon George", email = "jeogeoalukka@gmail.com" }
+]
+license = 'MIT'
+license-files = ["LICENSE"]
+urls = { homepage = "https://github.com/CursorTouch" }
+keywords = ["windows", "agent", "ai", "desktop","ai agent","automation"]
+requires-python = ">=3.12"
+dependencies = [
+    "humancursor>=1.1.5",
+    "langchain>=0.3.25",
+    "langchain-community>=0.3.25",
+    "markdownify>=1.1.0",
+    "pillow>=11.2.1",
+    "pyautogui>=0.9.54",
+    "pydantic>=2.11.7",
+    "requests>=2.32.4",
+    "setuptools>=80.9.0",
+    "termcolor>=3.1.0",
+    "uiautomation>=2.0.28",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
