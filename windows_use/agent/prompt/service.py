@@ -2,6 +2,7 @@ from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.views import AgentStep, AgentData
 from windows_use.desktop.views import DesktopState
 from langchain.prompts import PromptTemplate
+from importlib.resources import files
 from datetime import datetime
 from getpass import getuser
 from textwrap import dedent
@@ -13,7 +14,7 @@ class Prompt:
     @staticmethod
     def system_prompt(tools_prompt:str,max_steps:int,instructions: list[str]=[]) -> str:
         width, height = pg.size()
-        template =PromptTemplate.from_file('./windows_use/agent/prompt/system.md')
+        template =PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('system.md'))
         return template.format(**{
             'current_datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'instructions': '\n'.join(instructions),
@@ -27,7 +28,7 @@ class Prompt:
     
     @staticmethod
     def action_prompt(agent_data:AgentData) -> str:
-        template = PromptTemplate.from_file('./windows_use/agent/prompt/action.md')
+        template = PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('action.md'))
         return template.format(**{
             'evaluate': agent_data.evaluate,
             'memory':  agent_data.memory,
@@ -49,7 +50,7 @@ class Prompt:
     def observation_prompt(agent_step: AgentStep, tool_result:ToolResult,desktop_state: DesktopState) -> str:
         cursor_position = pg.position()
         tree_state = desktop_state.tree_state
-        template = PromptTemplate.from_file('./windows_use/agent/prompt/observation.md')
+        template = PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('observation.md'))
         return template.format(**{
             'steps': agent_step.step_number,
             'max_steps': agent_step.max_steps,
@@ -64,7 +65,7 @@ class Prompt:
     
     @staticmethod
     def answer_prompt(agent_data: AgentData, tool_result: ToolResult):
-        template = PromptTemplate.from_file('./windows_use/agent/prompt/answer.md')
+        template = PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('answer.md'))
         return template.format(**{
             'evaluate': agent_data.evaluate,
             'memory':  agent_data.memory,
