@@ -144,7 +144,7 @@ Made with ❤️ by [Jeomon George](https://github.com/Jeomon)
 ```bibtex
 @software{
   author       = {George, Jeomon},
-  title        = {Windows-MCP: Lightweight open-source project for integrating LLM agents with Windows},
+  title        = {Windows-Use: Enable AI to control Windows OS},
   year         = {2025},
   publisher    = {GitHub},
   url={https://github.com/CursorTouch/Windows-Use}
