@@ -57,12 +57,18 @@ def click_tool(loc:tuple[int,int],button:Literal['left','right','middle']='left'
     return f'{num_clicks.get(clicks)} {button} Clicked on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
 
 @tool('Type Tool',args_schema=Type)
-def type_tool(loc:tuple[int,int],text:str,clear:bool=False,desktop:Desktop=None):
+def type_tool(loc:tuple[int,int],text:str,clear:str='false',caret_position:Literal['start','idle','end']='idle',desktop:Desktop=None):
     'Type text into input fields, text areas, or focused elements. Set clear=True to replace existing text, False to append. Click on target element coordinates first.'
     x,y=loc
     cursor.click_on(loc)
     control=desktop.get_element_under_cursor()
-    if clear==True:
+    if caret_position == 'start':
+        pg.press('home')
+    elif caret_position == 'end':
+        pg.press('end')
+    else:
+        pass
+    if clear=='true':
         pg.hotkey('ctrl','a')
         pg.press('backspace')
     pg.typewrite(text,interval=0.1)
