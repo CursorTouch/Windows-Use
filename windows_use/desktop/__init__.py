@@ -7,6 +7,7 @@ from io import BytesIO
 from PIL import Image
 import subprocess
 import pyautogui
+import base64
 import csv
 import io
 
@@ -110,4 +111,6 @@ class Desktop:
         size=(screenshot.width*scale, screenshot.height*scale)
         screenshot.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
         screenshot.save(buffer, format='PNG')
-        return buffer.getvalue()
+        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        data_uri = f"data:image/png;base64,{img_base64}"
+        return data_uri
