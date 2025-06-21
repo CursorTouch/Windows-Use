@@ -15,6 +15,16 @@ class TreeState:
     def scrollable_elements_to_string(self)->str:
         n=len(self.interactive_nodes)
         return '\n'.join([f'Label: {n+index} App Name: {node.app_name} Name: {node.name} Cordinates: {node.center.to_string()} Horizontal Scrollable: {node.horizontal_scrollable} Vertical Scrollable: {node.vertical_scrollable}' for index,node in enumerate(self.scrollable_nodes)])
+    
+@dataclass
+class BoundingBox:
+    left:int
+    top:int
+    right:int
+    bottom:int
+
+    def to_string(self):
+        return f'({self.left},{self.top},{self.right},{self.bottom})'
 
 @dataclass
 class Center:
@@ -29,6 +39,7 @@ class TreeElementNode:
     name:str
     control_type:str
     shortcut:str
+    bounding_box:BoundingBox
     center:Center
     app_name:str
 

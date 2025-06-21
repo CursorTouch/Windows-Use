@@ -1,7 +1,9 @@
 from uiautomation import GetScreenSize, Control, GetRootControl, ControlType, GetFocusedControl
 from windows_use.desktop.views import DesktopState,App,Size
 from windows_use.desktop.config import EXCLUDED_APPS
+from PIL.Image import Image as PILImage
 from windows_use.tree import Tree
+from fuzzywuzzy import process
 from time import sleep
 from io import BytesIO
 from PIL import Image
@@ -17,10 +19,14 @@ class Desktop:
         
     def get_state(self,use_vision:bool=False)->DesktopState:
         tree=Tree(self)
-        tree_state=tree.get_state()
-        screenshot=self.get_screenshot(scale=0.6) if use_vision else None
         apps=self.get_apps()
+        tree_state=tree.get_state()
         active_app,apps=(apps[0],apps[1:]) if len(apps)>0 else (None,[])
+        if use_vision:
+            annotated_screenshot=tree.annotate(tree_state.interactive_nodes)
+            screenshot=self.screenshot_in_bytes(annotated_screenshot)
+        else:
+            screenshot=None
         self.desktop_state=DesktopState(apps=apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
         return self.desktop_state
     
@@ -31,9 +37,9 @@ class Desktop:
     
     def get_app_status(self,control:Control)->str:
         taskbar=self.get_taskbar()
-        screen_width, screen_height = GetScreenSize()
-        window = control.BoundingRectangle
         taskbar_height=taskbar.BoundingRectangle.height()
+        window = control.BoundingRectangle
+        screen_width, screen_height = GetScreenSize()
         window_width,window_height=window.width(),window.height()
         if window.isempty():
             return "Minimized"
@@ -60,7 +66,11 @@ class Desktop:
         
     def launch_app(self,name:str):
         apps_map=self.get_apps_from_start_menu()
-        appid=apps_map.get(name.lower())
+        matched_app=process.extractOne(name,apps_map.keys())
+        if matched_app is None:
+            return (f'Application {name.title()} not found in start menu.',1)
+        app_name,_=matched_app
+        appid=apps_map.get(app_name)
         if appid is None:
             return (f'Application {name.title()} not found in start menu.',1)
         if name.endswith('.exe'):
@@ -105,12 +115,15 @@ class Desktop:
             apps = []
         return apps
     
-    def get_screenshot(self,scale:float=0.7)->bytes:
-        buffer= BytesIO()
-        screenshot=pyautogui.screenshot()
-        size=(screenshot.width*scale, screenshot.height*scale)
-        screenshot.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
-        screenshot.save(buffer, format='PNG')
+    def screenshot_in_bytes(self,screenshot:PILImage)->bytes:
+        buffer=BytesIO()
+        screenshot.save(buffer,format='PNG')
         img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
         data_uri = f"data:image/png;base64,{img_base64}"
         return data_uri
+
+    def get_screenshot(self,scale:float=0.7)->Image:
+        screenshot=pyautogui.screenshot()
+        size=(screenshot.width*scale, screenshot.height*scale)
+        screenshot.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
+        return screenshot
