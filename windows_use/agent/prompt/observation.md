@@ -16,11 +16,11 @@ Opened Applications:
 List of Interactive Elements:
 {interactive_elements}
 
-List of Informative Elements:
-{informative_elements}
-
 List of Scrollable Elements:
 {scrollable_elements}
+
+List of Informative Elements:
+{informative_elements}
 
 [End of Desktop State]
 

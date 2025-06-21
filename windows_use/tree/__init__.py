@@ -122,6 +122,7 @@ class Tree:
                 scrollable_nodes.append(ScrollElementNode(
                     name=node.Name.strip() or node.LocalizedControlType.capitalize() or "''",
                     app_name=app_name,
+                    control_type=node.LocalizedControlType.title(),
                     center=center,
                     horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
                     vertical_scrollable=scroll_pattern.VerticallyScrollable
@@ -136,7 +137,7 @@ class Tree:
     def get_random_color(self):
         return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
-    def annotate(self,nodes:list[TreeElementNode],save_screenshot:bool=False)->Image:
+    def annotate(self,nodes:list[TreeElementNode])->Image:
         screenshot=self.desktop.get_screenshot()
         # Include padding to the screenshot
         padding=20
@@ -181,7 +182,4 @@ class Tree:
             text_x = label_x1 + 2  # Padding for text inside the rectangle
             text_y = label_y1 + 2
             draw.text((text_x, text_y), str(label), fill=(255, 255, 255), font=font)
-
-        if save_screenshot:
-            self.desktop.save_screenshot(padded_screenshot)
         return padded_screenshot
