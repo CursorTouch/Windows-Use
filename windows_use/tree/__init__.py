@@ -185,8 +185,8 @@ class Tree:
     def get_random_color(self):
         return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
-    def annotated_screenshot(self, nodes: list[TreeElementNode],scale:float=0.7) -> Image.Image:
-        screenshot = self.desktop.get_screenshot(scale=scale)
+    def annotated_screenshot(self, nodes: list[TreeElementNode],scale:float=0.7, monitor_id:int=None) -> Image.Image:
+        screenshot = self.desktop.get_screenshot(scale=scale, monitor_id=monitor_id)
         sleep(0.25)
         # Add padding
         padding = 20

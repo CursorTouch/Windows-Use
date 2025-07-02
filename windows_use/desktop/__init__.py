@@ -4,6 +4,7 @@ from windows_use.desktop.config import EXCLUDED_APPS
 from PIL.Image import Image as PILImage
 from windows_use.tree import Tree
 from fuzzywuzzy import process
+from screeninfo import get_monitors
 from time import sleep
 from io import BytesIO
 from PIL import Image
@@ -23,7 +24,8 @@ class Desktop:
         tree_state=tree.get_state()
         active_app,apps=(apps[0],apps[1:]) if len(apps)>0 else (None,[])
         if use_vision:
-            annotated_screenshot=tree.annotated_screenshot(tree_state.interactive_nodes,scale=0.5)
+            monitor_id = self.get_active_monitor(active_app)
+            annotated_screenshot=tree.annotated_screenshot(tree_state.interactive_nodes,scale=0.5, monitor_id=monitor_id)
             screenshot=self.screenshot_in_bytes(annotated_screenshot)
         else:
             screenshot=None
@@ -134,8 +136,29 @@ class Desktop:
         data_uri = f"data:image/png;base64,{img_base64}"
         return data_uri
 
-    def get_screenshot(self,scale:float=0.7)->Image.Image:
-        screenshot=pyautogui.screenshot()
+    def get_screenshot(self,scale:float=0.7, monitor_id:int=None)->Image.Image:
+        if monitor_id is not None:
+            monitors = get_monitors()
+            if monitor_id < len(monitors):
+                monitor = monitors[monitor_id]
+                screenshot = pyautogui.screenshot(region=(monitor.x, monitor.y, monitor.width, monitor.height))
+            else:
+                screenshot = pyautogui.screenshot()
+        else:
+            screenshot=pyautogui.screenshot()
         size=(screenshot.width*scale, screenshot.height*scale)
         screenshot.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
         return screenshot
+
+    def get_monitors(self):
+        return get_monitors()
+
+    def get_active_monitor(self, app: App):
+        if app is None:
+            return 0 
+        monitors = self.get_monitors()
+        app_center_x = app.size.width / 2
+        for i, monitor in enumerate(monitors):
+            if monitor.x <= app_center_x < monitor.x + monitor.width:
+                return i
+        return 0
