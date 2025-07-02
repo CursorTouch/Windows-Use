@@ -43,6 +43,7 @@ dependencies = [
     "termcolor>=3.1.0",
     "twine>=6.1.0",
     "uiautomation>=2.0.28",
+    "screeninfo>=0.8.1",
 ]
 
 [project.optional-dependencies]
