@@ -81,11 +81,17 @@ class Agent:
                 break
             except Exception as e:
                 error=e
+                print("=" * 50)
+                print(f"[Retry {consecutive_failures}] Failed to extract agent data")
+                print("=" * 50)
+                print("LLM Response Content:")
                 print(message.content)
-                logger.error(f"[Retry {consecutive_failures}] Failed to extract agent data\nError:{e}")
+                print("=" * 50)
                 consecutive_failures+=1
         if consecutive_failures>max_consecutive_failures:
-            return {**state,'agent_data':None,'error':f"Failed to extract agent data after {max_consecutive_failures} retries.\nError:{error}"}
+            error_msg = f"Failed to extract agent data after {max_consecutive_failures} retries.\nError:{error}"
+            print(error_msg)
+            return {**state,'agent_data':None,'error':error_msg}
 
         logger.info(f"Iteration: {steps}")
         logger.info(colored(f"📝: Evaluate: {agent_data.evaluate}",color='yellow',attrs=['bold']))

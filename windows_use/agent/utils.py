@@ -36,7 +36,21 @@ def extract_agent_data(message: BaseMessage) -> AgentData:
             # If there's an issue with conversion, store it as raw string
             action['params'] = json.loads(action_input_str)
     result['action'] = action
-    return  AgentData.model_validate(result)
+    
+    # Print the message content for debugging when validation fails
+    try:
+        return AgentData.model_validate(result)
+    except Exception as e:
+        print("=" * 50)
+        print("FAILED TO EXTRACT AGENT DATA")
+        print("=" * 50)
+        print("Message content:")
+        print(text)
+        print("=" * 50)
+        print("Extracted result:")
+        print(result)
+        print("=" * 50)
+        raise e
 
 def image_message(prompt,image)->HumanMessage:
     return HumanMessage(content=[

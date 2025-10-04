@@ -49,6 +49,8 @@ dependencies = [
     "termcolor>=3.1.0",
     "twine>=6.1.0",
     "uiautomation>=2.0.29",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
