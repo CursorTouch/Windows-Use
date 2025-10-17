@@ -1,7 +1,8 @@
 from windows_use.agent.tree.views import TreeState
-from typing import Optional
 from dataclasses import dataclass
 from tabulate import tabulate
+from typing import Optional
+from PIL.Image import Image
 from enum import Enum
 
 class Browser(Enum):
@@ -39,7 +40,7 @@ class Size:
 class DesktopState:
     apps:list[App]
     active_app:Optional[App]
-    screenshot:bytes|None
+    screenshot:str|Image|None
     tree_state:TreeState
 
     def active_app_to_string(self):

@@ -343,7 +343,7 @@ class Tree:
                     tree_traversal(child, current_xpath=child_xpath, is_dom=True, is_dialog=is_dialog)
                 # Check if the child is a dialog
                 elif isinstance(child,WindowControl):
-                    if not is_keyboard_focusable(child):
+                    if not (is_keyboard_focusable(child) or child.IsOffscreen):
                         if is_dom:
                             bounding_box=child.BoundingRectangle
                             if bounding_box.width() > 0.6*self.screen_box.width:
@@ -351,8 +351,8 @@ class Tree:
                                 dom_interactive_nodes.clear()
                         else:
                             interactive_nodes.clear()
-                    # enter dialog subtree
-                    tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=True)
+                        # enter dialog subtree
+                        tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=True)
                 else:
                     # normal non-dialog children
                     tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=is_dialog)

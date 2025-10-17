@@ -39,13 +39,16 @@ class Desktop:
         self.tree=Tree(self)
         self.desktop_state=None
         
-    def get_state(self,use_vision:bool=False)->DesktopState:
+    def get_state(self,use_vision:bool=False,in_base64:bool=True)->DesktopState:
         active_app,apps=self.get_apps()
         root=uia.GetRootControl()
         tree_state=self.tree.get_state(root=root)
         if use_vision:
             annotated_screenshot=self.tree.annotated_screenshot(tree_state.interactive_nodes,scale=0.5)
-            screenshot=self.screenshot_in_base64(annotated_screenshot)
+            if in_base64:
+                screenshot=self.screenshot_in_base64(annotated_screenshot)
+            else:
+                screenshot=annotated_screenshot
         else:
             screenshot=None
         self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
