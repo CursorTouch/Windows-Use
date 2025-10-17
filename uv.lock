@@ -2382,7 +2382,7 @@ wheels = [
 
 [[package]]
 name = "windows-use"
-version = "0.6.1"
+version = "0.6.5"
 source = { editable = "." }
 dependencies = [
     { name = "fuzzywuzzy" },

@@ -164,7 +164,7 @@ def shell_tool(command: str,**kwargs) -> str:
 @tool('Click Tool',args_schema=Click)
 def click_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
     '''
-    Performs mouse click operations on UI elements at specified label/coordinates.
+    Performs mouse click operations on UI elements using either specified label or coordinates.
     
     Click patterns:
         - Single left click: Select elements, focus input fields
@@ -174,8 +174,6 @@ def click_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button
     
     Automatically detects UI elements under cursor and adjusts click behavior 
     for reliable interaction. Essential for all point-and-click UI operations.
-
-    Note: Accessing the element can be either by label or coordinates.
     '''
     desktop:Desktop=kwargs['desktop']
     num_clicks={1:'Single',2:'Double',3:'Triple'}
@@ -194,7 +192,7 @@ def click_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button
 @tool('Type Tool',args_schema=Type)
 def type_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
     '''
-    Types text into input fields, text areas, and focused UI elements.
+    Types text into input fields, text areas, and focused UI elements using either specified label or coordinates.
     
     Features:
         - Click target element and input text automatically
@@ -203,9 +201,8 @@ def type_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:st
         - Optionally press Enter after typing
     
     Use for form filling, search queries, text editing, and any text input operation.
-    Always click on the target element label/coordinates first to ensure proper focus.
+    Always click on the target element using label or coordinates first to ensure proper focus.
 
-    Note: Accessing the element can be either by label or coordinates.
     '''
     desktop:Desktop=kwargs['desktop']
     if loc:

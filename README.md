@@ -48,6 +48,26 @@ pip install windows-use
 
 ## ⚙️Basic Usage
 
+
+### Ollama
+
+```python
+from langchain_ollama.chat_models import ChatOllama
+from windows_use.agent import Agent, Browser
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+def main():
+    llm=ChatOllama(model='qwen3-vl:235b-cloud')
+    agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False, auto_minimize=False)
+    agent.print_response(query=input("Enter a query: "))
+
+if __name__ == "__main__":
+    main()
+```
+
 ### Google Gemini
 
 ```python
@@ -79,26 +99,6 @@ load_dotenv()
 
 def main():
     llm=ChatCerebras(api_key=os.getenv("CEREBRAS_API_KEY"), model="gpt-oss-120b", temperature=0.2)
-    agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False, auto_minimize=True)
-    agent.print_response(query=input("Enter a query: "))
-
-if __name__ == "__main__":
-    main()
-```
-
-### OpenRouter
-
-```python
-from windows_use.llm.openrouter import ChatOpenRouter
-from windows_use.agent import Agent, Browser
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-def main():
-    api_key=os.getenv("OPENROUTER_API_KEY")
-    llm = ChatOpenRouter(model="openai/gpt-4o",api_key=api_key)
     agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False, auto_minimize=True)
     agent.print_response(query=input("Enter a query: "))
 
