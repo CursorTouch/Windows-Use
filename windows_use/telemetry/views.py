@@ -15,11 +15,11 @@ class BaseTelemetryEvent(ABC):
     
 @dataclass
 class AgentTelemetryEvent(BaseTelemetryEvent):
-    task: str
+    input: str
     use_vision:bool
-    max_steps:int
-    result: str | None
+    steps:int
+    output: str | None
     error: str | None
-    actions: list[dict]|None
+    messages: list[dict]|None
     event_name: str = "agent_event"
     

@@ -1,7 +1,7 @@
 from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool, multi_select_tool,
 shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_tool, multi_edit_tool)
+from windows_use.agent.utils import extract_agent_data, image_message, message_to_dict
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from windows_use.agent.utils import extract_agent_data, image_message
 from langchain_core.language_models.chat_models import BaseChatModel
 from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.telemetry.service import ProductTelemetry
@@ -137,7 +137,7 @@ class Agent:
         desktop_state = self.desktop.get_state(use_vision=self.use_vision)
         prompt=Prompt.observation_prompt(query=state.get('input'),steps=steps,max_steps=max_steps, tool_result=tool_result, desktop_state=desktop_state)
         human_message=image_message(prompt=prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=prompt)
-        return {**state,'agent_data':None,'actions':[],'messages':[ai_message, human_message],'previous_observation':previous_observation}
+        return {**state,'agent_data':None,'messages':[ai_message, human_message],'previous_observation':previous_observation}
 
     def answer(self,state:AgentState):
         """
@@ -163,8 +163,8 @@ class Agent:
         else:
             tool_result=ToolResult(is_success=False,content="The agent has reached the maximum number of steps.")
         ai_message = AIMessage(content=Prompt.answer_prompt(agent_data=agent_data, tool_result=tool_result))
-        logger.info(f"[Agent]📜: Final Answer: {shorten(tool_result.content,500,placeholder='...')}")
-        return {**state,'agent_data':None,'actions':[],'messages':[ai_message],'previous_observation':None,'output':tool_result.content}
+        logger.info(f"[Agent]📜: Final Answer: {shorten(tool_result.content,500,placeholder='...')}\n")
+        return {**state,'agent_data':None,'messages':[ai_message],'previous_observation':None,'output':tool_result.content}
 
     def main_controller(self,state:AgentState):
         """
@@ -212,14 +212,16 @@ class Agent:
     
     def log_agent_telemetry(self, response:dict):
         agent_state=cast(AgentState,response)
-        actions = agent_state.get('actions', [])
+        messages=[message_to_dict(message) 
+        for message in agent_state.get('messages') 
+        if not isinstance(message, SystemMessage)]
         self.telemetry.capture(AgentTelemetryEvent(**{
-            'task': agent_state.get('input', ''),
+            'input': agent_state.get('input', ''),
             'use_vision': self.use_vision,
-            'max_steps': agent_state.get('steps'),
+            'steps': agent_state.get('steps'),
             'error': agent_state.get('error', None),
-            'result': agent_state.get('output', None),
-            'actions': [action.to_dict() for action in actions] if actions else None
+            'output': agent_state.get('output', None),
+            'messages': messages,
         }))
 
     def invoke(self,query: str)->AgentResult:

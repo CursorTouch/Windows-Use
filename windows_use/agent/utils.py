@@ -1,4 +1,4 @@
-from langchain_core.messages import BaseMessage,HumanMessage
+from langchain_core.messages import BaseMessage,HumanMessage,AIMessage
 from windows_use.agent.views import AgentData
 import json
 import ast
@@ -65,3 +65,12 @@ def image_message(prompt,image)->HumanMessage:
             }
         },
     ])
+
+def message_to_dict(message:BaseMessage)->dict:
+    match message.type:
+        case "human":
+            return {"type":"user","content":message.content}
+        case "ai":
+            return {"type":"assistant","content":message.content}
+        case _:
+            pass
