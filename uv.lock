@@ -131,6 +131,15 @@ wheels = [
 ]
 
 [[package]]
+name = "backoff"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/d7/5bbeb12c44d7c4f2fb5b56abce497eb5ed9f34d85701de869acedd602619/backoff-2.2.1.tar.gz", hash = "sha256:03f829f5bb1923180821643f8753b0502c3b682293992485b0eef2807afa5cba", size = 17001, upload-time = "2022-10-05T19:19:32.061Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/73/b6e24bd22e6720ca8ee9a85a0c4a2971af8497d8f3193fa05390cbd46e09/backoff-2.2.1-py3-none-any.whl", hash = "sha256:63579f9a0628e06278f7e47b7d7d5b6ce20dc65c5e96a6f3ca99a6adca0396e8", size = 15148, upload-time = "2022-10-05T19:19:30.546Z" },
+]
+
+[[package]]
 name = "beautifulsoup4"
 version = "4.13.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1539,6 +1548,23 @@ wheels = [
 ]
 
 [[package]]
+name = "posthog"
+version = "6.7.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "backoff" },
+    { name = "distro" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+    { name = "six" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/b1/a23c9d092de37e9ce39e27166f38f81b0bd7704022fe23f90734eb4b7ad4/posthog-6.7.8.tar.gz", hash = "sha256:999e65134571827061332f1f311df9b24730b386c6eabe0057bf768e514d87a8", size = 119085, upload-time = "2025-10-16T14:46:53.126Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1e/ce/5e5ede2f0b24db113544f9f7ce08d395a4107cbc66d77b8d05d9eaeaeada/posthog-6.7.8-py3-none-any.whl", hash = "sha256:842ccb518f925425f714bae29e4ac36a059a8948c45f6ed155543ca7386d554b", size = 137299, upload-time = "2025-10-16T14:46:51.547Z" },
+]
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.51"
 source = { registry = "https://pypi.org/simple" }
@@ -2372,6 +2398,15 @@ wheels = [
 ]
 
 [[package]]
+name = "uuid7"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/19/7472bd526591e2192926247109dbf78692e709d3e56775792fec877a7720/uuid7-0.1.0.tar.gz", hash = "sha256:8c57aa32ee7456d3cc68c95c4530bc571646defac01895cfc73545449894a63c", size = 14052, upload-time = "2021-12-29T01:38:21.897Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/77/8852f89a91453956582a85024d80ad96f30a41fed4c2b3dce0c9f12ecc7e/uuid7-0.1.0-py2.py3-none-any.whl", hash = "sha256:5e259bb63c8cb4aded5927ff41b444a80d0c7124e8a0ced7cf44efa1f5cccf61", size = 7477, upload-time = "2021-12-29T01:38:20.418Z" },
+]
+
+[[package]]
 name = "wcwidth"
 version = "0.2.13"
 source = { registry = "https://pypi.org/simple" }
@@ -2399,6 +2434,7 @@ dependencies = [
     { name = "live-inspect" },
     { name = "markdownify" },
     { name = "pillow" },
+    { name = "posthog" },
     { name = "psutil" },
     { name = "pyautogui" },
     { name = "pydantic" },
@@ -2410,6 +2446,7 @@ dependencies = [
     { name = "termcolor" },
     { name = "twine" },
     { name = "uiautomation" },
+    { name = "uuid7" },
 ]
 
 [package.optional-dependencies]
@@ -2434,6 +2471,7 @@ requires-dist = [
     { name = "live-inspect", specifier = "==0.1.1" },
     { name = "markdownify", specifier = ">=1.1.0" },
     { name = "pillow", specifier = ">=11.2.1" },
+    { name = "posthog", specifier = ">=6.7.8" },
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "pyautogui", specifier = ">=0.9.54" },
     { name = "pydantic", specifier = ">=2.11.7" },
@@ -2447,6 +2485,7 @@ requires-dist = [
     { name = "termcolor", specifier = ">=3.1.0" },
     { name = "twine", specifier = ">=6.1.0" },
     { name = "uiautomation", specifier = ">=2.0.29" },
+    { name = "uuid7", specifier = ">=0.1.0" },
 ]
 provides-extras = ["dev"]
 

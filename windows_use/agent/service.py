@@ -3,6 +3,8 @@ shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_to
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from windows_use.agent.utils import extract_agent_data, image_message
 from langchain_core.language_models.chat_models import BaseChatModel
+from windows_use.telemetry.views import AgentTelemetryEvent
+from windows_use.telemetry.service import ProductTelemetry
 from windows_use.agent.registry.service import Registry
 from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.desktop.service import Desktop
@@ -15,8 +17,8 @@ from windows_use.agent.state import AgentState
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
-from termcolor import colored
 from textwrap import shorten
+from typing import cast
 import logging
 
 logger = logging.getLogger(__name__)
@@ -60,6 +62,7 @@ class Agent:
         self.auto_minimize=auto_minimize
         self.use_vision=use_vision
         self.llm = llm
+        self.telemetry=ProductTelemetry()
         self.watch_cursor = WatchCursor()
         self.desktop = Desktop()
         self.console=Console()
@@ -107,7 +110,7 @@ class Agent:
         last_message = state.get('messages').pop()
         if isinstance(last_message, HumanMessage):
             message=HumanMessage(content=Prompt.previous_observation_prompt(steps=steps,max_steps=max_steps,observation=state.get('previous_observation')))
-            return {**state,'agent_data':agent_data,'messages':[message],'steps':steps+1}
+            return {**state,'actions':[agent_data.action],'agent_data':agent_data,'messages':[message],'steps':steps+1}
         
     def action(self,state:AgentState):
         """
@@ -206,6 +209,18 @@ class Agent:
         graph.add_edge('answer',END)
 
         return graph.compile(debug=False)
+    
+    def log_agent_telemetry(self, response:dict):
+        agent_state=cast(AgentState,response)
+        actions = agent_state.get('actions', [])
+        self.telemetry.capture(AgentTelemetryEvent(**{
+            'task': agent_state.get('input', ''),
+            'use_vision': self.use_vision,
+            'max_steps': agent_state.get('steps'),
+            'error': agent_state.get('error', None),
+            'result': agent_state.get('output', None),
+            'actions': [action.to_dict() for action in actions] if actions else None
+        }))
 
     def invoke(self,query: str)->AgentResult:
         """
@@ -235,12 +250,15 @@ class Agent:
                 'consecutive_failures':1,
                 'max_consecutive_failures':self.consecutive_failures,
                 'agent_data':None,
+                'actions':[],
                 'messages':messages,
                 'previous_observation':None
             }
             try:
                 with self.watch_cursor:
-                    response=self.graph.invoke(state,config={'recursion_limit':self.max_steps*10})         
+                    response=self.graph.invoke(state,config={'recursion_limit':self.max_steps*10})  
+                self.log_agent_telemetry(response) 
+                      
             except Exception as error:
                 response={
                     'output':None,
