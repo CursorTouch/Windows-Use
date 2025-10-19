@@ -137,7 +137,7 @@ class Agent:
         desktop_state = self.desktop.get_state(use_vision=self.use_vision)
         prompt=Prompt.observation_prompt(query=state.get('input'),steps=steps,max_steps=max_steps, tool_result=tool_result, desktop_state=desktop_state)
         human_message=image_message(prompt=prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=prompt)
-        return {**state,'agent_data':None,'messages':[ai_message, human_message],'previous_observation':previous_observation}
+        return {**state,'agent_data':None,'actions':[],'messages':[ai_message, human_message],'previous_observation':previous_observation}
 
     def answer(self,state:AgentState):
         """
@@ -164,7 +164,7 @@ class Agent:
             tool_result=ToolResult(is_success=False,content="The agent has reached the maximum number of steps.")
         ai_message = AIMessage(content=Prompt.answer_prompt(agent_data=agent_data, tool_result=tool_result))
         logger.info(f"[Agent]📜: Final Answer: {shorten(tool_result.content,500,placeholder='...')}")
-        return {**state,'agent_data':None,'messages':[ai_message],'previous_observation':None,'output':tool_result.content}
+        return {**state,'agent_data':None,'actions':[],'messages':[ai_message],'previous_observation':None,'output':tool_result.content}
 
     def main_controller(self,state:AgentState):
         """
