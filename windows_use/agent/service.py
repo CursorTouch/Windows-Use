@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
-formatter = logging.Formatter('%(message)s')
+formatter = logging.Formatter('[%(levelname)s] %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -66,6 +66,15 @@ class Agent:
         self.graph=self.create_graph()
 
     def reason(self,state:AgentState):
+        '''
+        Reason about the next action based on the current state of the agent.
+
+        Args:
+            state (AgentState): The current state of the agent.
+
+        Returns:
+            dict: The next state of the agent after reasoning.
+        '''
         steps=state.get('steps')
         max_steps=state.get('max_steps')
         max_consecutive_failures=state.get('max_consecutive_failures')
@@ -91,10 +100,9 @@ class Agent:
             error_msg = f"Failed to extract agent data after {max_consecutive_failures} retries.\nError:{error}"
             print(error_msg)
             return {**state,'agent_data':None,'error':error_msg}
-
-        logger.info(f"Iteration: {steps}")
-        logger.info(colored(f"📝: Evaluate: {agent_data.evaluate}",color='yellow',attrs=['bold']))
-        logger.info(colored(f"💭: Thought: {agent_data.thought}",color='light_magenta',attrs=['bold']))
+        logger.info(f"[Agent]🎯: Step: {steps}")
+        logger.info(f"[Agent]📝: Evaluate: {agent_data.evaluate}")
+        logger.info(f"[Agent] 💭: Thought: {agent_data.thought}")
 
         last_message = state.get('messages').pop()
         if isinstance(last_message, HumanMessage):
@@ -102,24 +110,46 @@ class Agent:
             return {**state,'agent_data':agent_data,'messages':[message],'steps':steps+1}
         
     def action(self,state:AgentState):
+        """
+        Execute the action based on the current state of the agent.
+
+        Args:
+            state (AgentState): The current state of the agent.
+
+        Returns:
+            dict: The next state of the agent after executing the action.
+        """
         steps=state.get('steps')
         max_steps=state.get('max_steps')
         agent_data=state.get('agent_data')
         name = agent_data.action.name
         params = agent_data.action.params
-        logger.info(colored(f"🔧: Action: {name}({', '.join(f'{k}={v}' for k, v in params.items())})",color='blue',attrs=['bold']))
+        logger.info(f"[Tool]🔧: Action: {name}({', '.join(f'{k}={v}' for k, v in params.items())})")
         ai_message = AIMessage(content=Prompt.action_prompt(agent_data=agent_data))
         tool_result = self.registry.execute(tool_name=name, desktop=self.desktop, **params)
 
         observation=tool_result.content if tool_result.is_success else tool_result.error
         previous_observation=observation
-        logger.info(colored(f"🔭: Observation: {shorten(observation,500,placeholder='...')}",color='green',attrs=['bold']))
+        logger.info(f"[Tool]🔭: Observation: {shorten(observation,500,placeholder='...')}\n")
         desktop_state = self.desktop.get_state(use_vision=self.use_vision)
         prompt=Prompt.observation_prompt(query=state.get('input'),steps=steps,max_steps=max_steps, tool_result=tool_result, desktop_state=desktop_state)
         human_message=image_message(prompt=prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=prompt)
         return {**state,'agent_data':None,'messages':[ai_message, human_message],'previous_observation':previous_observation}
 
     def answer(self,state:AgentState):
+        """
+        Finalize the answer based on the current state of the agent.
+
+        This method is responsible for executing the final action based on the current state of the agent.
+        If the maximum number of steps has been reached, it will return a failure.
+        Otherwise, it will execute the action and return the result.
+
+        Args:
+            state (AgentState): The current state of the agent.
+
+        Returns:
+            dict: The next state of the agent after finalizing the answer.
+        """
         steps=state.get('steps')
         max_steps=state.get('max_steps')
         agent_data=state.get('agent_data')
@@ -130,10 +160,20 @@ class Agent:
         else:
             tool_result=ToolResult(is_success=False,content="The agent has reached the maximum number of steps.")
         ai_message = AIMessage(content=Prompt.answer_prompt(agent_data=agent_data, tool_result=tool_result))
-        logger.info(colored(f"📜: Final Answer: {shorten(tool_result.content,500,placeholder="...")}",color='cyan',attrs=['bold']))
+        logger.info(f"[Agent]📜: Final Answer: {shorten(tool_result.content,500,placeholder='...')}")
         return {**state,'agent_data':None,'messages':[ai_message],'previous_observation':None,'output':tool_result.content}
 
     def main_controller(self,state:AgentState):
+        """
+        The main controller of the agent.
+        
+        This method is responsible for deciding which action to take next based on the current state of the agent.
+        
+        If the agent has encountered an error, it will return END.
+        If the agent has reached the maximum number of steps, it will return 'answer'.
+        If the agent is currently executing a 'Done Tool' or 'Done' action, it will return 'answer'.
+        Otherwise, it will return 'action'.
+        """
         if state.get("error"):
             return END
         if state.get('steps')<state.get('max_steps'):
@@ -144,6 +184,17 @@ class Agent:
         return 'answer'    
 
     def create_graph(self):
+        '''
+        Compile the state graph of the agent.
+
+        The state graph is a directed acyclic graph (DAG) that represents the
+        possible states of the agent and the actions that it can take in each
+        state. The graph is compiled from the nodes and edges defined in this
+        method.
+
+        Returns:
+            A compiled StateGraph object.
+        '''
         graph=StateGraph(AgentState)
         graph.add_node('reason',self.reason)
         graph.add_node('action',self.action)
@@ -157,6 +208,15 @@ class Agent:
         return graph.compile(debug=False)
 
     def invoke(self,query: str)->AgentResult:
+        """
+        Invoke the agent to perform a task.
+
+        Args:
+            query (str): The instruction to the agent.
+
+        Returns:
+            AgentResult: The result of the agent's action, including the output and any error that occurred.
+        """
         with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
             desktop_state = self.desktop.get_state(use_vision=self.use_vision)
             language=self.desktop.get_default_language()
@@ -189,5 +249,14 @@ class Agent:
         return AgentResult(content=response['output'], error=response['error'])
 
     def print_response(self,query: str):
+        """
+        Print the response of the agent to the given query.
+
+        Args:
+            query (str): The instruction to the agent.
+
+        Returns:
+            None
+        """
         response=self.invoke(query)
         self.console.print(Markdown(response.content or response.error))
