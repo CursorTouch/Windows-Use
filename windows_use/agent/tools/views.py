@@ -68,6 +68,11 @@ class Memory(SharedBaseModel):
     )
 
 class Click(SharedBaseModel):
+    mode: Literal['label', 'loc'] = Field(
+        description="Click mode: 'label' for element label, 'loc' for pixel coordinates",
+        default='label',
+        examples=['label', 'loc']
+    )
     label: int|None = Field(
         description="Label of element to click (0-indexed)",
         default=None,
@@ -102,6 +107,11 @@ class Shell(SharedBaseModel):
     )
 
 class Type(SharedBaseModel):
+    mode: Literal['label', 'loc'] = Field(
+        description="Type mode: 'label' for element label, 'loc' for pixel coordinates",
+        default='label',
+        examples=['label', 'loc']
+    )
     label: int|None = Field(
         description="Label of element to click (0-indexed)",
         default=None,
@@ -148,6 +158,11 @@ class MultiEdit(SharedBaseModel):
     )
 
 class Scroll(SharedBaseModel):
+    mode: Literal['label', 'loc',''] = Field(
+        description="Scroll mode: 'label' for element label, 'loc' for pixel coordinates",
+        default='',
+        examples=['label', 'loc','']
+    )
     label: int|None = Field(
         description="Label of element to scroll (0-indexed)",
         default=None,

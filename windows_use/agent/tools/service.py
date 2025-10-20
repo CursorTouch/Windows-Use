@@ -162,7 +162,7 @@ def shell_tool(command: str,**kwargs) -> str:
     return f'Response: {response}\nStatus Code: {status}'
 
 @Tool('Click Tool',args_schema=Click)
-def click_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
+def click_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
     '''
     Performs mouse click operations on UI elements using either specified label or coordinates.
     
@@ -177,20 +177,20 @@ def click_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button
     '''
     desktop:Desktop=kwargs['desktop']
     num_clicks={1:'Single',2:'Double',3:'Triple'}
-    if loc:
-        x,y=loc
-        desktop.click(loc,button,clicks)
-        return f'{num_clicks.get(clicks)} {button} at ({x},{y}).'
-    elif label:
-        
-        loc=desktop.get_coordinates_from_label(label)
-        desktop.click(loc,button,clicks)
-        return f'{num_clicks.get(clicks)} {button} on label {label}.'
-    else:
-        return 'Error: Either label or coordinates must be provided.'
+    match mode:
+        case 'label':
+            loc=desktop.get_coordinates_from_label(label)
+            desktop.click(loc,button,clicks)
+            return f'{num_clicks.get(clicks)} {button} on label {label}.'
+        case 'loc':
+            x,y=loc
+            desktop.click(loc,button,clicks)
+            return f'{num_clicks.get(clicks)} {button} at ({x},{y}).'
+        case _:
+            return 'Error: Either label or coordinates must be provided.'
 
 @Tool('Type Tool',args_schema=Type)
-def type_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
+def type_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
     '''
     Types text into input fields, text areas, and focused UI elements using either specified label or coordinates.
     
@@ -205,19 +205,20 @@ def type_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:st
 
     '''
     desktop:Desktop=kwargs['desktop']
-    if loc:
-        x,y=loc
-        desktop.type(loc,text,clear,caret_position,press_enter)
-        return f'Typed {text} at ({x},{y}).'
-    elif label:
-        loc=desktop.get_coordinates_from_label(label)
-        desktop.type(loc,text,clear,caret_position,press_enter)
-        return f'Typed {text} on label {label}.'
-    else:
-        return 'Error: Either label or coordinates must be provided.'
+    match mode:
+        case 'label':
+            loc=desktop.get_coordinates_from_label(label)
+            desktop.type(loc,text,clear,caret_position,press_enter)
+            return f'Typed {text} on label {label}.'
+        case 'loc':
+            x,y=loc
+            desktop.type(loc,text,clear,caret_position,press_enter)
+            return f'Typed {text} at ({x},{y}).'
+        case _:
+            return 'Error: Either label or coordinates must be provided.'
 
 @Tool('Scroll Tool',args_schema=Scroll)
-def scroll_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
+def scroll_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
     '''
     Scrolls content vertically or horizontally at specified or current cursor location.
     
@@ -235,14 +236,14 @@ def scroll_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,type:
     Essential tool for accessing content beyond the visible viewport.
     '''
     desktop:Desktop=kwargs['desktop']
-    if loc:
-        response=desktop.scroll(loc,type,direction,wheel_times)
-    elif label:
-        loc=desktop.get_coordinates_from_label(label)
-        response=desktop.scroll(loc,type,direction,wheel_times)
-    else:
-        response=desktop.scroll(type=type,direction=direction,wheel_times=wheel_times)
-        
+    match mode:
+        case 'label':
+            loc=desktop.get_coordinates_from_label(label)
+            response=desktop.scroll(loc,type,direction,wheel_times)
+        case 'loc':
+            response=desktop.scroll(loc,type,direction,wheel_times)
+        case _:
+            response=desktop.scroll(type=type,direction=direction,wheel_times=wheel_times)
     if response:
         return response
     return f'Scrolled {type} {direction} by {wheel_times} wheel times.'

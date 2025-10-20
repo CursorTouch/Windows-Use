@@ -206,19 +206,17 @@ class Desktop:
             app_name=target.name
             target_handle=target.handle
 
-        foreground_handle=uia.GetForegroundWindow()
-        foreground_thread,_=win32process.GetWindowThreadProcessId(foreground_handle)
-        target_thread,_=win32process.GetWindowThreadProcessId(target_handle)
-        win32process.AttachThreadInput(foreground_thread,target_thread,True)
-
         if uia.IsIconic(target_handle):
             uia.ShowWindow(target_handle, win32con.SW_RESTORE)
             content=f'{app_name.title()} restored from Minimized state.'
         else:
+            foreground_handle=uia.GetForegroundWindow()
+            foreground_thread,_=win32process.GetWindowThreadProcessId(foreground_handle)
+            target_thread,_=win32process.GetWindowThreadProcessId(target_handle)
+            win32process.AttachThreadInput(foreground_thread,target_thread,True)
             uia.SetForegroundWindow(target_handle)
+            win32process.AttachThreadInput(foreground_thread,target_thread,False)
             content=f'Switched to {app_name.title()} window.'
-            
-        win32process.AttachThreadInput(foreground_thread,target_thread,False)
         return content,0
         
     
