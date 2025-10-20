@@ -75,15 +75,15 @@ class Agent:
                         except Exception as e:
                             logger.error(f"[LLM]: {e}. Retrying attempt {consecutive_failures+1}...")
                             if consecutive_failures==self.max_consecutive_failures-1:
-                                self.telemetry.capture(AgentTelemetryEvent(
-                                    query=query,
-                                    answer='',
-                                    error=str(e),
-                                    use_vision=self.use_vision,
-                                    model=self.llm.model_name,
-                                    provider=self.llm.provider,
-                                    agent_log=agent_log
-                                ))
+                                # self.telemetry.capture(AgentTelemetryEvent(
+                                #     query=query,
+                                #     answer='',
+                                #     error=str(e),
+                                #     use_vision=self.use_vision,
+                                #     model=self.llm.model_name,
+                                #     provider=self.llm.provider,
+                                #     agent_log=agent_log
+                                # ))
                                 return AgentResult(is_done=False, error=str(e))
 
                     logger.info(f"[Agent] 🎯 Step: {steps}")
@@ -126,18 +126,18 @@ class Agent:
                         human_message=ImageMessage(content=human_prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
                         messages.append(human_message)
             
-            self.telemetry.capture(AgentTelemetryEvent(
-                query=query,
-                answer=answer,
-                error='',
-                use_vision=self.use_vision,
-                model=self.llm.model_name,
-                provider=self.llm.provider,
-                agent_log=agent_log
-            ))
+            # self.telemetry.capture(AgentTelemetryEvent(
+            #     query=query,
+            #     answer=answer,
+            #     error='',
+            #     use_vision=self.use_vision,
+            #     model=self.llm.model_name,
+            #     provider=self.llm.provider,
+            #     agent_log=agent_log
+            # ))
             return AgentResult(is_done=True,content=answer)
         except KeyboardInterrupt:
-            logger.warning("[Agent] ⚠️ Interrupted by user (Ctrl+C). Flushing telemetry before exit...")
+            logger.warning("[Agent] ⚠️: Interrupted by user (Ctrl+C).")
             self.telemetry.flush()
             return AgentResult(is_done=False, error="Interrupted by user")
         
