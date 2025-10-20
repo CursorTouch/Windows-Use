@@ -40,7 +40,7 @@ class Size:
 class DesktopState:
     apps:list[App]
     active_app:Optional[App]
-    screenshot:str|Image|None
+    screenshot:Image|None
     tree_state:TreeState
 
     def active_app_to_string(self):

@@ -2,7 +2,6 @@ from windows_use.agent.desktop.views import DesktopState, Browser
 from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.views import AgentData
-from langchain.prompts import PromptTemplate
 from importlib.resources import files
 from datetime import datetime
 from getpass import getuser
@@ -13,7 +12,7 @@ class Prompt:
     @staticmethod
     def system_prompt(desktop:Desktop,browser: Browser,language: str,tools_prompt:str,max_steps:int,instructions: list[str]=[]) -> str:
         width, height = pg.size()
-        template =PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('system.md'))
+        template =Path(files('windows_use.agent.prompt').joinpath('system.md')).read_text()
         return template.format(**{
             'current_datetime': datetime.now().strftime('%A, %B %d, %Y'),
             'instructions': '\n'.join(instructions),
@@ -30,7 +29,7 @@ class Prompt:
     
     @staticmethod
     def action_prompt(agent_data:AgentData) -> str:
-        template = PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('action.md'))
+        template = Path(files('windows_use.agent.prompt').joinpath('action.md')).read_text()
         return template.format(**{
             'evaluate': agent_data.evaluate,
             'thought': agent_data.thought,
@@ -40,7 +39,7 @@ class Prompt:
     
     @staticmethod
     def previous_observation_prompt(steps:int,max_steps:int,observation: str)-> str:
-        template=PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('previous_observation.md'))
+        template=Path(files('windows_use.agent.prompt').joinpath('previous_observation.md')).read_text()
         return template.format(**{
             'steps': steps,
             'max_steps': max_steps,
@@ -51,7 +50,7 @@ class Prompt:
     def observation_prompt(query:str,steps:int,max_steps:int, tool_result:ToolResult,desktop_state: DesktopState) -> str:
         cursor_location = pg.position()
         tree_state = desktop_state.tree_state
-        template = PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('observation.md'))
+        template = Path(files('windows_use.agent.prompt').joinpath('observation.md')).read_text()
         return template.format(**{
             'steps': steps,
             'max_steps': max_steps,
@@ -67,7 +66,7 @@ class Prompt:
     
     @staticmethod
     def answer_prompt(agent_data: AgentData, tool_result: ToolResult):
-        template = PromptTemplate.from_file(files('windows_use.agent.prompt').joinpath('answer.md'))
+        template = Path(files('windows_use.agent.prompt').joinpath('answer.md')).read_text()
         return template.format(**{
             'evaluate': agent_data.evaluate,
             'thought': agent_data.thought,

@@ -16,6 +16,8 @@ class BaseTelemetryEvent(ABC):
 @dataclass
 class AgentTelemetryEvent(BaseTelemetryEvent):
     input: str
+    model:str
+    provider:str
     use_vision:bool
     steps:int
     output: str | None

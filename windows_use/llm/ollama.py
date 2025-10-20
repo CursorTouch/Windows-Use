@@ -1,0 +1,65 @@
+from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
+from windows_use.llm.views import ChatLLMResponse, ChatLLMUsage
+from windows_use.llm.base import BaseChatLLM
+from ollama import Client,Image,Message
+from dataclasses import dataclass
+from pydantic import BaseModel
+
+@dataclass
+class ChatOllama(BaseChatLLM):
+    def __init__(self,host: str|None=None, model: str|None=None, api_key: str|None=None, temperature: float = 0.7):
+        self.host = host
+        self.model = model
+        self.api_key = api_key
+        self.temperature = temperature
+    
+    @property
+    def provider(self) -> str:
+        return "ollama"
+    
+    @property
+    def client(self) -> Client:
+        return Client(host=self.host)
+    
+    @property
+    def model_name(self) -> str:
+        return self.model
+    
+    def serialize_messages(self, messages: list[BaseMessage]) -> list[dict]:
+        serialized = []
+        for message in messages:
+            if isinstance(message, SystemMessage):
+                serialized.append(Message(role="system", content=message.content))
+            elif isinstance(message, HumanMessage):
+                serialized.append(Message(role="user", content=message.content))
+            elif isinstance(message, AIMessage):
+                serialized.append(Message(role="assistant", content=message.content))
+            elif isinstance(message, ImageMessage):
+                data = message.image_to_bytes()
+                serialized.append(Message(role="user", content=message.content,images=[Image(value=data)]))
+            else:
+                raise ValueError(f"Unsupported message type: {type(message)}")
+        return serialized
+    
+    def invoke(self, messages: list[BaseMessage],structured_output:BaseModel|None=None) -> str:
+        completion=self.client.chat(
+            model=self.model,
+            messages=self.serialize_messages(messages),
+            format=structured_output.model_json_schema() if structured_output else "",
+        )
+        if structured_output:
+            content=structured_output.model_validate_json(completion.message.content)
+        else:
+            content=completion.message.content
+        return ChatLLMResponse(
+            content=content,
+            usage=ChatLLMUsage(
+                prompt_tokens=completion.get("prompt_eval_count"),
+                completion_tokens=completion.get("eval_count"),
+                total_tokens=completion.get("eval_count")+completion.get("prompt_eval_count"),
+            )
+        )
+
+
+        
+    

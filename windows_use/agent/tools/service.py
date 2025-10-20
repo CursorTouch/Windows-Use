@@ -1,13 +1,13 @@
 from windows_use.agent.tools.views import Click, Type, Scroll, Drag, Move, Shortcut, Wait, Scrape, Done, Shell, Memory, App, MultiSelect, MultiEdit
 from windows_use.agent.desktop.service import Desktop
 from typing import Literal,Optional
-from langchain.tools import tool
+from windows_use.tool import Tool
 from pathlib import Path
 from time import sleep
 
 memory_path=Path.cwd()/'.memories'
 
-@tool('Done Tool',args_schema=Done)
+@Tool('Done Tool',args_schema=Done)
 def done_tool(answer:str,**kwargs):
     '''
     Signals task completion and provides the final answer to the user.
@@ -18,7 +18,7 @@ def done_tool(answer:str,**kwargs):
     '''
     return answer
 
-@tool('App Tool',args_schema=App)
+@Tool('App Tool',args_schema=App)
 def app_tool(mode:Literal['launch','resize','switch'],name:Optional[str]=None,loc:Optional[tuple[int,int]]=None,size:Optional[tuple[int,int]]=None,**kwargs)->str:
     '''
     Manages Windows applications through launch, resize, and window switching operations.
@@ -33,7 +33,7 @@ def app_tool(mode:Literal['launch','resize','switch'],name:Optional[str]=None,lo
     desktop:Desktop=kwargs['desktop']
     return desktop.app(mode,name,loc,size)
 
-@tool('Memory Tool',args_schema=Memory)
+@Tool('Memory Tool',args_schema=Memory)
 def memory_tool(mode: Literal['view','read','write','delete','update'],path: Optional[str] = None,
     content: Optional[str] = None,operation: Optional[Literal['replace', 'insert']] = 'replace',
     old_str: Optional[str] = None,new_str: Optional[str] = None,line_number: Optional[int] = None,
@@ -143,7 +143,7 @@ def memory_tool(mode: Literal['view','read','write','delete','update'],path: Opt
         
     return "Invalid mode. Use 'view', 'write', 'read', 'update', or 'delete'."
 
-@tool('Shell Tool',args_schema=Shell)
+@Tool('Shell Tool',args_schema=Shell)
 def shell_tool(command: str,**kwargs) -> str:
     '''
     Executes PowerShell commands and returns output with status codes.
@@ -161,7 +161,7 @@ def shell_tool(command: str,**kwargs) -> str:
     response,status=desktop.execute_command(command)
     return f'Response: {response}\nStatus Code: {status}'
 
-@tool('Click Tool',args_schema=Click)
+@Tool('Click Tool',args_schema=Click)
 def click_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
     '''
     Performs mouse click operations on UI elements using either specified label or coordinates.
@@ -189,7 +189,7 @@ def click_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button
     else:
         return 'Error: Either label or coordinates must be provided.'
 
-@tool('Type Tool',args_schema=Type)
+@Tool('Type Tool',args_schema=Type)
 def type_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
     '''
     Types text into input fields, text areas, and focused UI elements using either specified label or coordinates.
@@ -216,7 +216,7 @@ def type_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:st
     else:
         return 'Error: Either label or coordinates must be provided.'
 
-@tool('Scroll Tool',args_schema=Scroll)
+@Tool('Scroll Tool',args_schema=Scroll)
 def scroll_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
     '''
     Scrolls content vertically or horizontally at specified or current cursor location.
@@ -247,7 +247,7 @@ def scroll_tool(label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,type:
         return response
     return f'Scrolled {type} {direction} by {wheel_times} wheel times.'
 
-@tool('Drag Tool',args_schema=Drag)
+@Tool('Drag Tool',args_schema=Drag)
 def drag_tool(loc:tuple[int,int],**kwargs)->str:
     '''
     Performs drag-and-drop operations from current location of cursor to destination coordinates.
@@ -266,7 +266,7 @@ def drag_tool(loc:tuple[int,int],**kwargs)->str:
     desktop.drag(loc)
     return f'Dragged the selected element to ({x},{y}).'
 
-@tool('Move Tool',args_schema=Move)
+@Tool('Move Tool',args_schema=Move)
 def move_tool(loc:tuple[int,int],**kwargs)->str:
     '''
     Moves mouse cursor to specific coordinates without performing any click action.
@@ -284,7 +284,7 @@ def move_tool(loc:tuple[int,int],**kwargs)->str:
     desktop.move(loc)
     return f'Moved the mouse pointer to ({x},{y}).'
 
-@tool('Shortcut Tool',args_schema=Shortcut)
+@Tool('Shortcut Tool',args_schema=Shortcut)
 def shortcut_tool(shortcut:str,**kwargs)->str:
     '''
     Executes keyboard shortcuts for rapid command execution and navigation.
@@ -302,7 +302,7 @@ def shortcut_tool(shortcut:str,**kwargs)->str:
     desktop.shortcut(shortcut)
     return f'Pressed {shortcut}.'
 
-@tool('Multi Select Tool',args_schema=MultiSelect)
+@Tool('Multi Select Tool',args_schema=MultiSelect)
 def multi_select_tool(elements:list[tuple[int,int]|int],**kwargs)->str:
     '''
     Holding down the Ctrl key and clicking on multiple elements.
@@ -325,7 +325,7 @@ def multi_select_tool(elements:list[tuple[int,int]|int],**kwargs)->str:
             content.append(f'{element}')
     return f'Multi-selected elements at {','.join(content)}.'
 
-@tool('Multi Edit Tool',args_schema=MultiEdit)
+@Tool('Multi Edit Tool',args_schema=MultiEdit)
 def multi_edit_tool(elements:list[tuple[int,int,str]|tuple[int,str]],**kwargs)->str:
     '''
     Typing text into multiple input fields.
@@ -349,7 +349,7 @@ def multi_edit_tool(elements:list[tuple[int,int,str]|tuple[int,str]],**kwargs)->
             content.append(f'({label}) text={text}')
     return f'Multi-edited elements at {','.join(content)}.'
 
-@tool('Wait Tool',args_schema=Wait)
+@Tool('Wait Tool',args_schema=Wait)
 def wait_tool(duration:int,**kwargs)->str:
     '''
     Pauses execution for a specified duration to allow processes to complete.
@@ -366,7 +366,7 @@ def wait_tool(duration:int,**kwargs)->str:
     sleep(duration)
     return f'Waited for {duration} seconds.'
 
-@tool('Scrape Tool',args_schema=Scrape)
+@Tool('Scrape Tool',args_schema=Scrape)
 def scrape_tool(url:str,**kwargs)->str:
     '''
     Fetches webpage content and converts it to clean markdown format for analysis.

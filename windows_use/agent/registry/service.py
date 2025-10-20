@@ -1,6 +1,6 @@
-from windows_use.agent.registry.views import Tool as ToolData, ToolResult
+from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.desktop.service import Desktop
-from langchain.tools import Tool
+from windows_use.tool import Tool
 from textwrap import dedent
 import json
 
@@ -16,27 +16,22 @@ class Registry:
         return dedent(f"""
         Tool Name: {tool.name}
         Tool Description: {tool.description}
-        Tool Parameters: {json.dumps(tool.params,indent=4)}
+        Tool Schema: {json.dumps(tool.args_schema,indent=4)}
         """)
 
     def registry(self):
-        return {tool.name: ToolData(
-            name=tool.name,
-            description=tool.description,
-            params=tool.args,
-            function=tool.run
-        ) for tool in self.tools}
+        return {tool.name: tool for tool in self.tools}
     
     def get_tools_prompt(self) -> str:
         tools_prompt = [self.tool_prompt(tool.name) for tool in self.tools]
         return '\n\n'.join(tools_prompt)
     
-    def execute(self, tool_name: str, desktop: Desktop, **kwargs) -> ToolResult:
+    def execute(self, tool_name: str, desktop: Desktop|None=None, **kwargs) -> ToolResult:
         tool = self.tools_registry.get(tool_name)
         if tool is None:
             return ToolResult(is_success=False, error=f"Tool '{tool_name}' not found.")
         try:
-            content = tool.function(tool_input={'desktop':desktop}|kwargs)
+            content = tool.invoke(**({'desktop': desktop} | kwargs))
             return ToolResult(is_success=True, content=content)
         except Exception as error:
             return ToolResult(is_success=False, error=str(error))

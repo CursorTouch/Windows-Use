@@ -1,4 +1,5 @@
-from langchain_core.messages import BaseMessage,HumanMessage,AIMessage
+from windows_use.llm.views import ChatLLMResponse
+from windows_use.messages import BaseMessage
 from windows_use.agent.views import AgentData
 import json
 import ast
@@ -8,7 +9,7 @@ def read_file(file_path: str) -> str:
     with open(file_path, 'r') as file:
         return file.read()
     
-def extract_agent_data(message: BaseMessage) -> AgentData:
+def extract_agent_data(message: ChatLLMResponse) -> AgentData:
     text = message.content
     # Dictionary to store extracted values
     result = {}
@@ -52,22 +53,8 @@ def extract_agent_data(message: BaseMessage) -> AgentData:
         print("=" * 50)
         raise e
 
-def image_message(prompt,image)->HumanMessage:
-    return HumanMessage(content=[
-        {
-            "type": "text",
-            "text": prompt,
-        },
-        {
-            "type": "image_url", 
-            "image_url": {
-                "url": image
-            }
-        },
-    ])
-
 def message_to_dict(message:BaseMessage)->dict:
-    match message.type:
+    match message.role:
         case "human":
             return {"type":"user","content":message.content}
         case "ai":

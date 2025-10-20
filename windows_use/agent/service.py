@@ -1,8 +1,7 @@
 from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool, multi_select_tool,
 shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_tool, multi_edit_tool)
-from windows_use.agent.utils import extract_agent_data, image_message, message_to_dict
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_core.language_models.chat_models import BaseChatModel
+from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage
+from windows_use.agent.utils import extract_agent_data, message_to_dict
 from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.telemetry.service import ProductTelemetry
 from windows_use.agent.registry.service import Registry
@@ -14,6 +13,7 @@ from live_inspect.watch_cursor import WatchCursor
 from langgraph.graph import START,END,StateGraph
 from windows_use.agent.views import AgentResult
 from windows_use.agent.state import AgentState
+from windows_use.llm.base import BaseChatLLM
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
@@ -38,7 +38,7 @@ class Agent:
         instructions (list[str], optional): Instructions for the agent. Defaults to [].
         browser (Browser, optional): Browser the agent should use (Make sure this browser is installed). Defaults to 'Edge'.
         additional_tools (list[BaseTool], optional): Additional tools for the agent. Defaults to [].
-        llm (BaseChatModel): Language model for the agent. Defaults to None.
+        llm (BaseChatLLM): Language model for the agent. Defaults to None.
         consecutive_failures (int, optional): Maximum number of consecutive failures for the agent. Defaults to 3.
         max_steps (int, optional): Maximum number of steps for the agent. Defaults to 100.
         use_vision (bool, optional): Whether to use vision for the agent. Defaults to False.
@@ -47,7 +47,7 @@ class Agent:
     Returns:
         Agent
     '''
-    def __init__(self,instructions:list[str]=[],browser:Browser=Browser.EDGE, llm: BaseChatModel=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
+    def __init__(self,instructions:list[str]=[],browser:Browser=Browser.EDGE, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
         self.name='Windows Use'
         self.description='An agent that can interact with GUI elements on Windows OS' 
         self.registry = Registry([
@@ -58,7 +58,7 @@ class Agent:
         self.instructions=instructions
         self.browser=browser
         self.max_steps=max_steps
-        self.consecutive_failures=max_consecutive_failures
+        self.max_consecutive_failures=max_consecutive_failures
         self.auto_minimize=auto_minimize
         self.use_vision=use_vision
         self.llm = llm
@@ -80,37 +80,28 @@ class Agent:
         '''
         steps=state.get('steps')
         max_steps=state.get('max_steps')
-        max_consecutive_failures=state.get('max_consecutive_failures')
-        consecutive_failures=state.get('consecutive_failures')
+        consecutive_failures=0
         messages=state.get('messages')
-        error=''
-        
-        while consecutive_failures<=max_consecutive_failures:
+        while consecutive_failures<=self.max_consecutive_failures:
             message=self.llm.invoke(messages)
             try:
                 agent_data = extract_agent_data(message=message)
                 break
-            except Exception as e:
-                error=e
-                print("=" * 50)
-                print(f"[Retry {consecutive_failures}] Failed to extract agent data")
-                print("=" * 50)
-                print("LLM Response Content:")
-                print(message.content)
-                print("=" * 50)
+            except Exception as err:
+                logger.error(f"[LLM]: {err}. Retrying...")
                 consecutive_failures+=1
-        if consecutive_failures>max_consecutive_failures:
-            error_msg = f"Failed to extract agent data after {max_consecutive_failures} retries.\nError:{error}"
-            print(error_msg)
+        if consecutive_failures>self.max_consecutive_failures:
+            error_msg = f"Failed to extract agent data after {self.max_consecutive_failures} retries."
+            logger.error(f"[LLM]: {error_msg}")
             return {**state,'agent_data':None,'error':error_msg}
+        
         logger.info(f"[Agent]🎯: Step: {steps}")
         logger.info(f"[Agent]📝: Evaluate: {agent_data.evaluate}")
-        logger.info(f"[Agent] 💭: Thought: {agent_data.thought}")
+        logger.info(f"[Agent]💭: Thought: {agent_data.thought}")
 
-        last_message = state.get('messages').pop()
-        if isinstance(last_message, HumanMessage):
-            message=HumanMessage(content=Prompt.previous_observation_prompt(steps=steps,max_steps=max_steps,observation=state.get('previous_observation')))
-            return {**state,'actions':[agent_data.action],'agent_data':agent_data,'messages':[message],'steps':steps+1}
+        state.get('messages').pop()
+        message=HumanMessage(content=Prompt.previous_observation_prompt(steps=steps,max_steps=max_steps,observation=state.get('previous_observation')))
+        return {**state,'agent_data':agent_data,'messages':[message],'steps':steps+1}
         
     def action(self,state:AgentState):
         """
@@ -136,7 +127,7 @@ class Agent:
         logger.info(f"[Tool]🔭: Observation: {shorten(observation,500,placeholder='...')}\n")
         desktop_state = self.desktop.get_state(use_vision=self.use_vision)
         prompt=Prompt.observation_prompt(query=state.get('input'),steps=steps,max_steps=max_steps, tool_result=tool_result, desktop_state=desktop_state)
-        human_message=image_message(prompt=prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=prompt)
+        human_message=ImageMessage(content=prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=prompt)
         return {**state,'agent_data':None,'messages':[ai_message, human_message],'previous_observation':previous_observation}
 
     def answer(self,state:AgentState):
@@ -217,6 +208,8 @@ class Agent:
         if not isinstance(message, SystemMessage)]
         self.telemetry.capture(AgentTelemetryEvent(**{
             'input': agent_state.get('input', ''),
+            'model': self.llm.model_name,
+            'provider': self.llm.provider,
             'use_vision': self.use_vision,
             'steps': agent_state.get('steps'),
             'error': agent_state.get('error', None),
@@ -241,7 +234,7 @@ class Agent:
             system_prompt=Prompt.system_prompt(desktop=self.desktop,browser=self.browser,language=language,instructions=self.instructions,tools_prompt=tools_prompt,max_steps=self.max_steps)
             system_message=SystemMessage(content=system_prompt)
             human_prompt=Prompt.observation_prompt(query=query,steps=1,max_steps=self.max_steps,tool_result=ToolResult(is_success=True, content="The desktop is ready to operate."), desktop_state=desktop_state)
-            human_message=image_message(prompt=human_prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
+            human_message=ImageMessage(content=human_prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
             messages=[system_message,human_message]
             state={
                 'input':query,
@@ -249,10 +242,7 @@ class Agent:
                 'max_steps':self.max_steps,
                 'output':'',
                 'error':'',
-                'consecutive_failures':1,
-                'max_consecutive_failures':self.consecutive_failures,
-                'agent_data':None,
-                'actions':[],
+                'max_consecutive_failures':self.max_consecutive_failures,
                 'messages':messages,
                 'previous_observation':None
             }
