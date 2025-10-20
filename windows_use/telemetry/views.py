@@ -15,13 +15,12 @@ class BaseTelemetryEvent(ABC):
     
 @dataclass
 class AgentTelemetryEvent(BaseTelemetryEvent):
-    input: str
+    query: str
+    answer: str | None
+    error: str | None
+    use_vision:bool
     model:str
     provider:str
-    use_vision:bool
-    steps:int
-    output: str | None
-    error: str | None
-    messages: list[dict]|None
+    agent_log: list[dict]|None
     event_name: str = "agent_event"
     

@@ -1,6 +1,6 @@
 [project]
 name = "windows-use"
-version = "0.6.6.1"
+version = "0.6.6.5"
 description = "An AI Agent that interacts with Windows OS at GUI level."
 authors = [
     { name = "Jeomon George", email = "jeogeoalukka@gmail.com" }
@@ -24,7 +24,6 @@ classifiers = [
 dependencies = [
     "fuzzywuzzy>=0.18.0",
     "ipykernel>=6.29.5",
-    "langgraph>=0.6.4",
     "live-inspect==0.1.1",
     "markdownify>=1.1.0",
     "pillow>=11.2.1",
@@ -47,6 +46,7 @@ dependencies = [
     "ollama>=0.5.1",
     "cerebras-cloud-sdk>=1.50.1",
     "anthropic>=0.68.1",
+    "pywin32>=311",
 ]
 
 [project.optional-dependencies]

@@ -1,6 +1,7 @@
 from pydantic import BaseModel,Field
     
 class AgentResult(BaseModel):
+    is_done:bool
     content:str|None=None
     error:str|None=None
 
@@ -15,6 +16,7 @@ class Action(BaseModel):
         }
 
 class AgentData(BaseModel):
-    evaluate: str
-    thought: str
-    action: Action
+    evaluate: str|None=None
+    thought: str|None=None
+    action: Action|None=None
+    observation: str|None=None

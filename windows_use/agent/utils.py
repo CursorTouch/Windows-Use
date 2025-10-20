@@ -52,12 +52,3 @@ def extract_agent_data(message: ChatLLMResponse) -> AgentData:
         print(result)
         print("=" * 50)
         raise e
-
-def message_to_dict(message:BaseMessage)->dict:
-    match message.role:
-        case "human":
-            return {"type":"user","content":message.content}
-        case "ai":
-            return {"type":"assistant","content":message.content}
-        case _:
-            pass
