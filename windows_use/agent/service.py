@@ -66,18 +66,27 @@ class Agent:
                         if self.use_vision and desktop_state.screenshot else 
                     HumanMessage(content=human_prompt)
                 ]
-                for steps in range(1,self.max_steps):
-                    for consecutive_failures in range(self.max_consecutive_failures):
+                for steps in range(1,self.max_steps+1):
+                    if steps==self.max_steps:
+                        self.telemetry.capture(AgentTelemetryEvent(
+                            query=query,
+                            error="Max steps reached",
+                            use_vision=self.use_vision,
+                            model=self.llm.model_name,
+                            provider=self.llm.provider,
+                            agent_log=agent_log
+                        ))
+                        return AgentResult(is_done=False, error="Max steps reached")
+                    for consecutive_failures in range(1,self.max_consecutive_failures+1):
                         try:
                             llm_response=self.llm.invoke(messages)
                             agent_data=extract_agent_data(llm_response)
                             break
                         except Exception as e:
                             logger.error(f"[LLM]: {e}. Retrying attempt {consecutive_failures+1}...")
-                            if consecutive_failures==self.max_consecutive_failures-1:
+                            if consecutive_failures==self.max_consecutive_failures:
                                 self.telemetry.capture(AgentTelemetryEvent(
                                     query=query,
-                                    answer='',
                                     error=str(e),
                                     use_vision=self.use_vision,
                                     model=self.llm.model_name,
@@ -129,7 +138,6 @@ class Agent:
             self.telemetry.capture(AgentTelemetryEvent(
                 query=query,
                 answer=answer,
-                error='',
                 use_vision=self.use_vision,
                 model=self.llm.model_name,
                 provider=self.llm.provider,
