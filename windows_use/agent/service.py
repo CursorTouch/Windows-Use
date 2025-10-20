@@ -48,102 +48,104 @@ class Agent:
     def invoke(self,query: str)->AgentResult:
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
-                desktop_state = self.desktop.get_state(use_vision=self.use_vision)
-                language=self.desktop.get_default_language()
-                tools_prompt = self.registry.get_tools_prompt()
-                observation="The desktop is ready to operate."
-                system_prompt=Prompt.system_prompt(desktop=self.desktop,
-                    browser=self.browser,language=language,instructions=self.instructions,
-                    tools_prompt=tools_prompt,max_steps=self.max_steps
-                )
-                human_prompt=Prompt.observation_prompt(query=query,steps=0,max_steps=self.max_steps,
-                    tool_result=ToolResult(is_success=True, content=observation), desktop_state=desktop_state
-                )
-                agent_log=[]
-                messages=[
-                    SystemMessage(content=system_prompt),
-                    ImageMessage(content=human_prompt,image=desktop_state.screenshot) 
-                        if self.use_vision and desktop_state.screenshot else 
-                    HumanMessage(content=human_prompt)
-                ]
-                for steps in range(1,self.max_steps+1):
-                    if steps==self.max_steps:
-                        self.telemetry.capture(AgentTelemetryEvent(
-                            query=query,
-                            error="Max steps reached",
-                            use_vision=self.use_vision,
-                            model=self.llm.model_name,
-                            provider=self.llm.provider,
-                            agent_log=agent_log
-                        ))
-                        return AgentResult(is_done=False, error="Max steps reached")
-                    for consecutive_failures in range(1,self.max_consecutive_failures+1):
-                        try:
-                            llm_response=self.llm.invoke(messages)
-                            agent_data=extract_agent_data(llm_response)
-                            break
-                        except Exception as e:
-                            logger.error(f"[LLM]: {e}. Retrying attempt {consecutive_failures+1}...")
-                            if consecutive_failures==self.max_consecutive_failures:
-                                self.telemetry.capture(AgentTelemetryEvent(
-                                    query=query,
-                                    error=str(e),
-                                    use_vision=self.use_vision,
-                                    model=self.llm.model_name,
-                                    provider=self.llm.provider,
-                                    agent_log=agent_log
-                                ))
-                                return AgentResult(is_done=False, error=str(e))
+                with self.watch_cursor:
+                    desktop_state = self.desktop.get_state(use_vision=self.use_vision)
+                    language=self.desktop.get_default_language()
+                    tools_prompt = self.registry.get_tools_prompt()
+                    observation="The desktop is ready to operate."
+                    system_prompt=Prompt.system_prompt(desktop=self.desktop,
+                        browser=self.browser,language=language,instructions=self.instructions,
+                        tools_prompt=tools_prompt,max_steps=self.max_steps
+                    )
+                    human_prompt=Prompt.observation_prompt(query=query,steps=0,max_steps=self.max_steps,
+                        tool_result=ToolResult(is_success=True, content=observation), desktop_state=desktop_state
+                    )
+                    agent_log=[]
+                    messages=[
+                        SystemMessage(content=system_prompt),
+                        ImageMessage(content=human_prompt,image=desktop_state.screenshot) 
+                            if self.use_vision and desktop_state.screenshot else 
+                        HumanMessage(content=human_prompt)
+                    ]
+                    for steps in range(1,self.max_steps+1):
+                        if steps==self.max_steps:
+                            self.telemetry.capture(AgentTelemetryEvent(
+                                query=query,
+                                error="Max steps reached",
+                                use_vision=self.use_vision,
+                                model=self.llm.model_name,
+                                provider=self.llm.provider,
+                                agent_log=agent_log
+                            ))
+                            return AgentResult(is_done=False, error="Max steps reached")
+                        
+                        for consecutive_failures in range(1,self.max_consecutive_failures+1):
+                            try:
+                                llm_response=self.llm.invoke(messages)
+                                agent_data=extract_agent_data(llm_response)
+                                break
+                            except Exception as e:
+                                logger.error(f"[LLM]: {e}. Retrying attempt {consecutive_failures+1}...")
+                                if consecutive_failures==self.max_consecutive_failures:
+                                    self.telemetry.capture(AgentTelemetryEvent(
+                                        query=query,
+                                        error=str(e),
+                                        use_vision=self.use_vision,
+                                        model=self.llm.model_name,
+                                        provider=self.llm.provider,
+                                        agent_log=agent_log
+                                    ))
+                                    return AgentResult(is_done=False, error=str(e))
 
-                    logger.info(f"[Agent] 🎯 Step: {steps}")
-                    logger.info(f"[Agent] 📝 Evaluate: {agent_data.evaluate}")
-                    logger.info(f"[Agent] 💭 Thought: {agent_data.thought}")
+                        logger.info(f"[Agent] 🎯 Step: {steps}")
+                        logger.info(f"[Agent] 📝 Evaluate: {agent_data.evaluate}")
+                        logger.info(f"[Agent] 💭 Thought: {agent_data.thought}")
 
-                    messages.pop() #Remove previous Desktop State Human Message
-                    human_prompt=Prompt.previous_observation_prompt(steps=steps-1,max_steps=self.max_steps,observation=observation)
-                    human_message=HumanMessage(content=human_prompt)
-                    messages.append(human_message)
-
-                    ai_prompt=Prompt.action_prompt(agent_data=agent_data)
-                    ai_message=AIMessage(content=ai_prompt)
-                    messages.append(ai_message)
-
-                    action=agent_data.action
-                    action_name=action.name
-                    params=action.params
-
-                    if action_name.startswith('Done'):
-                        action_response=self.registry.execute(tool_name=action_name, desktop=None, **params)
-                        answer=action_response.content
-                        logger.info(f"[Agent] 📜 Final-Answer: {answer}\n")
-                        agent_data.observation=answer
-                        agent_log.append(agent_data.model_dump_json())
-                        human_prompt=Prompt.answer_prompt(agent_data=agent_data,tool_result=action_response)
-                        break
-                    else:
-                        logger.info(f"[Tool] 🔧 Action: {action_name}({', '.join(f'{k}={v}' for k, v in params.items())})")
-                        action_response=self.registry.execute(tool_name=action_name, desktop=self.desktop, **params)
-                        observation=action_response.content if action_response.is_success else action_response.error
-                        logger.info(f"[Tool] 📝 Observation: {observation}\n")
-                        agent_data.observation=observation
-                        agent_log.append(agent_data.model_dump_json())
-
-                        desktop_state = self.desktop.get_state(use_vision=self.use_vision)
-                        human_prompt=Prompt.observation_prompt(query=query,steps=steps,max_steps=self.max_steps,
-                            tool_result=action_response,desktop_state=desktop_state
-                        )
-                        human_message=ImageMessage(content=human_prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
+                        messages.pop() #Remove previous Desktop State Human Message
+                        human_prompt=Prompt.previous_observation_prompt(steps=steps-1,max_steps=self.max_steps,observation=observation)
+                        human_message=HumanMessage(content=human_prompt)
                         messages.append(human_message)
-            
-            self.telemetry.capture(AgentTelemetryEvent(
-                query=query,
-                answer=answer,
-                use_vision=self.use_vision,
-                model=self.llm.model_name,
-                provider=self.llm.provider,
-                agent_log=agent_log
-            ))
-            return AgentResult(is_done=True,content=answer)
+
+                        ai_prompt=Prompt.action_prompt(agent_data=agent_data)
+                        ai_message=AIMessage(content=ai_prompt)
+                        messages.append(ai_message)
+
+                        action=agent_data.action
+                        action_name=action.name
+                        params=action.params
+
+                        if action_name.startswith('Done'):
+                            action_response=self.registry.execute(tool_name=action_name, desktop=None, **params)
+                            answer=action_response.content
+                            logger.info(f"[Agent] 📜 Final-Answer: {answer}\n")
+                            agent_data.observation=answer
+                            agent_log.append(agent_data.model_dump_json())
+                            human_prompt=Prompt.answer_prompt(agent_data=agent_data,tool_result=action_response)
+                            break
+                        else:
+                            logger.info(f"[Tool] 🔧 Action: {action_name}({', '.join(f'{k}={v}' for k, v in params.items())})")
+                            action_response=self.registry.execute(tool_name=action_name, desktop=self.desktop, **params)
+                            observation=action_response.content if action_response.is_success else action_response.error
+                            logger.info(f"[Tool] 📝 Observation: {observation}\n")
+                            agent_data.observation=observation
+                            agent_log.append(agent_data.model_dump_json())
+
+                            desktop_state = self.desktop.get_state(use_vision=self.use_vision)
+                            human_prompt=Prompt.observation_prompt(query=query,steps=steps,max_steps=self.max_steps,
+                                tool_result=action_response,desktop_state=desktop_state
+                            )
+                            human_message=ImageMessage(content=human_prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
+                            messages.append(human_message)
+                
+                self.telemetry.capture(AgentTelemetryEvent(
+                    query=query,
+                    answer=answer,
+                    use_vision=self.use_vision,
+                    model=self.llm.model_name,
+                    provider=self.llm.provider,
+                    agent_log=agent_log
+                ))
+                return AgentResult(is_done=True,content=answer)
         except KeyboardInterrupt:
             logger.warning("[Agent] ⚠️: Interrupted by user (Ctrl+C).")
             self.telemetry.flush()

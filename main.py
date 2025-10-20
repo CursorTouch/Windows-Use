@@ -1,4 +1,3 @@
-from windows_use.llm.cerebras import ChatCerebras
 from windows_use.llm.google import ChatGoogle
 from windows_use.agent import Agent, Browser
 from dotenv import load_dotenv
