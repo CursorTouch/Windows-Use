@@ -37,7 +37,7 @@
 **Install using `uv`:**
 
 ```bash
-uv pip install windows-use
+uv add windows-use
 ````
 
 Or with pip:
@@ -52,7 +52,7 @@ pip install windows-use
 ### Ollama
 
 ```python
-from windows_use.llm.ollama import ChatOllama
+from windows_use.llms.ollama import ChatOllama
 from windows_use.agent import Agent, Browser
 from dotenv import load_dotenv
 import os
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 ### Google Gemini
 
 ```python
-from windows_use.llm.google import ChatGoogle
+from windows_use.llms.google import ChatGoogle
 from windows_use.agent import Agent, Browser
 from dotenv import load_dotenv
 import os
