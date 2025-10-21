@@ -1,6 +1,6 @@
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
-from windows_use.llm.views import ChatLLMResponse, ChatLLMUsage
-from windows_use.llm.base import BaseChatLLM
+from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from windows_use.llms.base import BaseChatLLM
 from ollama import Client,Image,Message
 from dataclasses import dataclass
 from pydantic import BaseModel

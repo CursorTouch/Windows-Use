@@ -1,7 +1,7 @@
 from anthropic.types import Message,MessageParam,ImageBlockParam,Base64ImageSourceParam,TextBlockParam
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
-from windows_use.llm.views import ChatLLMResponse, ChatLLMUsage
-from windows_use.llm.base import BaseChatLLM
+from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from anthropic import Anthropic
 from pydantic import BaseModel
@@ -31,26 +31,22 @@ class ChatAnthropic(BaseChatLLM):
         for message in messages:
             if isinstance(message, SystemMessage):
                 system_instruction = message.content
-            elif isinstance(message, HumanMessage|AIMessage):
-                match message.role:
-                    case "human":
-                        role="user"
-                    case "ai":
-                        role="assistant"
-                content=[
-                    TextBlockParam(type="text",text=message.content)
-                ]
+            elif isinstance(message, HumanMessage):
+                content=[TextBlockParam(type="text",text=message.content)]
+                serialized.append(MessageParam(role="user",content=content))
+            elif isinstance(message, AIMessage):
+                content=[TextBlockParam(type="text",text=message.content)]
+                serialized.append(MessageParam(role="assistant",content=content))
             elif isinstance(message, ImageMessage):
-                role="user"
                 content=[
                     TextBlockParam(type="text",text=message.content),
                     ImageBlockParam(type="image",source=Base64ImageSourceParam(
                         type="base64",data=message.image_to_base64(),mimetype="image/png"
                     ))
                 ]
+                serialized.append(MessageParam(role="user",content=content))
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
-            serialized.append(MessageParam(role=role,content=content))
         return system_instruction,serialized
     
     def invoke(self, messages: list[BaseMessage], structured_output:BaseModel|None = None):

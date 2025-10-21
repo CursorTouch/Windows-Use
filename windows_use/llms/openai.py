@@ -1,13 +1,15 @@
+from openai.types.chat import ChatCompletionAssistantMessageParam,ChatCompletionUserMessageParam,ChatCompletionContentPartTextParam,ChatCompletionContentPartImageParam,ChatCompletionSystemMessageParam
 from openai.types.shared_params.response_format_json_schema import JSONSchema, ResponseFormatJSONSchema
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
-from windows_use.llm.views import ChatLLMResponse, ChatLLMUsage
-from windows_use.llm.base import BaseChatLLM
+from openai.types.chat.chat_completion_content_part_image_param import ImageURL
+from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from pydantic import BaseModel
 from openai import OpenAI
 
 @dataclass
-class ChatOpenRouter(BaseChatLLM):
+class ChatOpenAI(BaseChatLLM):
     def __init__(self, model: str, api_key: str, temperature: float = 0.7):
         self.model = model
         self.api_key = api_key
@@ -15,12 +17,11 @@ class ChatOpenRouter(BaseChatLLM):
     
     @property
     def client(self):
-        return OpenAI(api_key=self.api_key,
-        base_url='https://openrouter.ai/api/v1')
+        return OpenAI(api_key=self.api_key)
     
     @property
     def provider(self):
-        return "openrouter"
+        return "openai"
     
     @property
     def model_name(self):
@@ -29,37 +30,23 @@ class ChatOpenRouter(BaseChatLLM):
     def serialize_messages(self, messages: list[BaseMessage]):
         serialized = []
         for message in messages:
-            if isinstance(message, SystemMessage|HumanMessage|AIMessage):
-                match message.role:
-                    case "system":
-                        role="system"
-                    case "human":
-                        role="user"
-                    case "ai":
-                        role="assistant"
-                content=[
-                    {
-                        "type": "text",
-                        "text": message.content
-                    }
-                ]
+            if isinstance(message, SystemMessage):
+                content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
+                serialized.append(ChatCompletionSystemMessageParam(role="system",content=content))
+            elif isinstance(message, HumanMessage):
+                content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
+                serialized.append(ChatCompletionUserMessageParam(role="user",content=content))
+            elif isinstance(message, AIMessage):
+                content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
+                serialized.append(ChatCompletionAssistantMessageParam(role="assistant",content=content))
             elif isinstance(message, ImageMessage):
-                role="user"
                 content=[
-                    {
-                        "type": "text",
-                        "text": message.content
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": message.image
-                        }
-                    }
+                    ChatCompletionContentPartTextParam(type="text",text=message.content),
+                    ChatCompletionContentPartImageParam(type="image_url",url=ImageURL(url=message.image_to_base64(),detail="auto"))
                 ]
+                serialized.append(ChatCompletionUserMessageParam(role="user",content=content))
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
-            serialized.append({"role": role, "content": content})
         return serialized
     
     def invoke(self, messages: list[BaseMessage],structured_output:BaseModel|None=None) -> str:

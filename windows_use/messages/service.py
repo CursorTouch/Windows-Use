@@ -29,11 +29,7 @@ class HumanMessage(BaseMessage):
 class ImageMessage(BaseMessage):
     role: Literal["human"] = "human"
     content: str
-    image: Image
-
-    def __init__(self, content: str, image: Image|None=None):
-        self.image = image
-        self.content = content
+    image: Image|None
     
     def image_to_base64(self) -> str:
         buffered = BytesIO()
@@ -42,7 +38,9 @@ class ImageMessage(BaseMessage):
         return f"data:image/png;base64,{base64_image}"
     
     def image_to_bytes(self) -> bytes:
-        return self.image.tobytes()
+        buffered = BytesIO()
+        self.image.save(buffered, format="PNG")
+        return buffered.getvalue()
 
     def __repr__(self) -> str:
         return f"ImageMessage(content={self.content}, image={shorten(self.image, width=30, placeholder='...')})"

@@ -11,7 +11,7 @@ from windows_use.agent.desktop.views import Browser
 from windows_use.agent.prompt.service import Prompt
 from live_inspect.watch_cursor import WatchCursor
 from windows_use.agent.views import AgentResult
-from windows_use.llm.base import BaseChatLLM
+from windows_use.llms.base import BaseChatLLM
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
@@ -40,7 +40,7 @@ class Agent:
         self.auto_minimize=auto_minimize
         self.use_vision=use_vision
         self.llm = llm
-        self.telemetry=ProductTelemetry()
+        self.telemetry=None
         self.watch_cursor = WatchCursor()
         self.desktop = Desktop()
         self.console=Console()
@@ -154,7 +154,3 @@ class Agent:
     def print_response(self,query: str):
         response=self.invoke(query)
         self.console.print(Markdown(response.content or response.error))
-
-
-                
-

@@ -1,4 +1,4 @@
-from windows_use.llm.views import ChatLLMResponse
+from windows_use.llms.views import ChatLLMResponse
 from windows_use.messages import BaseMessage
 from windows_use.agent.views import AgentData
 import json

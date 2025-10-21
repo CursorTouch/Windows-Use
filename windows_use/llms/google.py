@@ -1,7 +1,7 @@
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
 from google.genai.types import Part, Content, GenerateContentConfigDict,Modality
-from windows_use.llm.views import ChatLLMResponse, ChatLLMUsage
-from windows_use.llm.base import BaseChatLLM
+from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from pydantic import BaseModel
 from google import genai
@@ -60,7 +60,7 @@ class ChatGoogle(BaseChatLLM):
                 serialized.append(
                     Content(role="user",parts=[
                         Part(text=message.content),
-                        Part.from_bytes(data=data, mime_type="image/png")
+                        Part.from_bytes(data=data,mime_type="image/png")
                     ])
                 )
             else:

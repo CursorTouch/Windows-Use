@@ -1,25 +1,27 @@
-from cerebras.cloud.sdk.types.chat.completion_create_params import ResponseFormatResponseFormatJsonSchemaJsonSchemaTyped,ResponseFormatResponseFormatJsonSchemaTyped
+from groq.types.chat import ChatCompletionSystemMessageParam,ChatCompletionUserMessageParam,ChatCompletionAssistantMessageParam,ChatCompletionContentPartTextParam,ChatCompletionContentPartImageParam
+from groq.types.chat.completion_create_params import ResponseFormatResponseFormatJsonSchemaJsonSchema,ResponseFormatResponseFormatJsonSchema
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
-from windows_use.llm.views import ChatLLMResponse, ChatLLMUsage
-from windows_use.llm.base import BaseChatLLM
-from cerebras.cloud.sdk import Cerebras
+from groq.types.chat.chat_completion_content_part_image_param import ImageURL
+from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from pydantic import BaseModel
+from groq import Groq
 
 @dataclass
-class ChatCerebras(BaseChatLLM):
+class ChatGroq(BaseChatLLM):
     def __init__(self, model: str, api_key: str, temperature: float = 0.7):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
 
     @property
-    def client(self) -> Cerebras:
-        return Cerebras(api_key=self.api_key)
+    def client(self) -> Groq:
+        return Groq(api_key=self.api_key)
 
     @property
     def provider(self) -> str:
-        return "cerebras"
+        return "groq"
     
     @property
     def model_name(self) -> str:
@@ -28,37 +30,23 @@ class ChatCerebras(BaseChatLLM):
     def serialize_messages(self, messages: list[BaseMessage]):
         serialized = []
         for message in messages:
-            if isinstance(message, SystemMessage|HumanMessage|AIMessage):
-                match message.role:
-                    case "system":
-                        role="system"
-                    case "human":
-                        role="user"
-                    case "ai":
-                        role="assistant"
-                content=[
-                    {
-                        "type": "text",
-                        "text": message.content
-                    }
-                ]
+            if isinstance(message, SystemMessage):
+                content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
+                serialized.append(ChatCompletionSystemMessageParam(role="system",content=content))
+            elif isinstance(message, HumanMessage):
+                content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
+                serialized.append(ChatCompletionUserMessageParam(role="user",content=content))
+            elif isinstance(message, AIMessage):
+                content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
+                serialized.append(ChatCompletionAssistantMessageParam(role="assistant",content=content))
             elif isinstance(message, ImageMessage):
-                role="user"
                 content=[
-                    {
-                        "type": "text",
-                        "text": message.content
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": message.image_to_base64()
-                        }
-                    }
+                    ChatCompletionContentPartTextParam(type="text",text=message.content),
+                    ChatCompletionContentPartImageParam(type="image_url",url=ImageURL(url=message.image_to_base64(),detail="auto"))
                 ]
+                serialized.append(ChatCompletionUserMessageParam(role="user",content=content))
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
-            serialized.append({"role": role, "content": content})
         return serialized
     
     def invoke(self, messages: list[BaseMessage],structured_output:BaseModel|None=None) -> str:
@@ -66,8 +54,8 @@ class ChatCerebras(BaseChatLLM):
             model=self.model,
             messages=self.serialize_messages(messages),
             temperature=self.temperature,
-            response_format=ResponseFormatResponseFormatJsonSchemaTyped(
-                json_schema=ResponseFormatResponseFormatJsonSchemaJsonSchemaTyped(
+            response_format=ResponseFormatResponseFormatJsonSchema(
+                json_schema=ResponseFormatResponseFormatJsonSchemaJsonSchema(
                     name=structured_output.__class__.__name__,
                     description="Model output structured as JSON schema",
                     schema=structured_output.model_json_schema()

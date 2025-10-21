@@ -1,5 +1,5 @@
 from typing import Protocol,runtime_checkable,overload
-from windows_use.llm.views import ChatLLMResponse
+from windows_use.llms.views import ChatLLMResponse
 from windows_use.messages import BaseMessage
 from pydantic import BaseModel
 
