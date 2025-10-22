@@ -1,8 +1,10 @@
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
 from google.genai.types import Part, Content, GenerateContentConfigDict,Modality
 from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from google.auth.credentials import Credentials
 from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
+from google.genai import types
 from pydantic import BaseModel
 from google import genai
 import asyncio
@@ -28,10 +30,15 @@ def run_async(coro):
 
 @dataclass
 class ChatGoogle(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, temperature: float = 0.7):
+    def __init__(self, model: str, api_key: str, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, temperature: float = 0.7):
         self.model = model
         self.api_key = api_key
+        self.vertexai = vertexai
         self.temperature = temperature
+        self.credentials = credentials
+        self.project = project
+        self.location = location
+        self.http_options = http_options
         
     @property
     def provider(self) -> str:
@@ -43,7 +50,7 @@ class ChatGoogle(BaseChatLLM):
     
     @property
     def client(self) -> genai.Client:
-        return genai.Client(api_key=self.api_key)
+        return genai.Client(vertexai=self.vertexai,api_key=self.api_key,credentials=self.credentials,project=self.project,location=self.location,http_options=self.http_options)
     
     def serialize_messages(self, messages: list[BaseMessage])-> tuple[str|None,list[dict]]:
         serialized = []
