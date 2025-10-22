@@ -43,7 +43,7 @@ class ChatGoogle(BaseChatLLM):
     
     @property
     def client(self) -> genai.Client:
-        return genai.Client(api_key=self.api_key,)
+        return genai.Client(api_key=self.api_key)
     
     def serialize_messages(self, messages: list[BaseMessage])-> tuple[str|None,list[dict]]:
         serialized = []
