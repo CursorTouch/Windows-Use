@@ -145,7 +145,7 @@ class Agent:
                     provider=self.llm.provider,
                     agent_log=agent_log
                 ))
-                return AgentResult(is_done=True,content=answer)
+            return AgentResult(is_done=True,content=answer)
         except KeyboardInterrupt:
             logger.warning("[Agent] ⚠️: Interrupted by user (Ctrl+C).")
             self.telemetry.flush()

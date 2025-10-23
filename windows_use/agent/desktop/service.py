@@ -44,7 +44,7 @@ class Desktop:
         root=uia.GetRootControl()
         tree_state=self.tree.get_state(root=root)
         if use_vision:
-            screenshot=self.tree.annotated_screenshot(tree_state.interactive_nodes,scale=0.5)
+            screenshot=self.tree.annotated_screenshot(tree_state.interactive_nodes,scale=1.0)
         else:
             screenshot=None
         self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)

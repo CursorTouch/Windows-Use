@@ -10,15 +10,20 @@ from openai import OpenAI
 
 @dataclass
 class ChatOpenRouter(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, temperature: float = 0.7):
+    def __init__(self, model: str, api_key: str, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
+        self.max_retries = max_retries
+        self.timeout = timeout
     
     @property
     def client(self):
         return OpenAI(api_key=self.api_key,
-        base_url='https://openrouter.ai/api/v1')
+            base_url='https://openrouter.ai/api/v1',
+            max_retries=self.max_retries,
+            timeout=self.timeout
+        )
     
     @property
     def provider(self):

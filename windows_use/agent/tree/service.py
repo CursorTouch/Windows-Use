@@ -379,7 +379,7 @@ class Tree:
         screenshot = self.desktop.get_screenshot(scale=scale)
         sleep(0.10)
         # Add padding
-        padding = 20
+        padding = 10
         width = screenshot.width + (2 * padding)
         height = screenshot.height + (2 * padding)
         padded_screenshot = Image.new("RGB", (width, height), color=(255, 255, 255))

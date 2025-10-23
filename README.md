@@ -24,6 +24,9 @@
 
 **Windows-Use** is a powerful automation agent that interact directly with the Windows at GUI layer. It bridges the gap between AI Agents and the Windows OS to perform tasks such as opening apps, clicking buttons, typing, executing shell commands, and capturing UI state all without relying on traditional computer vision models. Enabling any LLM to perform computer automation instead of relying on specific models for it.
 
+## Updates
+- Migrated from langchain, langgraph.
+
 ## 🛠️Installation Guide
 
 ### **Prerequisites**
@@ -79,6 +82,7 @@ import os
 load_dotenv()
 
 def main():
+  #For Gemini API (not VertexAI)
   api_key = os.getenv("GOOGLE_API_KEY")
   llm=ChatGoogle(model="gemini-2.5-flash", api_key=api_key, temperature=0.7)
   agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False, auto_minimize=True)

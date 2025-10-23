@@ -7,11 +7,12 @@ from pydantic import BaseModel
 
 @dataclass
 class ChatOllama(BaseChatLLM):
-    def __init__(self,host: str|None=None, model: str|None=None, api_key: str|None=None, temperature: float = 0.7):
+    def __init__(self,host: str|None=None, model: str|None=None, api_key: str|None=None, temperature: float = 0.7,timeout: int|None=None):
         self.host = host
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
+        self.timeout = timeout
     
     @property
     def provider(self) -> str:
@@ -19,7 +20,7 @@ class ChatOllama(BaseChatLLM):
     
     @property
     def client(self) -> Client:
-        return Client(host=self.host)
+        return Client(host=self.host,timeout=self.timeout)
     
     @property
     def model_name(self) -> str:
