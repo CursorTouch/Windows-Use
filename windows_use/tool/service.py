@@ -5,6 +5,7 @@ class Tool:
     def __init__(self, name: str|None=None, description: str|None=None, args_schema:BaseModel|None=None):
         self.name = name
         self.description = description
+        self.model=args_schema
         self.args_schema = self.preprocess_schema(args_schema)
         self.function = None
 
