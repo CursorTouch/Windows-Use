@@ -7,7 +7,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image, ImageFont, ImageDraw
 from typing import TYPE_CHECKING
 from time import sleep
+import logging
 import random
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('[%(levelname)s] %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 if TYPE_CHECKING:
     from windows_use.agent.desktop.service import Desktop
@@ -374,6 +382,10 @@ class Tree:
             case _:
                 pass
         tree_traversal(node,current_xpath=current_xpath,is_dom=False,is_dialog=False)
+
+        logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
+        logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
+
         interactive_nodes.extend(dom_interactive_nodes)
         return (interactive_nodes,informative_nodes,scrollable_nodes)
     

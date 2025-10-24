@@ -15,12 +15,20 @@ import win32process
 import subprocess
 import win32con
 import requests
+import logging
 import ctypes
 import base64
 import csv
 import re
 import os
 import io
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('[%(levelname)s] %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 try:  
     ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)
@@ -41,6 +49,8 @@ class Desktop:
         
     def get_state(self,use_vision:bool=False)->DesktopState:
         active_app,apps=self.get_apps()
+        logger.debug(f"Active app: {active_app}")
+        logger.debug(f"Apps: {apps}")
         root=uia.GetRootControl()
         tree_state=self.tree.get_state(root=root)
         if use_vision:

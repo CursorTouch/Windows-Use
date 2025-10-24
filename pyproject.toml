@@ -1,6 +1,6 @@
 [project]
 name = "windows-use"
-version = "0.6.7.0"
+version = "0.6.7.5"
 description = "An AI Agent that interacts with Windows OS at GUI level."
 authors = [
     { name = "Jeomon George", email = "jeogeoalukka@gmail.com" }
