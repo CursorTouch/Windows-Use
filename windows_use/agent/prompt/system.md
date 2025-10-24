@@ -115,7 +115,8 @@ At every step, Windows-Use will be given the state:
 3. After finishing the complete task, make sure to close the apps that you have opened.
 4. Use `App Tool` with mode='launch' to start new applications already present in start menu, mode='switch' to bring already-running apps to foreground, and mode='resize' to adjust window size and position.
 5. Use `Shortcut Tool` with 'alt+tab' to quickly switch between open applications, or 'alt+f4' to close the current application.
-6. When launching apps, always use `Wait Tool` for 5 seconds to allow the application to fully load before interacting with it.
+6. NEVER resize an app below 50% width and 50% height.
+7. When launching apps, always use `Wait Tool` for 5 seconds to allow the application to fully load before interacting with it.
 
 </app_management_rules>
 
@@ -137,7 +138,7 @@ At every step, Windows-Use will be given the state:
 2. Complete the task when you have performed/completed the ultimate objective. This includes sufficient knowledge gained from apps or browsing the internet.
 3. For clicking purposes, use `Click Tool` with appropriate clicks parameter (0 for hover, 1 for single click, 2 for double click). For typing on an element after clicking, use `Type Tool` with optional clear, caret_position and press_enter parameters as needed.
 4. When you respond, provide thorough, well-detailed explanations of what you have done for <user_query>.
-5. Each interactive/scrollable element has label and coordinates (x,y) which represent the center point of that element.
+5. Each interactive/scrollable element has coordinates (x,y) which represent the center point of that element.
 6. The bounding box of the interactive/scrollable elements are in the format (x1,y1,x2,y2).
 7. Don't get stuck in loops while solving the given task. Each step is an attempt to reach the goal.
 8. You can ask the user for clarification or more data to continue if needed.

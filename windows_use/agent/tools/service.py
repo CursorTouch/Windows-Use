@@ -162,9 +162,9 @@ def shell_tool(command: str,**kwargs) -> str:
     return f'Response: {response}\nStatus Code: {status}'
 
 @Tool('Click Tool',args_schema=Click)
-def click_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
+def click_tool(loc:Optional[tuple[int,int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
     '''
-    Performs mouse click operations on UI elements using either specified label or coordinates.
+    Performs mouse click operations on UI elements at specified coordinates.
     
     Click patterns:
         - Single left click: Select elements, focus input fields
@@ -175,24 +175,16 @@ def click_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:
     Automatically detects UI elements under cursor and adjusts click behavior 
     for reliable interaction. Essential for all point-and-click UI operations.
     '''
+    x,y=loc
     desktop:Desktop=kwargs['desktop']
+    desktop.click(loc,button,clicks)
     num_clicks={1:'Single',2:'Double',3:'Triple'}
-    match mode:
-        case 'label':
-            loc=desktop.get_coordinates_from_label(label)
-            desktop.click(loc,button,clicks)
-            return f'{num_clicks.get(clicks)} {button} on label {label}.'
-        case 'loc':
-            x,y=loc
-            desktop.click(loc,button,clicks)
-            return f'{num_clicks.get(clicks)} {button} at ({x},{y}).'
-        case _:
-            return 'Error: Either label or coordinates must be provided.'
+    return f'{num_clicks.get(clicks)} {button} at ({x},{y}).'
 
 @Tool('Type Tool',args_schema=Type)
-def type_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
+def type_tool(loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
     '''
-    Types text into input fields, text areas, and focused UI elements using either specified label or coordinates.
+    Types text into input fields, text areas, and focused UI elements.
     
     Features:
         - Click target element and input text automatically
@@ -201,24 +193,15 @@ def type_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:O
         - Optionally press Enter after typing
     
     Use for form filling, search queries, text editing, and any text input operation.
-    Always click on the target element using label or coordinates first to ensure proper focus.
-
+    Always click on the target element coordinates first to ensure proper focus.
     '''
+    x,y=loc
     desktop:Desktop=kwargs['desktop']
-    match mode:
-        case 'label':
-            loc=desktop.get_coordinates_from_label(label)
-            desktop.type(loc,text,clear,caret_position,press_enter)
-            return f'Typed {text} on label {label}.'
-        case 'loc':
-            x,y=loc
-            desktop.type(loc,text,clear,caret_position,press_enter)
-            return f'Typed {text} at ({x},{y}).'
-        case _:
-            return 'Error: Either label or coordinates must be provided.'
+    desktop.type(loc,text,clear,caret_position,press_enter)
+    return f'Typed {text} at ({x},{y}).'
 
 @Tool('Scroll Tool',args_schema=Scroll)
-def scroll_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
+def scroll_tool(loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
     '''
     Scrolls content vertically or horizontally at specified or current cursor location.
     
@@ -231,19 +214,11 @@ def scroll_tool(mode:Literal['label','loc']='label',label:Optional[int]=None,loc
         - wheel_times: Controls scroll distance (1 wheel ≈ 3-5 lines of text)
         - direction: Scroll direction: 'up'/'down' for vertical, 'left'/'right' for horizontal
         - loc: Target coordinates (if None, scrolls at current cursor position)
-        - label: Label of scrollable element to scroll on (if None, scrolls at current cursor position)
     
     Essential tool for accessing content beyond the visible viewport.
     '''
     desktop:Desktop=kwargs['desktop']
-    match mode:
-        case 'label':
-            loc=desktop.get_coordinates_from_label(label)
-            response=desktop.scroll(loc,type,direction,wheel_times)
-        case 'loc':
-            response=desktop.scroll(loc,type,direction,wheel_times)
-        case _:
-            response=desktop.scroll(type=type,direction=direction,wheel_times=wheel_times)
+    response=desktop.scroll(loc,type,direction,wheel_times)
     if response:
         return response
     return f'Scrolled {type} {direction} by {wheel_times} wheel times.'
@@ -267,7 +242,7 @@ def drag_tool(loc:tuple[int,int],**kwargs)->str:
     desktop.drag(loc)
     return f'Dragged the selected element to ({x},{y}).'
 
-@tool('Move Tool',args_schema=Move)
+@Tool('Move Tool',args_schema=Move)
 def move_tool(loc:tuple[int,int],**kwargs)->str:
     '''
     Moves mouse cursor to specific coordinates without performing any click action.
@@ -317,14 +292,7 @@ def multi_select_tool(elements:list[tuple[int,int]|int],**kwargs)->str:
     '''
     desktop:Desktop=kwargs['desktop']
     desktop.multi_select(elements)
-    content=[]
-    for element in elements:
-        if isinstance(element,tuple):
-            x,y=element
-            content.append(f'({x},{y})')
-        else:
-            content.append(f'{element}')
-    return f'Multi-selected elements at {','.join(content)}.'
+    return f'Multi-selected elements at {'\n'.join([f'({x},{y})' for x,y in elements])}.'
 
 @Tool('Multi Edit Tool',args_schema=MultiEdit)
 def multi_edit_tool(elements:list[tuple[int,int,str]|tuple[int,str]],**kwargs)->str:
@@ -340,15 +308,7 @@ def multi_edit_tool(elements:list[tuple[int,int,str]|tuple[int,str]],**kwargs)->
     '''
     desktop:Desktop=kwargs['desktop']
     desktop.multi_edit(elements)
-    content=[]
-    for element in elements:
-        if len(element)==3:
-            x,y,text=element
-            content.append(f'({x},{y}) text={text}')
-        elif len(element)==2:
-            label,text=element
-            content.append(f'({label}) text={text}')
-    return f'Multi-edited elements at {','.join(content)}.'
+    return f'Multi-edited elements at {','.join([f'({x},{y}) text={text}' for x,y,text in elements])}.'
 
 @Tool('Wait Tool',args_schema=Wait)
 def wait_tool(duration:int,**kwargs)->str:

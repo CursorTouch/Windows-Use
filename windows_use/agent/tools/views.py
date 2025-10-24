@@ -7,23 +7,23 @@ class SharedBaseModel(BaseModel):
 
 class App(SharedBaseModel):
     mode: Literal['launch', 'resize', 'switch'] = Field(
+        ...,
         description="Operation mode: 'launch' opens app from Start Menu, 'resize' adjusts active window size/position, 'switch' brings specific window into focus",
-        default='launch',
-        examples=['launch', 'resize']
+        examples=['launch']
     )
-    name: str|None = Field(
+    name: Optional[str] = Field(
         description="Exact application name as it appears in Start Menu or window title (required for launch/switch modes)",
-        examples=['notepad', 'chrome', 'New tab - Personal - Microsoft Edge',None],
+        examples=['notepad', 'chrome', 'New tab - Personal - Microsoft Edge'],
         default=None
     )
-    loc: tuple[int, int]|None = Field(
+    loc: Optional[tuple[int, int]] = Field(
         description="Target (x, y) coordinates for window top-left corner position (required for resize mode)",
-        examples=[(0, 0),None],
+        examples=[(0, 0)],
         default=None
     )
-    size: tuple[int, int]|None = Field(
+    size: Optional[tuple[int, int]] = Field(
         description="Target (width, height) dimensions in pixels for window size (required for resize mode)",
-        examples=[(1920, 1080),None],
+        examples=[(1920, 1080)],
         default=None
     )
 
@@ -68,20 +68,10 @@ class Memory(SharedBaseModel):
     )
 
 class Click(SharedBaseModel):
-    mode: Literal['label', 'loc'] = Field(
-        description="Click mode: 'label' for element label, 'loc' for pixel coordinates",
-        default='label',
-        examples=['label', 'loc']
-    )
-    label: int|None = Field(
-        description="Label of element to click (0-indexed)",
-        default=None,
-        examples=[0, 1,None]
-    )
-    loc: tuple[int, int]|None = Field(
+    loc: tuple[int, int] = Field(
+        ...,
         description="(x, y) pixel coordinates within the target element's bounding box to perform click action",
-        default=None,
-        examples=[(640, 360), (100, 200),None]
+        examples=[(640, 360), (100, 200)]
     )
     button: Literal['left', 'right', 'middle'] = Field(
         description="Mouse button to use: 'left' for selection/activation, 'right' for context menus, 'middle' for browser-specific actions",
@@ -107,20 +97,10 @@ class Shell(SharedBaseModel):
     )
 
 class Type(SharedBaseModel):
-    mode: Literal['label', 'loc'] = Field(
-        description="Type mode: 'label' for element label, 'loc' for pixel coordinates",
-        default='label',
-        examples=['label', 'loc']
-    )
-    label: int|None = Field(
-        description="Label of element to click (0-indexed)",
-        default=None,
-        examples=[0, 1,None]
-    )
-    loc: tuple[int, int]|None = Field(
+    loc: tuple[int, int] = Field(
+        ...,
         description="(x, y) pixel coordinates within the target input element's bounding box where text will be entered",
-        default=None,
-        examples=[(640, 360), (200, 150),None]
+        examples=[(640, 360), (200, 150)]
     )
     text: str = Field(
         ...,
@@ -144,30 +124,20 @@ class Type(SharedBaseModel):
     )
 
 class MultiSelect(SharedBaseModel):
-    elements: list[tuple[int, int]|int] = Field(
+    elements: list[tuple[int, int]] = Field(
         ...,
-        description="List of (x, y) pixel coordinates or label of the target elements for multiple selection",
-        examples=[[(640, 360), (800, 400)], [5, 3]]
+        description="List of (x, y) pixel coordinates within the target element's bounding box for multiple selection",
+        examples=[[(640, 360), (800, 400)], [(100, 200), (200, 300)]]
     )
 
 class MultiEdit(SharedBaseModel):
-    elements: list[tuple[int, int, str]|tuple[int,str]] = Field(
+    elements: list[tuple[int, int, str]] = Field(
         ...,
-        description="List of (x, y, text) pixel coordinates or (a, text) label of the target elements for multiple editing",
-        examples=[[(640, 360, 'hello'), (800, 400, 'world')], [(2, 'foo'), (5, 'bar')]]
+        description="List of (x, y, text) pixel coordinates within the target element's bounding box for multiple editing",
+        examples=[[(640, 360, 'hello'), (800, 400, 'world')], [(100, 200, 'foo'), (200, 300, 'bar')]]
     )
 
 class Scroll(SharedBaseModel):
-    mode: Literal['label', 'loc',''] = Field(
-        description="Scroll mode: 'label' for element label, 'loc' for pixel coordinates",
-        default='',
-        examples=['label', 'loc','']
-    )
-    label: int|None = Field(
-        description="Label of element to scroll (0-indexed)",
-        default=None,
-        examples=[0, 1]
-    )
     loc: tuple[int, int] | None = Field(
         description="(x, y) pixel coordinates where scroll action occurs. If None, scrolls at current cursor position",
         default=None,
