@@ -267,7 +267,7 @@ def drag_tool(loc:tuple[int,int],**kwargs)->str:
     desktop.drag(loc)
     return f'Dragged the selected element to ({x},{y}).'
 
-@Tool('Move Tool',args_schema=Move)
+@tool('Move Tool',args_schema=Move)
 def move_tool(loc:tuple[int,int],**kwargs)->str:
     '''
     Moves mouse cursor to specific coordinates without performing any click action.
