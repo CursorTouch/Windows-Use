@@ -48,8 +48,13 @@ class Tree:
 
         with ThreadPoolExecutor() as executor:
             retry_counts = {app: 0 for app,_ in apps}
-            is_browser=self.desktop.is_app_browser(app)
-            future_to_app = {executor.submit(self.get_nodes, app, f"{node.ControlTypeName}/{app.ControlTypeName}[{index}]", is_browser): app for app,index in apps}
+            future_to_app = {
+                executor.submit(
+                    self.get_nodes, app, f"{node.ControlTypeName}/{app.ControlTypeName}[{index}]", 
+                    self.desktop.is_app_browser(app)
+                ): app 
+                for app,index in apps
+            }
             while future_to_app:  # keep running until no pending futures
                 for future in as_completed(list(future_to_app)):
                     app = future_to_app.pop(future)  # remove completed future
@@ -322,8 +327,8 @@ class Tree:
             children=node.GetChildren()
             type_to_count={}
 
-            # Recursively check all children
-            for child in children:
+            # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
+            for child in (children if is_dom else children[::-1]):
                 # Incrementally building the xpath
                 control_type=child.ControlTypeName
                 if children:
@@ -342,17 +347,17 @@ class Tree:
                     # enter DOM subtree
                     tree_traversal(child, current_xpath=child_xpath, is_dom=True, is_dialog=is_dialog)
                 # Check if the child is a dialog
-                # elif isinstance(child,WindowControl):
-                #     if is_keyboard_focusable(child):
-                #         if is_dom:
-                #             bounding_box=child.BoundingRectangle
-                #             if bounding_box.width() > 0.6*self.screen_box.width:
-                #                 # Because this window element covers the majority of the screen
-                #                 dom_interactive_nodes.clear()
-                #         else:
-                #             interactive_nodes.clear()
-                #         # enter dialog subtree
-                #         tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=True)
+                elif isinstance(child,WindowControl):
+                    if not child.IsOffscreen:
+                        if is_dom:
+                            bounding_box=child.BoundingRectangle
+                            if bounding_box.width() > 0.8*self.dom_bounding_box.width:
+                                # Because this window element covers the majority of the screen
+                                dom_interactive_nodes.clear()
+                        else:
+                            interactive_nodes.clear()
+                    # enter dialog subtree
+                    tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=True)
                 else:
                     # normal non-dialog children
                     tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=is_dialog)
@@ -365,7 +370,7 @@ class Tree:
             case 'Shell_TrayWnd'|'Shell_SecondaryTrayWnd':
                 app_name="Taskbar"
             case 'Microsoft.UI.Content.PopupWindowSiteBridge':
-                app_name="Context Manager"
+                app_name="Context Menu"
             case _:
                 pass
         tree_traversal(node,current_xpath=current_xpath,is_dom=False,is_dialog=False)
@@ -379,7 +384,7 @@ class Tree:
         screenshot = self.desktop.get_screenshot(scale=scale)
         sleep(0.10)
         # Add padding
-        padding = 10
+        padding = 5
         width = screenshot.width + (2 * padding)
         height = screenshot.height + (2 * padding)
         padded_screenshot = Image.new("RGB", (width, height), color=(255, 255, 255))
@@ -428,10 +433,3 @@ class Tree:
         with ThreadPoolExecutor() as executor:
             executor.map(draw_annotation, range(len(nodes)), nodes)
         return padded_screenshot
-    
-    def get_annotated_image_data(self)->tuple[Image.Image,list[TreeElementNode],list[ScrollElementNode]]:
-        from uiautomation import GetRootControl
-        node=GetRootControl()
-        nodes,_,scroll_nodes=self.get_appwise_nodes(node=node)
-        screenshot=self.annotated_screenshot(nodes=nodes,scale=1.0)
-        return screenshot,nodes,scroll_nodes

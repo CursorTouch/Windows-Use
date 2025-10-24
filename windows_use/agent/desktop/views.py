@@ -24,6 +24,7 @@ class App:
     status:Status
     size:'Size'
     handle: int
+    process_id:int
     
     def to_row(self):
         return [self.name, self.depth, self.status.value, self.size.width, self.size.height, self.handle]

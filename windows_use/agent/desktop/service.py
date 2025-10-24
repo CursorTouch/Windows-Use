@@ -360,7 +360,7 @@ class Desktop:
                 if element.ControlType in [uia.ControlType.WindowControl, uia.ControlType.PaneControl]:
                     status = self.get_app_status(element)
                     size=self.get_app_size(element)
-                    apps.append(App(name=element.Name, depth=depth, status=status,size=size,handle=element.NativeWindowHandle))
+                    apps.append(App(name=element.Name, depth=depth, status=status,size=size,handle=element.NativeWindowHandle,process_id=element.ProcessId))
         except Exception as ex:
             print(f"Error: {ex}")
             apps = []
