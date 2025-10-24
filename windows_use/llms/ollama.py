@@ -7,10 +7,9 @@ from pydantic import BaseModel
 
 @dataclass
 class ChatOllama(BaseChatLLM):
-    def __init__(self,host: str|None=None, model: str|None=None, api_key: str|None=None, temperature: float = 0.7,timeout: int|None=None):
+    def __init__(self,host: str|None=None, model: str|None=None, temperature: float = 0.7,timeout: int|None=None):
         self.host = host
         self.model = model
-        self.api_key = api_key
         self.temperature = temperature
         self.timeout = timeout
     
@@ -45,6 +44,7 @@ class ChatOllama(BaseChatLLM):
     def invoke(self, messages: list[BaseMessage],structured_output:BaseModel|None=None) -> str:
         completion=self.client.chat(
             model=self.model,
+            stream=False,
             messages=self.serialize_messages(messages),
             format=structured_output.model_json_schema() if structured_output else "",
         )

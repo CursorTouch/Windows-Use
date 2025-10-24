@@ -1,4 +1,3 @@
-from windows_use.messages import AIMessage
 from pydantic import BaseModel
 
 class ChatLLMUsage(BaseModel):
