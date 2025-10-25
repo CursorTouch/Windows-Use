@@ -13,6 +13,7 @@ from io import BytesIO
 from PIL import Image
 import win32process
 import subprocess
+import win32gui
 import win32con
 import requests
 import logging
@@ -215,6 +216,7 @@ class Desktop:
                 return (f'Application with handle {handle} not found.',1)
             app_name=target.name
             target_handle=target.handle
+            print(app_name,target_handle)
 
         if uia.IsIconic(target_handle):
             uia.ShowWindow(target_handle, win32con.SW_RESTORE)
@@ -225,7 +227,9 @@ class Desktop:
             target_thread,_=win32process.GetWindowThreadProcessId(target_handle)
             win32process.AttachThreadInput(foreground_thread,target_thread,True)
             uia.SetForegroundWindow(target_handle)
+            win32gui.BringWindowToTop(target_handle)
             win32process.AttachThreadInput(foreground_thread,target_thread,False)
+            sleep(0.1)
             content=f'Switched to {app_name.title()} window.'
         return content,0
         
