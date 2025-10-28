@@ -200,11 +200,11 @@ class Tree:
                     return True
                 elif node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
                     return is_element_visible(node) and is_element_enabled(node) and (not is_element_image(node) or is_keyboard_focusable(node))
-                elif is_browser and node.ControlTypeName=='GroupControl':
-                    return is_element_visible(node) and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node))
-                # elif node.ControlTypeName=='GroupControl' and not is_browser:
-                #     if is_element_visible and is_element_enabled(node) and is_default_action(node):
-                #         return True
+                elif node.ControlTypeName=='GroupControl':
+                    if is_browser:
+                        return is_element_visible(node) and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node))
+                    else:
+                        return is_element_visible and is_element_enabled(node) and is_default_action(node)
             except Exception:
                 return False
             return False
@@ -263,7 +263,7 @@ class Tree:
             
         def tree_traversal(node: Control, current_xpath:str,is_dom=False,is_dialog=False):
             # Checks to skip the nodes that are not interactive
-            if node.IsOffscreen and (node.ControlTypeName not in set(["EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
+            if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
                 return None
             
             if is_element_scrollable(node):

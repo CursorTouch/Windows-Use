@@ -222,17 +222,19 @@ class Desktop:
             uia.ShowWindow(target_handle, win32con.SW_RESTORE)
             content=f'{app_name.title()} restored from Minimized state.'
         else:
-            foreground_handle=uia.GetForegroundWindow()
-            foreground_thread,_=win32process.GetWindowThreadProcessId(foreground_handle)
-            target_thread,_=win32process.GetWindowThreadProcessId(target_handle)
-            win32process.AttachThreadInput(foreground_thread,target_thread,True)
-            uia.SetForegroundWindow(target_handle)
-            win32gui.BringWindowToTop(target_handle)
-            win32process.AttachThreadInput(foreground_thread,target_thread,False)
+            self.bring_window_to_top(target_handle)
             sleep(0.1)
             content=f'Switched to {app_name.title()} window.'
         return content,0
-        
+    
+    def bring_window_to_top(self,target_handle:int):
+        foreground_handle=uia.GetForegroundWindow()
+        foreground_thread,_=win32process.GetWindowThreadProcessId(foreground_handle)
+        target_thread,_=win32process.GetWindowThreadProcessId(target_handle)
+        win32process.AttachThreadInput(foreground_thread,target_thread,True)
+        uia.SetForegroundWindow(target_handle)
+        win32gui.BringWindowToTop(target_handle)
+        win32process.AttachThreadInput(foreground_thread,target_thread,False)
     
     def get_element_handle_from_label(self,label:int)->uia.Control:
         tree_state=self.desktop_state.tree_state
