@@ -216,7 +216,6 @@ class Desktop:
                 return (f'Application with handle {handle} not found.',1)
             app_name=target.name
             target_handle=target.handle
-            print(app_name,target_handle)
 
         if uia.IsIconic(target_handle):
             uia.ShowWindow(target_handle, win32con.SW_RESTORE)

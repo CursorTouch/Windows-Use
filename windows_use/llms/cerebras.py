@@ -9,15 +9,16 @@ from pydantic import BaseModel
 
 @dataclass
 class ChatCerebras(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, temperature: float = 0.7,timeout: int|None = None):
+    def __init__(self, model: str, base_url: str|None = None, api_key: str|None=None, temperature: float = 0.7,timeout: int|None = None):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
+        self.base_url = base_url
         self.timeout = timeout
 
     @property
     def client(self) -> Cerebras:
-        return Cerebras(api_key=self.api_key,timeout=self.timeout)
+        return Cerebras(base_url=self.base_url,api_key=self.api_key,timeout=self.timeout)
 
     @property
     def provider(self) -> str:
