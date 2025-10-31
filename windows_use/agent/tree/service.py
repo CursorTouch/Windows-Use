@@ -118,7 +118,6 @@ class Tree:
             )
         return bounding_box
 
-
     def get_nodes(self, node: Control, current_xpath: str, is_browser=False) -> tuple[list[TreeElementNode],list[TextElementNode],list[ScrollElementNode]]:
         window_bounding_box=node.BoundingRectangle
 
@@ -168,6 +167,13 @@ class Tree:
             except Exception:
                 return False
             
+        def is_window_modal(node:WindowControl):
+            try:
+                window_pattern=node.GetWindowPattern()
+                return window_pattern.IsModal
+            except Exception:
+                return False
+            
         def is_keyboard_focusable(node:Control):
             try:
                 if node.ControlTypeName in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
@@ -203,8 +209,8 @@ class Tree:
                 elif node.ControlTypeName=='GroupControl':
                     if is_browser:
                         return is_element_visible(node) and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node))
-                    else:
-                        return is_element_visible and is_element_enabled(node) and is_default_action(node)
+                    # else:
+                    #     return is_element_visible and is_element_enabled(node) and is_default_action(node)
             except Exception:
                 return False
             return False
@@ -261,7 +267,7 @@ class Tree:
                     app_name=app_name
                 ))
             
-        def tree_traversal(node: Control, current_xpath:str,is_dom=False):
+        def tree_traversal(node: Control, current_xpath:str,is_dom=False,is_dialog=False):
             # Checks to skip the nodes that are not interactive
             if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
                 return None
@@ -353,10 +359,24 @@ class Tree:
                     right=bounding_box.right,bottom=bounding_box.bottom,width=bounding_box.width(),
                     height=bounding_box.height())
                     # enter DOM subtree
-                    tree_traversal(child, current_xpath=child_xpath, is_dom=True)
+                    tree_traversal(child, current_xpath=child_xpath, is_dom=True, is_dialog=is_dialog)
+                # Check if the child is a dialog
+                elif isinstance(child,WindowControl):
+                    if not child.IsOffscreen:
+                        if is_dom:
+                            bounding_box=child.BoundingRectangle
+                            if bounding_box.width() > 0.8*self.dom_bounding_box.width:
+                                # Because this window element covers the majority of the screen
+                                dom_interactive_nodes.clear()
+                        else:
+                            if is_window_modal(child):
+                                # Because this window element is modal
+                                interactive_nodes.clear()
+                    # enter dialog subtree
+                    tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=True)
                 else:
                     # normal non-dialog children
-                    tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom)
+                    tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=is_dialog)
 
         interactive_nodes, dom_interactive_nodes, informative_nodes, scrollable_nodes = [], [], [],[]
         app_name=node.Name.strip()
@@ -369,7 +389,7 @@ class Tree:
                 app_name="Context Menu"
             case _:
                 pass
-        tree_traversal(node,current_xpath=current_xpath,is_dom=False)
+        tree_traversal(node,current_xpath=current_xpath,is_dom=False,is_dialog=False)
 
         logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
         logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
