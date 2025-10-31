@@ -14,7 +14,7 @@ class Prompt:
         width, height = pg.size()
         template =Path(files('windows_use.agent.prompt').joinpath('system.md')).read_text()
         return template.format(**{
-            'current_datetime': datetime.now().strftime('%A, %B %d, %Y'),
+            'datetime': datetime.now().strftime('%A, %B %d, %Y'),
             'instructions': '\n'.join(instructions),
             'tools_prompt': tools_prompt,
             'download_directory': Path.home().joinpath('Downloads').as_posix(),
