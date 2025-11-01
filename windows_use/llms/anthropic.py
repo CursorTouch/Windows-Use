@@ -8,9 +8,10 @@ from pydantic import BaseModel
 
 @dataclass
 class ChatAnthropic(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, temperature: float = 0.7):
+    def __init__(self, model: str, api_key: str, temperature: float = 0.7, max_tokens: int = 8192):
         self.model = model
         self.api_key = api_key
+        self.max_tokens = max_tokens
         self.temperature = temperature
 
     @property
@@ -38,10 +39,11 @@ class ChatAnthropic(BaseChatLLM):
                 content=[TextBlockParam(type="text",text=message.content)]
                 serialized.append(MessageParam(role="assistant",content=content))
             elif isinstance(message, ImageMessage):
+                message.scale_image(scale=0.7)
                 content=[
                     TextBlockParam(type="text",text=message.content),
                     ImageBlockParam(type="image",source=Base64ImageSourceParam(
-                        type="base64",data=message.image_to_base64(),mimetype="image/png"
+                        type="base64",data=message.image_to_base64(),media_type="image/png"
                     ))
                 ]
                 serialized.append(MessageParam(role="user",content=content))
@@ -52,6 +54,7 @@ class ChatAnthropic(BaseChatLLM):
     def invoke(self, messages: list[BaseMessage], structured_output:BaseModel|None = None):
         system_instruction, messages = self.serialize_messages(messages)
         completion = self.client.messages.create(
+            max_tokens=self.max_tokens,
             model=self.model,
             system=system_instruction,
             messages=messages,
@@ -60,7 +63,8 @@ class ChatAnthropic(BaseChatLLM):
 
         if not isinstance(completion,Message):
             raise ValueError("Unexpected response type from Anthropic API")
-        content = completion.content[0]
+        text_block = completion.content[0]
+        content=text_block.text
         return ChatLLMResponse(
             content=content,
             usage=ChatLLMUsage(

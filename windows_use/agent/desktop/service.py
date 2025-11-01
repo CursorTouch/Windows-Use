@@ -55,7 +55,7 @@ class Desktop:
         root=uia.GetRootControl()
         tree_state=self.tree.get_state(root=root)
         if use_vision:
-            screenshot=self.tree.annotated_screenshot(tree_state.interactive_nodes,scale=1.0)
+            screenshot=self.tree.annotated_screenshot(tree_state.interactive_nodes)
         else:
             screenshot=None
         self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
@@ -446,18 +446,9 @@ class Desktop:
         width, height = uia.GetScreenSize()
         return Size(width=width,height=height)
     
-    def screenshot_in_base64(self,screenshot:PILImage)->bytes:
-        buffer=BytesIO()
-        screenshot.save(buffer,format='PNG')
-        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        data_uri = f"data:image/png;base64,{img_base64}"
-        return data_uri
 
-    def get_screenshot(self,scale:float=0.7)->Image.Image:
-        screenshot=pg.screenshot()
-        size=(screenshot.width*scale, screenshot.height*scale)
-        screenshot.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
-        return screenshot
+    def get_screenshot(self)->Image.Image:
+        return pg.screenshot()
     
     @contextmanager
     def auto_minimize(self):

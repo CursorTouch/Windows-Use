@@ -34,9 +34,14 @@ class ImageMessage(BaseMessage):
     def image_to_base64(self) -> str:
         buffered = BytesIO()
         self.image.save(buffered, format="PNG")
+        buffered.seek(0)
         base64_image = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        return f"data:image/png;base64,{base64_image}"
+        return base64_image
     
+    def scale_image(self, scale: float=0.5) -> None:
+        size=(int(self.image.width * scale), int(self.image.height * scale))
+        self.image = self.image.resize(size=size)
+
     def image_to_bytes(self) -> bytes:
         buffered = BytesIO()
         self.image.save(buffered, format="PNG")

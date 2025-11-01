@@ -400,13 +400,13 @@ class Tree:
     def get_random_color(self):
         return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
-    def annotated_screenshot(self, nodes: list[TreeElementNode],scale:float=0.7) -> Image.Image:
-        screenshot = self.desktop.get_screenshot(scale=scale)
+    def annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
+        screenshot = self.desktop.get_screenshot()
         sleep(0.10)
         # Add padding
         padding = 5
-        width = screenshot.width + (2 * padding)
-        height = screenshot.height + (2 * padding)
+        width = int(screenshot.width + (1.5 * padding))
+        height = int(screenshot.height + (1.5 * padding))
         padded_screenshot = Image.new("RGB", (width, height), color=(255, 255, 255))
         padded_screenshot.paste(screenshot, (padding, padding))
 
@@ -426,10 +426,10 @@ class Tree:
 
             # Scale and pad the bounding box also clip the bounding box
             adjusted_box = (
-                int(box.left * scale) + padding,
-                int(box.top * scale) + padding,
-                int(box.right * scale) + padding,
-                int(box.bottom * scale) + padding
+                int(box.left) + padding,
+                int(box.top) + padding,
+                int(box.right) + padding,
+                int(box.bottom) + padding
             )
             # Draw bounding box
             draw.rectangle(adjusted_box, outline=color, width=2)
