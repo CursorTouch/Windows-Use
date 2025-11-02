@@ -59,7 +59,6 @@ class Prompt:
             'cursor_location': f'({cursor_location.x},{cursor_location.y})',
             'apps': desktop_state.apps_to_string(),
             'interactive_elements': tree_state.interactive_elements_to_string() or 'No interactive elements found',
-            'informative_elements': tree_state.informative_elements_to_string() or 'No informative elements found',
             'scrollable_elements': tree_state.scrollable_elements_to_string() or 'No scrollable elements found',
             'query':query
         })

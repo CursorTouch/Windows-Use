@@ -63,11 +63,12 @@ class ChatGoogle(BaseChatLLM):
             elif isinstance(message, AIMessage):
                 serialized.append(Content(role="model",parts=[Part(text=message.content)]))
             elif isinstance(message, ImageMessage):
+                message.scale_image(scale=0.7)
                 data=message.image_to_bytes()
                 serialized.append(
                     Content(role="user",parts=[
                         Part(text=message.content),
-                        Part.from_bytes(data=data,mime_type="image/png")
+                        Part.from_bytes(data=data,mime_type=message.mime_type)
                     ])
                 )
             else:

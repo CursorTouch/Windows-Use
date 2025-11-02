@@ -43,7 +43,7 @@ class ChatAnthropic(BaseChatLLM):
                 content=[
                     TextBlockParam(type="text",text=message.content),
                     ImageBlockParam(type="image",source=Base64ImageSourceParam(
-                        type="base64",data=message.image_to_base64(),media_type="image/png"
+                        type="base64",data=message.image_to_base64(),media_type=message.mime_type
                     ))
                 ]
                 serialized.append(MessageParam(role="user",content=content))

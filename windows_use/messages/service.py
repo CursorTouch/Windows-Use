@@ -30,12 +30,11 @@ class ImageMessage(BaseMessage):
     role: Literal["human"] = "human"
     content: str
     image: Image|None
+    mime_type: str="image/png"
     
     def image_to_base64(self) -> str:
-        buffered = BytesIO()
-        self.image.save(buffered, format="PNG")
-        buffered.seek(0)
-        base64_image = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        image_bytes = self.image_to_bytes()
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
         return base64_image
     
     def scale_image(self, scale: float=0.5) -> None:
@@ -44,11 +43,12 @@ class ImageMessage(BaseMessage):
 
     def image_to_bytes(self) -> bytes:
         buffered = BytesIO()
-        self.image.save(buffered, format="PNG")
+        format = self.mime_type.split("/")[-1]
+        self.image.save(buffered, format=format,quality=80)
         return buffered.getvalue()
 
     def __repr__(self) -> str:
-        return f"ImageMessage(content={self.content}, image={shorten(self.image, width=30, placeholder='...')})"
+        return f"ImageMessage(content={self.content}, image={shorten(self.image, width=30, placeholder='...')}, mime_type={self.mime_type})"
 
 class AIMessage(BaseMessage):
     role: Literal["ai"] = "ai"

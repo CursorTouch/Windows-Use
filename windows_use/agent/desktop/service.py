@@ -1,7 +1,6 @@
 from windows_use.agent.desktop.config import EXCLUDED_APPS, AVOIDED_APPS, BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
 from windows_use.agent.desktop.views import DesktopState, App, Size, Status
 from windows_use.agent.tree.service import Tree
-from PIL.Image import Image as PILImage
 from locale import getpreferredencoding
 from contextlib import contextmanager
 from typing import Optional,Literal
@@ -9,7 +8,6 @@ from markdownify import markdownify
 from fuzzywuzzy import process
 from psutil import Process
 from time import sleep
-from io import BytesIO
 from PIL import Image
 import win32process
 import subprocess
@@ -18,7 +16,6 @@ import win32con
 import requests
 import logging
 import ctypes
-import base64
 import csv
 import re
 import os

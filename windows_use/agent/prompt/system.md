@@ -60,9 +60,6 @@ At every step, Windows-Use will be given the state:
 
       List of Scrollable Elements: 
       [these elements enable the agent to scroll on specific sections of the webpage or the foreground app.]
-      
-      List of Informative Elements: 
-      [these elements provide the text in the webpage or the foreground app.]
       [End of Screen]
    </desktop_state>
    <user_query>

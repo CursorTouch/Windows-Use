@@ -35,6 +35,7 @@ class ChatOllama(BaseChatLLM):
             elif isinstance(message, AIMessage):
                 serialized.append(Message(role="assistant", content=message.content))
             elif isinstance(message, ImageMessage):
+                message.scale_image(scale=0.7)
                 data = message.image_to_bytes()
                 serialized.append(Message(role="user", content=message.content,images=[Image(value=data)]))
             else:

@@ -1,5 +1,5 @@
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, THREAD_MAX_RETRIES
-from windows_use.agent.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, Center, BoundingBox, TreeState
+from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Center, BoundingBox, TreeState
 from uiautomation import Control,ImageControl,ScrollPattern,WindowControl,Rect
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from windows_use.agent.desktop.config import AVOIDED_APPS, EXCLUDED_APPS
@@ -32,10 +32,10 @@ class Tree:
 
     def get_state(self,root:Control)->TreeState:
         sleep(0.1)
-        interactive_nodes,informative_nodes,scrollable_nodes=self.get_appwise_nodes(node=root)
-        return TreeState(interactive_nodes=interactive_nodes,informative_nodes=informative_nodes,scrollable_nodes=scrollable_nodes)
+        interactive_nodes,scrollable_nodes=self.get_appwise_nodes(node=root)
+        return TreeState(interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes)
 
-    def get_appwise_nodes(self,node:Control) -> tuple[list[TreeElementNode],list[TextElementNode],list[ScrollElementNode]]:
+    def get_appwise_nodes(self,node:Control) -> tuple[list[TreeElementNode],list[ScrollElementNode]]:
         apps:list[tuple[Control,int]]=[]
         found_foreground_app=False
 
@@ -81,7 +81,7 @@ class Tree:
                             future_to_app[new_future] = app
                         else:
                             print(f"Task failed completely for {app.Name} after {THREAD_MAX_RETRIES} retries")
-        return interactive_nodes,informative_nodes,scrollable_nodes
+        return interactive_nodes,scrollable_nodes
     
     def iou_bounding_box(self,window_box: Rect,element_box: Rect,) -> BoundingBox:
         # Step 1: Intersection of element and window (existing logic)
@@ -118,7 +118,7 @@ class Tree:
             )
         return bounding_box
 
-    def get_nodes(self, node: Control, current_xpath: str, is_browser=False) -> tuple[list[TreeElementNode],list[TextElementNode],list[ScrollElementNode]]:
+    def get_nodes(self, node: Control, current_xpath: str, is_browser=False) -> tuple[list[TreeElementNode],list[ScrollElementNode]]:
         window_bounding_box=node.BoundingRectangle
 
         def is_element_visible(node:Control,threshold:int=0):
@@ -332,11 +332,11 @@ class Tree:
                             app_name=app_name
                         )
                     interactive_nodes.append(tree_node)
-            elif is_element_text(node):
-                informative_nodes.append(TextElementNode(
-                    name=node.Name.strip() or "''",
-                    app_name=app_name
-                ))
+            # elif is_element_text(node):
+            #     informative_nodes.append(TextElementNode(
+            #         name=node.Name.strip() or "''",
+            #         app_name=app_name
+            #     ))
             
             children=node.GetChildren()
             type_to_count={}

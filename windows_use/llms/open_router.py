@@ -47,7 +47,8 @@ class ChatOpenRouter(BaseChatLLM):
                 content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
                 serialized.append(ChatCompletionAssistantMessageParam(role="assistant",content=content))
             elif isinstance(message, ImageMessage):
-                image=f"data:image/png;base64,{message.image_to_base64()}"
+                message.scale_image(scale=0.7)
+                image=f"data:{message.mime_type};base64,{message.image_to_base64()}"
                 content=[
                     ChatCompletionContentPartTextParam(type="text",text=message.content),
                     ChatCompletionContentPartImageParam(type="image_url",url=ImageURL(url=image,detail="auto"))

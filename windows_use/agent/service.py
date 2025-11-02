@@ -63,7 +63,7 @@ class Agent:
                     agent_log=[]
                     messages=[
                         SystemMessage(content=system_prompt),
-                        ImageMessage(content=human_prompt,image=desktop_state.screenshot) 
+                        ImageMessage(content=human_prompt,image=desktop_state.screenshot,mime_type="image/jpeg") 
                             if self.use_vision and desktop_state.screenshot else 
                         HumanMessage(content=human_prompt)
                     ]
@@ -134,7 +134,7 @@ class Agent:
                             human_prompt=Prompt.observation_prompt(query=query,steps=steps,max_steps=self.max_steps,
                                 tool_result=action_response,desktop_state=desktop_state
                             )
-                            human_message=ImageMessage(content=human_prompt,image=desktop_state.screenshot) if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
+                            human_message=ImageMessage(content=human_prompt,image=desktop_state.screenshot,mime_type="image/jpeg") if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
                             messages.append(human_message)
                 
                 self.telemetry.capture(AgentTelemetryEvent(

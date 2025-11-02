@@ -20,9 +20,6 @@
 
         List of Scrollable Elements:
         {scrollable_elements}
-
-        List of Informative Elements:
-        {informative_elements}
         [End of Screen]
     <desktop_state>
     <user_query>
