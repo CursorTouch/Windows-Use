@@ -14,6 +14,7 @@ import subprocess
 import win32gui
 import win32con
 import requests
+import base64
 import logging
 import ctypes
 import csv
@@ -101,8 +102,9 @@ class Desktop:
     
     def execute_command(self,command:str)->tuple[str,int]:
         try:
+            encoded = base64.b64encode(command.encode("utf-16le")).decode("ascii")
             result = subprocess.run(
-                ['powershell', '-NoProfile', '-Command', command], 
+                ['powershell', '-NoProfile', '-EncodedCommand', encoded], 
                 capture_output=True, 
                 errors='ignore',
                 timeout=25,
