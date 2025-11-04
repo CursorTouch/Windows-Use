@@ -6,19 +6,36 @@ from windows_use.llms.base import BaseChatLLM
 from cerebras.cloud.sdk import Cerebras
 from dataclasses import dataclass
 from pydantic import BaseModel
+from httpx import Client
 
 @dataclass
 class ChatCerebras(BaseChatLLM):
-    def __init__(self, model: str, base_url: str|None = None, api_key: str|None=None, temperature: float = 0.7,timeout: int|None = None):
+    def __init__(self, model: str, api_key: str, temperature: float = 0.7,  base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False, warm_tcp_connection: bool = True):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
         self.base_url = base_url
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.default_headers = default_headers
+        self.default_query = default_query
+        self.http_client = http_client
+        self.strict_response_validation = strict_response_validation
+        self.warm_tcp_connection = warm_tcp_connection
 
     @property
     def client(self) -> Cerebras:
-        return Cerebras(base_url=self.base_url,api_key=self.api_key,timeout=self.timeout)
+        return Cerebras(**{
+            "api_key": self.api_key,
+            "base_url": self.base_url,
+            "timeout": self.timeout,
+            "max_retries": self.max_retries,
+            "default_headers": self.default_headers,
+            "default_query": self.default_query,
+            "http_client": self.http_client,
+            "_strict_response_validation": self.strict_response_validation,
+            "warm_tcp_connection": self.warm_tcp_connection
+        })
 
     @property
     def provider(self) -> str:

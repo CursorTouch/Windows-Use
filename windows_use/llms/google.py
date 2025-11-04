@@ -1,6 +1,7 @@
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
 from google.genai.types import Part, Content, GenerateContentConfigDict,Modality
 from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from google.genai.client import Client,DebugConfig
 from google.auth.credentials import Credentials
 from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
@@ -30,7 +31,7 @@ def run_async(coro):
 
 @dataclass
 class ChatGoogle(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, temperature: float = 0.7):
+    def __init__(self, model: str, api_key: str, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.7):
         self.model = model
         self.api_key = api_key
         self.vertexai = vertexai
@@ -39,6 +40,7 @@ class ChatGoogle(BaseChatLLM):
         self.project = project
         self.location = location
         self.http_options = http_options
+        self.debug_config = debug_config
         
     @property
     def provider(self) -> str:
@@ -49,8 +51,16 @@ class ChatGoogle(BaseChatLLM):
         return self.model
     
     @property
-    def client(self) -> genai.Client:
-        return genai.Client(vertexai=self.vertexai,api_key=self.api_key,credentials=self.credentials,project=self.project,location=self.location,http_options=self.http_options)
+    def client(self) -> Client:
+        return Client(**{
+            "api_key": self.api_key,
+            "vertexai": self.vertexai,
+            "project": self.project,
+            "location": self.location,
+            "credentials": self.credentials,
+            "http_options": self.http_options,
+            "debug_config": self.debug_config
+        })
     
     def serialize_messages(self, messages: list[BaseMessage])-> tuple[str|None,list[dict]]:
         serialized = []

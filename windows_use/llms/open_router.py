@@ -7,24 +7,34 @@ from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from pydantic import BaseModel
 from openai import OpenAI
+from httpx import Client
 
 @dataclass
 class ChatOpenRouter(BaseChatLLM):
-    def __init__(self, model: str, base_url: str|None=None, api_key: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None):
+    def __init__(self, model: str, base_url: str|None=None, api_key: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
         self.max_retries = max_retries
         self.base_url = base_url
         self.timeout = timeout
+        self.default_headers = default_headers
+        self.default_query = default_query
+        self.http_client = http_client
+        self.strict_response_validation = strict_response_validation
     
     @property
     def client(self):
-        return OpenAI(api_key=self.api_key,
-            base_url=self.base_url or 'https://openrouter.ai/api/v1',
-            max_retries=self.max_retries,
-            timeout=self.timeout
-        )
+        return OpenAI(**{
+            "api_key": self.api_key,
+            "base_url": self.base_url or 'https://openrouter.ai/api/v1',
+            "max_retries": self.max_retries,
+            "timeout": self.timeout,
+            "default_headers": self.default_headers,
+            "default_query": self.default_query,
+            "http_client": self.http_client,
+            "_strict_response_validation": self.strict_response_validation
+        })
     
     @property
     def provider(self):

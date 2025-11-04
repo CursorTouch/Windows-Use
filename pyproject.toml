@@ -1,6 +1,6 @@
 [project]
 name = "windows-use"
-version = "0.6.7.5"
+version = "0.6.8"
 description = "An AI Agent that interacts with Windows OS at GUI level."
 authors = [
     { name = "Jeomon George", email = "jeogeoalukka@gmail.com" }
@@ -47,6 +47,7 @@ dependencies = [
     "cerebras-cloud-sdk>=1.50.1",
     "anthropic>=0.68.1",
     "pywin32>=311",
+    "mistralai>=1.9.11",
 ]
 
 [project.optional-dependencies]

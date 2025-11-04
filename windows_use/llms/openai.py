@@ -7,20 +7,40 @@ from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from pydantic import BaseModel
 from openai import OpenAI
+from httpx import Client
 
 @dataclass
 class ChatOpenAI(BaseChatLLM):
-    def __init__(self, model: str, api_key: str|None=None, base_url: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None):
+    def __init__(self, model: str, api_key: str|None=None, organization: str|None=None, project: str|None=None, base_url: str|None=None, websocket_base_url: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
         self.max_retries = max_retries
+        self.organization = organization
+        self.project = project
         self.base_url = base_url
         self.timeout = timeout
+        self.default_headers = default_headers
+        self.default_query = default_query
+        self.http_client = http_client
+        self.websocket_base_url = websocket_base_url
+        self.strict_response_validation = strict_response_validation
     
     @property
     def client(self):
-        return OpenAI(base_url=self.base_url,api_key=self.api_key,max_retries=self.max_retries,timeout=self.timeout)
+        return OpenAI(**{
+            "api_key": self.api_key,
+            "base_url": self.base_url,
+            "max_retries": self.max_retries,
+            "websocket_base_url": self.websocket_base_url,
+            "timeout": self.timeout,
+            "organization": self.organization,
+            "project": self.project,
+            "default_headers": self.default_headers,
+            "default_query": self.default_query,
+            "http_client": self.http_client,
+            "_strict_response_validation": self.strict_response_validation
+        })
     
     @property
     def provider(self):

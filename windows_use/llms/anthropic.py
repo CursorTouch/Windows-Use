@@ -5,18 +5,37 @@ from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from anthropic import Anthropic
 from pydantic import BaseModel
+from httpx import Client
 
 @dataclass
 class ChatAnthropic(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, temperature: float = 0.7, max_tokens: int = 8192):
+    def __init__(self, model: str, api_key: str, temperature: float = 0.7, max_tokens: int = 8192, auth_token: str | None = None, base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
         self.api_key = api_key
+        self.auth_token = auth_token
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.base_url = base_url
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.default_headers = default_headers
+        self.default_query = default_query
+        self.http_client = http_client
+        self.strict_response_validation = strict_response_validation
 
     @property
     def client(self):
-        return Anthropic(api_key=self.api_key)
+        return Anthropic(**{
+            "api_key": self.api_key,
+            "auth_token": self.auth_token,
+            "base_url": self.base_url,
+            "timeout": self.timeout,
+            "max_retries": self.max_retries,
+            "default_headers": self.default_headers,
+            "default_query": self.default_query,
+            "http_client": self.http_client,
+            "_strict_response_validation": self.strict_response_validation
+        })
 
     @property
     def provider(self):

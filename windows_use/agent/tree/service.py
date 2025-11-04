@@ -74,7 +74,7 @@ class Tree:
                             scrollable_nodes.extend(scroll_nodes)
                     except Exception as e:
                         retry_counts[app] += 1
-                        print(f"Error in processing node {app.Name}, retry attempt {retry_counts[app]}\nError: {e}")
+                        print(f"Error in processing node {app}, retry attempt {retry_counts[app]}\nError: {e}")
                         if retry_counts[app] < THREAD_MAX_RETRIES:
                             new_future = executor.submit(self.get_nodes, app, self.desktop.is_app_browser(app))
                             future_to_app[new_future] = app
