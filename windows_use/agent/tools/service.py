@@ -179,7 +179,7 @@ def click_tool(loc:Optional[tuple[int,int]]=None,button:Literal['left','right','
     desktop:Desktop=kwargs['desktop']
     desktop.click(loc,button,clicks)
     num_clicks={1:'Single',2:'Double',3:'Triple'}
-    return f'{num_clicks.get(clicks)} {button} at ({x},{y}).'
+    return f'{num_clicks.get(clicks)} {button} clicked at ({x},{y}).'
 
 @Tool('Type Tool',args_schema=Type)
 def type_tool(loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):

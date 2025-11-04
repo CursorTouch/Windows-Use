@@ -1,4 +1,4 @@
-from anthropic.types import Message,MessageParam,ImageBlockParam,Base64ImageSourceParam,TextBlockParam
+from anthropic.types import Message,MessageParam,ImageBlockParam,Base64ImageSourceParam,TextBlockParam,CacheControlEphemeralParam
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
 from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
 from windows_use.llms.base import BaseChatLLM
@@ -56,7 +56,7 @@ class ChatAnthropic(BaseChatLLM):
         completion = self.client.messages.create(
             max_tokens=self.max_tokens,
             model=self.model,
-            system=system_instruction,
+            system=[TextBlockParam(type="text",text=system_instruction,cache_control=CacheControlEphemeralParam(type="ephemeral",ttl='5m'))],
             messages=messages,
             temperature=self.temperature,
         )

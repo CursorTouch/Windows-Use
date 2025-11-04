@@ -14,8 +14,8 @@ import subprocess
 import win32gui
 import win32con
 import requests
-import base64
 import logging
+import base64
 import ctypes
 import csv
 import re

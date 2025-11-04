@@ -11,7 +11,7 @@ class TreeState:
             return "No interactive elements"
         headers = ["Label", "App Name", "ControlType", "Name", "Value", "Shortcut", "Coordinates"]
         rows = [node.to_row(idx) for idx, node in enumerate(self.interactive_nodes)]
-        return tabulate(rows, headers=headers, tablefmt="github")
+        return tabulate(rows, headers=headers, tablefmt="simple")
 
     def scrollable_elements_to_string(self) -> str:
         if not self.scrollable_nodes:
@@ -22,7 +22,7 @@ class TreeState:
         ]
         base_index = len(self.interactive_nodes)
         rows = [node.to_row(idx, base_index) for idx, node in enumerate(self.scrollable_nodes)]
-        return tabulate(rows, headers=headers, tablefmt="github")
+        return tabulate(rows, headers=headers, tablefmt="simple")
     
 @dataclass
 class BoundingBox:
