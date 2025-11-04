@@ -52,7 +52,7 @@ class Tree:
                     apps.append((app,type_to_count[control_type]))
                     found_foreground_app=True
     
-        interactive_nodes, informative_nodes, scrollable_nodes = [], [], []
+        interactive_nodes, scrollable_nodes = [], []
 
         with ThreadPoolExecutor() as executor:
             retry_counts = {app: 0 for app,_ in apps}
@@ -69,9 +69,8 @@ class Tree:
                     try:
                         result = future.result()
                         if result:
-                            element_nodes, text_nodes, scroll_nodes = result
+                            element_nodes, scroll_nodes = result
                             interactive_nodes.extend(element_nodes)
-                            informative_nodes.extend(text_nodes)
                             scrollable_nodes.extend(scroll_nodes)
                     except Exception as e:
                         retry_counts[app] += 1
@@ -378,7 +377,7 @@ class Tree:
                     # normal non-dialog children
                     tree_traversal(child, current_xpath=child_xpath, is_dom=is_dom, is_dialog=is_dialog)
 
-        interactive_nodes, dom_interactive_nodes, informative_nodes, scrollable_nodes = [], [], [],[]
+        interactive_nodes, dom_interactive_nodes, scrollable_nodes = [], [], []
         app_name=node.Name.strip()
         match node.ClassName:
             case "Progman":
@@ -395,10 +394,7 @@ class Tree:
         logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
 
         interactive_nodes.extend(dom_interactive_nodes)
-        return (interactive_nodes,informative_nodes,scrollable_nodes)
-    
-    def get_random_color(self):
-        return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+        return (interactive_nodes,scrollable_nodes)
 
     def annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
         screenshot = self.desktop.get_screenshot()
