@@ -136,6 +136,11 @@ class Type(SharedBaseModel):
     )
 
 class MultiSelect(SharedBaseModel):
+    press_ctrl: Literal['true', 'false'] = Field(
+        description="Whether to press Ctrl key before performing multiple selection: 'true' selects multiple elements, 'false' leaves cursor in field",
+        default='false',
+        examples=['true', 'false']
+    )
     elements: list[tuple[int, int]] = Field(
         ...,
         description="List of (x, y) pixel coordinates within the target element's bounding box for multiple selection",

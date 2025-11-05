@@ -279,19 +279,19 @@ def shortcut_tool(shortcut:str,**kwargs)->str:
     return f'Pressed {shortcut}.'
 
 @Tool('Multi Select Tool',args_schema=MultiSelect)
-def multi_select_tool(elements:list[tuple[int,int]|int],**kwargs)->str:
+def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[tuple[int,int]|int]=[],**kwargs)->str:
     '''
-    Holding down the Ctrl key and clicking on multiple elements.
-    
+    Selects multiple items in a list, table, or grid. Perform redundant clicks.
+
     Use cases:
         - Select multiple items in a list, table, or grid
         - Mark multiple checkboxes in a form
         - Drag-and-drop multiple items between locations
     
-    Holding down the Ctrl key and clicking on multiple elements, enabling multiple selection and drag-and-drop operations.
+    Use for common operations like selecting multiple items or repeated clicks.
     '''
     desktop:Desktop=kwargs['desktop']
-    desktop.multi_select(elements)
+    desktop.multi_select(press_ctrl,elements)
     return f'Multi-selected elements at {'\n'.join([f'({x},{y})' for x,y in elements])}.'
 
 @Tool('Multi Edit Tool',args_schema=MultiEdit)

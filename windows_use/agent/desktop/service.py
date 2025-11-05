@@ -315,28 +315,19 @@ class Desktop:
         else:
             pg.press(''.join(shortcut))
 
-    def multi_select(self,elements:list[tuple[int,int]|int]):
-        pg.keyDown('ctrl')
+    def multi_select(self,press_ctrl:Literal['true','false']='false',elements:list[tuple[int,int]|int]=[]):
+        if press_ctrl=='true':
+            pg.keyDown('ctrl')
         for element in elements:
-            if isinstance(element,tuple):
-                x,y=element
-                pg.click(x,y,duration=0.2)
-                pg.sleep(0.5)
-            else:
-                x,y=self.get_coordinates_from_label(element)
-                pg.click(x,y,duration=0.2)
-                pg.sleep(0.5)
+            x,y=element
+            pg.click(x,y,duration=0.2)
+            pg.sleep(0.5)
         pg.keyUp('ctrl')
     
     def multi_edit(self,elements:list[tuple[int,int,str]|tuple[int,str]]):
         for element in elements:
-            if len(element)==3:
-                x,y,text=element
-                self.type((x,y),text=text,clear='true')
-            elif len(element)==2:
-                x,text=element
-                x,y=self.get_coordinates_from_label(x)
-                self.type((x,y),text=text,clear='true')
+            x,y,text=element
+            self.type((x,y),text=text,clear='true')
     
     def scrape(self,url:str)->str:
         response=requests.get(url,timeout=10)
