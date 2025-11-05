@@ -48,6 +48,8 @@ dependencies = [
     "anthropic>=0.68.1",
     "pywin32>=311",
     "mistralai>=1.9.11",
+    "huggingface>=0.0.1",
+    "datasets>=4.4.1",
 ]
 
 [project.optional-dependencies]
