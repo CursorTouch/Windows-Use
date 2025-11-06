@@ -55,6 +55,8 @@ pip install windows-use
 ### Ollama
 
 ```python
+# main.py
+
 from windows_use.llms.ollama import ChatOllama
 from windows_use.agent import Agent, Browser
 from dotenv import load_dotenv
@@ -74,6 +76,8 @@ if __name__ == "__main__":
 ### Google Gemini
 
 ```python
+# main.py
+
 from windows_use.llms.google import ChatGoogle
 from windows_use.agent import Agent, Browser
 from dotenv import load_dotenv
@@ -89,7 +93,7 @@ def main():
   agent.print_response(query=input("Enter a query: "))
 
 if __name__ == "__main__":
-  smain()
+  main()
 ```
 
 ## 🤖 Run Agent
@@ -97,7 +101,7 @@ if __name__ == "__main__":
 You can use the following to run from a script:
 
 ```bash
-python main.py
+uv run main.py
 ```
 
 ---
