@@ -224,7 +224,7 @@ class Tree:
                     element_bounding_box = node.BoundingRectangle
                     bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                     center = bounding_box.get_center()
-                    is_focused=node.IsFocused
+                    is_focused=node.HasKeyboardFocus
                     dom_interactive_nodes.append(TreeElementNode(**{
                         'name':child.Name.strip(),
                         'control_type':node.LocalizedControlType,
@@ -245,7 +245,7 @@ class Tree:
                 element_bounding_box = node.BoundingRectangle
                 bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                 center = bounding_box.get_center()
-                is_focused=node.IsFocused
+                is_focused=node.HasKeyboardFocus
                 dom_interactive_nodes.append(TreeElementNode(**{
                     'name':node.Name.strip(),
                     'control_type':control_type,
