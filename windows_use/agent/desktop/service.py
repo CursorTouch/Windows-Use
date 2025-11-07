@@ -50,6 +50,8 @@ class Desktop:
         sleep(0.1)
         apps=self.get_apps()
         active_app=self.get_active_app()
+        if active_app is not None:
+            apps.remove(active_app)
         logger.debug(f"Active app: {active_app}")
         logger.debug(f"Apps: {apps}")
         tree_state=self.tree.get_state(active_app,apps)
