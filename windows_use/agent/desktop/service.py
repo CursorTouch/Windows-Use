@@ -155,13 +155,14 @@ class Desktop:
             return (f'{active_app.name} resized to {width}x{height} at {x},{y}.',0)
     
     def is_app_running(self,name:str)->bool:
-        apps={app.name:app for app in [self.desktop_state.active_app]+self.desktop_state.apps if app is not None}
+        apps={app.name:app for app in self.get_apps()}
         return process.extractOne(name,list(apps.keys()),score_cutoff=60) is not None
     
     def app(self,mode:Literal['launch','switch','resize'],name:Optional[str]=None,loc:Optional[tuple[int,int]]=None,size:Optional[tuple[int,int]]=None):
         match mode:
             case 'launch':
                 response,status=self.launch_app(name)
+                sleep(1.25)
                 if status!=0:
                     return response
                 consecutive_waits=3
@@ -172,17 +173,17 @@ class Desktop:
                         return f'{name.title()} launched.'
                 return f'Launching {name.title()} wait for it to come load.'
             case 'resize':
-                _,status=self.resize_app(size=size,loc=loc)
+                response,status=self.resize_app(size=size,loc=loc)
                 if status!=0:
-                    return f'Failed to resize window.'
+                    return response
                 else:
-                    return f'Window resized successfully.'
+                    return response
             case 'switch':
-                _,status=self.switch_app(name)
+                response,status=self.switch_app(name)
                 if status!=0:
-                    return f'Failed to switch to {name.title()} window.'
+                    return response
                 else:
-                    return f'Switched to {name.title()} window.'
+                    return response
         
     def launch_app(self,name:str)->tuple[str,int]:
         apps_map=self.get_apps_from_start_menu()
@@ -199,43 +200,36 @@ class Desktop:
             response,status=self.execute_command(f'Start-Process shell:AppsFolder\\{appid}')
         return response,status
     
-    def switch_app(self,name:str='',handle:int=None):
+    def switch_app(self,name:str):
         apps={app.name:app for app in [self.desktop_state.active_app]+self.desktop_state.apps if app is not None}
-        if not handle:
-            matched_app:Optional[tuple[str,float]]=process.extractOne(name,list(apps.keys()),score_cutoff=70)
-            if matched_app is None:
-                return (f'Application {name.title()} not found.',1)
-            app_name,_=matched_app
-            app=apps.get(app_name)
-            target_handle=app.handle
-        else:
-            target=None
-            for app in apps.values():
-                if app.handle==handle:
-                    target=app
-                    break
-            if target is None:
-                return (f'Application with handle {handle} not found.',1)
-            app_name=target.name
-            target_handle=target.handle
+        matched_app:Optional[tuple[str,float]]=process.extractOne(name,list(apps.keys()),score_cutoff=70)
+        if matched_app is None:
+            return (f'Application {name.title()} not found.',1)
+        app_name,_=matched_app
+        app=apps.get(app_name)
+        target_handle=app.handle
 
         if uia.IsIconic(target_handle):
             uia.ShowWindow(target_handle, win32con.SW_RESTORE)
             content=f'{app_name.title()} restored from Minimized state.'
         else:
             self.bring_window_to_top(target_handle)
-            sleep(0.1)
             content=f'Switched to {app_name.title()} window.'
         return content,0
     
     def bring_window_to_top(self,target_handle:int):
-        foreground_handle=uia.GetForegroundWindow()
+        foreground_handle=win32gui.GetForegroundWindow()
         foreground_thread,_=win32process.GetWindowThreadProcessId(foreground_handle)
         target_thread,_=win32process.GetWindowThreadProcessId(target_handle)
-        win32process.AttachThreadInput(foreground_thread,target_thread,True)
-        uia.SetForegroundWindow(target_handle)
-        win32gui.BringWindowToTop(target_handle)
-        win32process.AttachThreadInput(foreground_thread,target_thread,False)
+        try:
+            ctypes.windll.user32.AllowSetForegroundWindow(-1)
+            win32process.AttachThreadInput(foreground_thread,target_thread,True)
+            win32gui.SetForegroundWindow(target_handle)
+            win32gui.BringWindowToTop(target_handle)
+        except Exception as e:
+            logger.error(f'Failed to bring window to top: {e}')
+        finally:
+            win32process.AttachThreadInput(foreground_thread,target_thread,False)
     
     def get_element_handle_from_label(self,label:int)->uia.Control:
         tree_state=self.desktop_state.tree_state
