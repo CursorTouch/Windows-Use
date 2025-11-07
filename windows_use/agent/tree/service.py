@@ -224,6 +224,7 @@ class Tree:
                     element_bounding_box = node.BoundingRectangle
                     bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                     center = bounding_box.get_center()
+                    is_focused=node.IsFocused
                     dom_interactive_nodes.append(TreeElementNode(**{
                         'name':child.Name.strip(),
                         'control_type':node.LocalizedControlType,
@@ -232,7 +233,8 @@ class Tree:
                         'bounding_box':bounding_box,
                         'xpath':'',
                         'center':center,
-                        'app_name':app_name
+                        'app_name':app_name,
+                        'is_focused':is_focused
                     }))
             elif element_has_child_element(node,'link','heading'):
                 dom_interactive_nodes.pop()
@@ -243,6 +245,7 @@ class Tree:
                 element_bounding_box = node.BoundingRectangle
                 bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                 center = bounding_box.get_center()
+                is_focused=node.IsFocused
                 dom_interactive_nodes.append(TreeElementNode(**{
                     'name':node.Name.strip(),
                     'control_type':control_type,
@@ -251,7 +254,8 @@ class Tree:
                     'bounding_box':bounding_box,
                     'xpath':'',
                     'center':center,
-                    'app_name':app_name
+                    'app_name':app_name,
+                    'is_focused':is_focused
                 }))
             
         def tree_traversal(node: Control,is_dom:bool=False,is_dialog:bool=False):
