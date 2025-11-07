@@ -47,11 +47,13 @@ class Desktop:
         self.desktop_state=None
         
     def get_state(self,use_vision:bool=False)->DesktopState:
-        active_app,apps=self.get_apps()
+        apps=self.get_apps()
+        active_app=self.get_active_app()
+        if active_app:
+            apps.remove(active_app)
         logger.debug(f"Active app: {active_app}")
         logger.debug(f"Apps: {apps}")
-        root=uia.GetRootControl()
-        tree_state=self.tree.get_state(root=root)
+        tree_state=self.tree.get_state(active_app,apps)
         if use_vision:
             screenshot=self.tree.annotated_screenshot(tree_state.interactive_nodes)
         else:
@@ -66,10 +68,10 @@ class Desktop:
             element = element.GetParentControl()
         return None
     
-    def get_active_app(self,apps:list[App])->App|None:
+    def get_active_app(self)->App|None:
         try:
             handle=uia.GetForegroundWindow()
-            for app in apps:
+            for app in self.get_apps():
                 if app.handle!=handle:
                     continue
                 return app
@@ -353,7 +355,7 @@ class Desktop:
         is_name = "Overlay" in element.Name.strip()
         return no_children or is_name
         
-    def get_apps(self) -> tuple[App|None,list[App]]:
+    def get_apps(self) -> list[App]:
         try:
             desktop = uia.GetRootControl()  # Get the desktop control
             children = desktop.GetChildren()
@@ -366,15 +368,18 @@ class Desktop:
                     if window_pattern.CanMinimize and window_pattern.CanMaximize:
                         status = self.get_app_status(child)
                         size=self.get_app_size(child)
-                        apps.append(App(name=child.Name, depth=depth, status=status,size=size,handle=child.NativeWindowHandle,process_id=child.ProcessId))
+                        apps.append(App(**{
+                            "name":child.Name,
+                            "depth":depth,
+                            "status":status,
+                            "size":size,
+                            "handle":child.NativeWindowHandle,
+                            "process_id":child.ProcessId
+                        }))
         except Exception as ex:
             print(f"Error: {ex}")
             apps = []
-
-        active_app=self.get_active_app(apps)
-        if active_app:
-            apps.remove(active_app)
-        return (active_app,apps)
+        return apps
     
     def get_xpath_from_element(self,element:uia.Control):
         current=element
