@@ -48,11 +48,11 @@ class DesktopState:
         if self.active_app is None:
             return 'No active app found'
         headers = ["Name", "Depth", "Status", "Width", "Height", "Handle"]
-        return tabulate([self.active_app.to_row()], headers=headers, tablefmt="github")
+        return tabulate([self.active_app.to_row()], headers=headers, tablefmt="simple")
 
     def apps_to_string(self):
         if not self.apps:
             return 'No apps running in background'
         headers = ["Name", "Depth", "Status", "Width", "Height", "Handle"]
         rows = [app.to_row() for app in self.apps]
-        return tabulate(rows, headers=headers, tablefmt="github")
+        return tabulate(rows, headers=headers, tablefmt="simple")

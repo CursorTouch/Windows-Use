@@ -224,16 +224,16 @@ class Tree:
                     element_bounding_box = node.BoundingRectangle
                     bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                     center = bounding_box.get_center()
-                    dom_interactive_nodes.append(TreeElementNode(
-                        name=child.Name.strip(),
-                        control_type=node.LocalizedControlType,
-                        value=value,
-                        shortcut=node.AcceleratorKey,
-                        bounding_box=bounding_box,
-                        xpath='',
-                        center=center,
-                        app_name=app_name
-                    ))
+                    dom_interactive_nodes.append(TreeElementNode(**{
+                        'name':child.Name.strip(),
+                        'control_type':node.LocalizedControlType,
+                        'value':value,
+                        'shortcut':node.AcceleratorKey,
+                        'bounding_box':bounding_box,
+                        'xpath':'',
+                        'center':center,
+                        'app_name':app_name
+                    }))
             elif element_has_child_element(node,'link','heading'):
                 dom_interactive_nodes.pop()
                 node=node.GetFirstChildControl()
@@ -243,16 +243,16 @@ class Tree:
                 element_bounding_box = node.BoundingRectangle
                 bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                 center = bounding_box.get_center()
-                dom_interactive_nodes.append(TreeElementNode(
-                    name=node.Name.strip(),
-                    control_type=control_type,
-                    value=node.Name.strip(),
-                    shortcut=node.AcceleratorKey,
-                    bounding_box=bounding_box,
-                    xpath='',
-                    center=center,
-                    app_name=app_name
-                ))
+                dom_interactive_nodes.append(TreeElementNode(**{
+                    'name':node.Name.strip(),
+                    'control_type':control_type,
+                    'value':node.Name.strip(),
+                    'shortcut':node.AcceleratorKey,
+                    'bounding_box':bounding_box,
+                    'xpath':'',
+                    'center':center,
+                    'app_name':app_name
+                }))
             
         def tree_traversal(node: Control,is_dom:bool=False,is_dialog:bool=False):
             # Checks to skip the nodes that are not interactive
@@ -270,14 +270,14 @@ class Tree:
                         name=node.Name.strip() or node.LocalizedControlType.capitalize() or "''",
                         app_name=app_name,
                         control_type=node.LocalizedControlType.title(),
-                        bounding_box=BoundingBox(
-                            left=box.left,
-                            top=box.top,
-                            right=box.right,
-                            bottom=box.bottom,
-                            width=box.width(),
-                            height=box.height()
-                        ),
+                        bounding_box=BoundingBox(**{
+                            'left':box.left,
+                            'top':box.top,
+                            'right':box.right,
+                            'bottom':box.bottom,
+                            'width':box.width(),
+                            'height':box.height()
+                        }),
                         center=center,
                         xpath='',
                         horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
@@ -289,36 +289,39 @@ class Tree:
             if is_element_interactive(node):
                 legacy_pattern=node.GetLegacyIAccessiblePattern()
                 value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
+                is_focused=node.HasKeyboardFocus
                 name=node.Name.strip()
                 element_bounding_box = node.BoundingRectangle
                 if is_browser and is_dom:
                     bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                     center = bounding_box.get_center()
-                    tree_node=TreeElementNode(
-                            name=name,
-                            control_type=node.LocalizedControlType.title(),
-                            value=value,
-                            shortcut=node.AcceleratorKey,
-                            bounding_box=bounding_box,
-                            center=center,
-                            xpath='',
-                            app_name=app_name
-                        )
+                    tree_node=TreeElementNode(**{
+                        'name':name,
+                        'control_type':node.LocalizedControlType.title(),
+                        'value':value,
+                        'shortcut':node.AcceleratorKey,
+                        'bounding_box':bounding_box,
+                        'center':center,
+                        'xpath':'',
+                        'app_name':app_name,
+                        'is_focused':is_focused
+                    })
                     dom_interactive_nodes.append(tree_node)
                     dom_correction(node=node)
                 else:
                     bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
                     center = bounding_box.get_center()
-                    tree_node=TreeElementNode(
-                            name=name,
-                            control_type=node.LocalizedControlType.title(),
-                            value=value,
-                            shortcut=node.AcceleratorKey,
-                            bounding_box=bounding_box,
-                            center=center,
-                            xpath='',
-                            app_name=app_name
-                        )
+                    tree_node=TreeElementNode(**{
+                        'name':name,
+                        'control_type':node.LocalizedControlType.title(),
+                        'value':value,
+                        'shortcut':node.AcceleratorKey,
+                        'bounding_box':bounding_box,
+                        'center':center,
+                        'xpath':'',
+                        'app_name':app_name,
+                        'is_focused':is_focused
+                    })
                     interactive_nodes.append(tree_node)
             # elif is_element_text(node):
             #     informative_nodes.append(TextElementNode(
