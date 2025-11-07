@@ -1,4 +1,4 @@
-from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, THREAD_MAX_RETRIES
+from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, THREAD_MAX_RETRIES
 from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Center, BoundingBox, TreeState
 from uiautomation import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId
 from windows_use.agent.tree.utils import random_point_within_bounding_box
@@ -146,13 +146,6 @@ class Tree:
             except Exception:
                 return False
             return False
-        
-        def is_element_scrollable(node:Control):
-            try:
-                scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
-                return (scroll_pattern.VerticallyScrollable or scroll_pattern.HorizontallyScrollable) and node.LocalizedControlType!='group'
-            except Exception:
-                return False
             
         def is_window_modal(node:WindowControl):
             try:
@@ -185,13 +178,22 @@ class Tree:
             except Exception:
                 return False
             
+        def is_element_scrollable(node:Control):
+            try:
+                if (node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES) or node.IsOffscreen or (node.Name.strip()=="" and node.AutomationId.strip()==""):
+                    return False
+                scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
+                return scroll_pattern.VerticallyScrollable
+            except Exception:
+                return False
+            
         def is_element_interactive(node:Control):
             try:
                 if is_browser and node.ControlTypeName in set(['DataItemControl','ListItemControl']) and not is_keyboard_focusable(node):
                     return False
                 elif not is_browser and node.ControlTypeName=="ImageControl" and is_keyboard_focusable(node):
                     return True
-                elif node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
+                elif node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|DOCUMENT_CONTROL_TYPE_NAMES:
                     return is_element_visible(node) and is_element_enabled(node) and (not is_element_image(node) or is_keyboard_focusable(node))
                 elif node.ControlTypeName=='GroupControl':
                     if is_browser:
@@ -265,31 +267,31 @@ class Tree:
             
             if is_element_scrollable(node):
                 scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
-                if scroll_pattern is not None:
-                    box = node.BoundingRectangle
-                    # Get the center
-                    x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
-                    center = Center(x=x,y=y)
-                    scrollable_nodes.append(ScrollElementNode(
-                        name=node.Name.strip() or node.LocalizedControlType.capitalize() or "''",
-                        app_name=app_name,
-                        control_type=node.LocalizedControlType.title(),
-                        bounding_box=BoundingBox(**{
-                            'left':box.left,
-                            'top':box.top,
-                            'right':box.right,
-                            'bottom':box.bottom,
-                            'width':box.width(),
-                            'height':box.height()
-                        }),
-                        center=center,
-                        xpath='',
-                        horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
-                        horizontal_scroll_percent=scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
-                        vertical_scrollable=scroll_pattern.VerticallyScrollable,
-                        vertical_scroll_percent=scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
-                        is_focused=node.HasKeyboardFocus
-                    ))
+                box = node.BoundingRectangle
+                # Get the center
+                x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
+                center = Center(x=x,y=y)
+                scrollable_nodes.append(ScrollElementNode(**{
+                    'name':node.Name.strip() or node.AutomationId or node.LocalizedControlType.capitalize() or "''",
+                    'app_name':app_name,
+                    'control_type':node.LocalizedControlType.title(),
+                    'bounding_box':BoundingBox(**{
+                        'left':box.left,
+                        'top':box.top,
+                        'right':box.right,
+                        'bottom':box.bottom,
+                        'width':box.width(),
+                        'height':box.height()
+                    }),
+                    'center':center,
+                    'xpath':'',
+                    'horizontal_scrollable':scroll_pattern.HorizontallyScrollable,
+                    'horizontal_scroll_percent':scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
+                    'vertical_scrollable':scroll_pattern.VerticallyScrollable,
+                    'vertical_scroll_percent':scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
+                    'is_focused':node.HasKeyboardFocus
+                }))
+                    
             if is_element_interactive(node):
                 legacy_pattern=node.GetLegacyIAccessiblePattern()
                 value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
