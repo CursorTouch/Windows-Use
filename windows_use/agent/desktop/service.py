@@ -355,17 +355,17 @@ class Desktop:
         
     def get_apps(self) -> tuple[App|None,list[App]]:
         try:
-            sleep(0.5)
             desktop = uia.GetRootControl()  # Get the desktop control
-            elements = desktop.GetChildren()
+            children = desktop.GetChildren()
             apps = []
-            for depth, element in enumerate(elements):
-                if (element.ClassName in EXCLUDED_APPS) or (element.ClassName in AVOIDED_APPS) or self.is_overlay_app(element):
-                    continue
-                if element.ControlType in [uia.ControlType.WindowControl, uia.ControlType.PaneControl]:
-                    status = self.get_app_status(element)
-                    size=self.get_app_size(element)
-                    apps.append(App(name=element.Name, depth=depth, status=status,size=size,handle=element.NativeWindowHandle,process_id=element.ProcessId))
+            for depth, child in enumerate(children):
+                if isinstance(child,(uia.WindowControl,uia.PaneControl)):
+                    window_pattern=child.GetPattern(uia.PatternId.WindowPattern)
+                    if (window_pattern is None):
+                        continue
+                    status = self.get_app_status(child)
+                    size=self.get_app_size(child)
+                    apps.append(App(name=child.Name, depth=depth, status=status,size=size,handle=child.NativeWindowHandle,process_id=child.ProcessId))
         except Exception as ex:
             print(f"Error: {ex}")
             apps = []

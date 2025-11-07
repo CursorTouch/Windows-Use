@@ -31,7 +31,6 @@ class Tree:
         )
 
     def get_state(self,root:Control)->TreeState:
-        sleep(0.1)
         interactive_nodes,scrollable_nodes=self.get_appwise_nodes(node=root)
         return TreeState(interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes)
 
