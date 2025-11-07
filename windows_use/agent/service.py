@@ -1,4 +1,4 @@
-from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool, multi_select_tool,
+from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool, multi_select_tool,memory_tool,
 shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_tool, multi_edit_tool)
 from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage
 from windows_use.telemetry.views import AgentTelemetryEvent
@@ -30,7 +30,7 @@ class Agent:
         self.description='An agent that can interact with GUI elements on Windows OS' 
         self.registry = Registry([
             click_tool,type_tool, app_tool, shell_tool, done_tool, 
-            shortcut_tool, scroll_tool, drag_tool, move_tool,
+            shortcut_tool, scroll_tool, drag_tool, move_tool,memory_tool,
             wait_tool, scrape_tool, multi_select_tool, multi_edit_tool
         ])
         self.instructions=instructions

@@ -1,4 +1,4 @@
-from windows_use.agent.desktop.config import EXCLUDED_APPS, AVOIDED_APPS, BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
+from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
 from windows_use.agent.desktop.views import DesktopState, App, Size, Status
 from windows_use.agent.tree.service import Tree
 from locale import getpreferredencoding
@@ -47,10 +47,9 @@ class Desktop:
         self.desktop_state=None
         
     def get_state(self,use_vision:bool=False)->DesktopState:
+        sleep(0.1)
         apps=self.get_apps()
         active_app=self.get_active_app()
-        if active_app:
-            apps.remove(active_app)
         logger.debug(f"Active app: {active_app}")
         logger.debug(f"Apps: {apps}")
         tree_state=self.tree.get_state(active_app,apps)

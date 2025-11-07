@@ -279,14 +279,14 @@ def shortcut_tool(shortcut:str,**kwargs)->str:
     return f'Pressed {shortcut}.'
 
 @Tool('Multi Select Tool',args_schema=MultiSelect)
-def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[tuple[int,int]|int]=[],**kwargs)->str:
+def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[tuple[int,int]]=[],**kwargs)->str:
     '''
-    Selects multiple items in a list, table, or grid. Perform redundant clicks.
+    Selects mutiple items such as files, folders, or checkboxes if press_ctrl is true and perform redundant clicks if press_ctrl is false.
 
     Use cases:
-        - Select multiple items in a list, table, or grid
+        - Select multiple items in files, folders, or checkboxes
         - Mark multiple checkboxes in a form
-        - Drag-and-drop multiple items between locations
+        - Repeat clicks on same element
     
     Use for common operations like selecting multiple items or repeated clicks.
     '''
@@ -295,7 +295,7 @@ def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[tu
     return f'Multi-selected elements at {'\n'.join([f'({x},{y})' for x,y in elements])}.'
 
 @Tool('Multi Edit Tool',args_schema=MultiEdit)
-def multi_edit_tool(elements:list[tuple[int,int,str]|tuple[int,str]],**kwargs)->str:
+def multi_edit_tool(elements:list[tuple[int,int,str]],**kwargs)->str:
     '''
     Typing text into multiple input fields.
     
