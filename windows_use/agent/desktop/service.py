@@ -77,7 +77,7 @@ class Desktop:
                     continue
                 return app
         except Exception as ex:
-            print(f"Error: {ex}")
+            logger.error(f"Error in get_active_app: {ex}")
         return None
     
     def get_app_status(self,control:uia.Control)->Status:
@@ -378,7 +378,7 @@ class Desktop:
                             "process_id":child.ProcessId
                         }))
         except Exception as ex:
-            print(f"Error: {ex}")
+            logger.error(f"Error in get_apps: {ex}")
             apps = []
         return apps
     

@@ -62,12 +62,12 @@ class Tree:
                             scrollable_nodes.extend(scroll_nodes)
                     except Exception as e:
                         retry_counts[app] += 1
-                        print(f"Error in processing node {app}, retry attempt {retry_counts[app]}\nError: {e}")
+                        logger.debug(f"Error in processing node {app.Name}, retry attempt {retry_counts[app]}\nError: {e}")
                         if retry_counts[app] < THREAD_MAX_RETRIES:
                             new_future = executor.submit(self.get_nodes, app, self.desktop.is_app_browser(app))
                             future_to_app[new_future] = app
                         else:
-                            print(f"Task failed completely for {app.Name} after {THREAD_MAX_RETRIES} retries")
+                            logger.error(f"Task failed completely for {app.Name} after {THREAD_MAX_RETRIES} retries")
         return interactive_nodes,scrollable_nodes
     
     def iou_bounding_box(self,window_box: Rect,element_box: Rect,) -> BoundingBox:

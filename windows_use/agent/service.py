@@ -46,6 +46,8 @@ class Agent:
         self.console=Console()
 
     def invoke(self,query: str)->AgentResult:
+        if query.strip()=='':
+            return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
                 with self.watch_cursor:
