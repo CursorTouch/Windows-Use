@@ -363,9 +363,10 @@ class Desktop:
                     window_pattern=child.GetPattern(uia.PatternId.WindowPattern)
                     if (window_pattern is None):
                         continue
-                    status = self.get_app_status(child)
-                    size=self.get_app_size(child)
-                    apps.append(App(name=child.Name, depth=depth, status=status,size=size,handle=child.NativeWindowHandle,process_id=child.ProcessId))
+                    if window_pattern.CanMinimize and window_pattern.CanMaximize:
+                        status = self.get_app_status(child)
+                        size=self.get_app_size(child)
+                        apps.append(App(name=child.Name, depth=depth, status=status,size=size,handle=child.NativeWindowHandle,process_id=child.ProcessId))
         except Exception as ex:
             print(f"Error: {ex}")
             apps = []
