@@ -286,7 +286,7 @@ class Tree:
                         vertical_scroll_percent=scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
                         is_focused=node.HasKeyboardFocus
                     ))
-            elif is_element_interactive(node):
+            if is_element_interactive(node):
                 legacy_pattern=node.GetLegacyIAccessiblePattern()
                 value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
                 name=node.Name.strip()
@@ -373,6 +373,7 @@ class Tree:
 
         logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
         logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
+        logger.debug(f'Scrollable nodes:{len(scrollable_nodes)}')
 
         interactive_nodes.extend(dom_interactive_nodes)
         return (interactive_nodes,scrollable_nodes)
