@@ -180,9 +180,11 @@ class Tree:
             
         def is_element_scrollable(node:Control):
             try:
-                if (node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES) or node.IsOffscreen or (node.Name.strip()=="" and node.AutomationId.strip()==""):
+                if (node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|INFORMATIVE_CONTROL_TYPE_NAMES) or node.IsOffscreen:
                     return False
                 scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
+                if scroll_pattern is None:
+                    return False
                 return scroll_pattern.VerticallyScrollable
             except Exception:
                 return False
