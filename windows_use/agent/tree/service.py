@@ -256,8 +256,8 @@ class Tree:
             
         def tree_traversal(node: Control,is_dom:bool=False,is_dialog:bool=False):
             # Checks to skip the nodes that are not interactive
-            # if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
-            #     return None
+            if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
+                return None
             
             if is_element_scrollable(node):
                 scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)

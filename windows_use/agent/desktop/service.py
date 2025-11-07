@@ -442,7 +442,6 @@ class Desktop:
     def get_screen_size(self)->Size:
         width, height = uia.GetScreenSize()
         return Size(width=width,height=height)
-    
 
     def get_screenshot(self)->Image.Image:
         return pg.screenshot()
