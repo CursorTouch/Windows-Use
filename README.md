@@ -150,6 +150,46 @@ Windows-Use makes use of several excellent open-source projects that power its W
 
 Huge thanks to the maintainers and contributors of these libraries for their outstanding work and open-source spirit.
 
+## 📚 Documentation
+
+### Core Documentation
+- **[Examples](docs/EXAMPLES.md)** - Practical examples and use cases
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+### Key Features
+
+#### 🤖 Multi-LLM Support
+Windows-Use supports multiple LLM providers with consistent interfaces.
+
+#### 🎯 Advanced UI Interaction
+- **Vision-based element detection** for better accuracy
+- **Smart retry mechanisms** with exponential backoff
+- **Performance optimizations** with caching and compression
+- **Comprehensive error handling** with specific exception types
+
+#### 📊 Monitoring and Debugging
+- **Structured logging** with JSON output support
+- **Performance metrics** and execution timing
+- **Debug mode** with detailed step-by-step logging
+
+### Error Handling
+
+Windows-Use provides specific exception types for better error handling:
+
+```python
+from windows_use.exceptions import (
+    WindowsUseError, LLMError, DesktopInteractionError,
+    ElementNotFoundError, ValidationError, TimeoutError
+)
+
+try:
+    result = agent.invoke("complex task")
+except LLMError as e:
+    print(f"LLM failed: {e.message}")
+except ElementNotFoundError as e:
+    print(f"UI element not found: {e.message}")
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please check the [CONTRIBUTING](CONTRIBUTING) file for setup and development workflow.

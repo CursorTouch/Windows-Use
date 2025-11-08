@@ -1,6 +1,8 @@
 from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
 from windows_use.agent.desktop.views import DesktopState, App, Size, Status
 from windows_use.agent.tree.service import Tree
+from windows_use.performance import cached, timed, screenshot_manager, ui_element_cache
+from windows_use.logging import get_logger
 from locale import getpreferredencoding
 from contextlib import contextmanager
 from typing import Optional,Literal
@@ -14,7 +16,6 @@ import subprocess
 import win32gui
 import win32con
 import requests
-import logging
 import base64
 import ctypes
 import csv
@@ -22,12 +23,7 @@ import re
 import os
 import io
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger = get_logger("windows_use.desktop")
 
 try:  
     ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)
@@ -46,7 +42,8 @@ class Desktop:
         self.tree=Tree(self)
         self.desktop_state=None
         
-    def get_state(self,use_vision:bool=False)->DesktopState:
+    @timed
+    def get_state(self, use_vision: bool = False) -> DesktopState:
         sleep(0.1)
         apps=self.get_apps()
         active_app=self.get_active_app()
@@ -437,8 +434,10 @@ class Desktop:
         width, height = uia.GetScreenSize()
         return Size(width=width,height=height)
 
-    def get_screenshot(self)->Image.Image:
-        return pg.screenshot()
+    @timed
+    def get_screenshot(self) -> Image.Image:
+        """Get optimized screenshot with caching."""
+        return screenshot_manager.get_screenshot()
     
     @contextmanager
     def auto_minimize(self):

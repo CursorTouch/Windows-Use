@@ -12,20 +12,31 @@ from windows_use.agent.prompt.service import Prompt
 from live_inspect.watch_cursor import WatchCursor
 from windows_use.agent.views import AgentResult
 from windows_use.llms.base import BaseChatLLM
+from windows_use.exceptions import (
+    WindowsUseError, LLMError, DesktopInteractionError, 
+    ToolExecutionError, ValidationError, TimeoutError
+)
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
+from typing import Optional, List
+from windows_use.logging import get_logger
 import logging
+import time
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger = get_logger("windows_use.agent")
 
 class Agent:
-    def __init__(self,instructions:list[str]=[],browser:Browser=Browser.EDGE, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
+    def __init__(
+        self,
+        instructions: List[str] = None,
+        browser: Browser = Browser.EDGE, 
+        llm: Optional[BaseChatLLM] = None,
+        max_consecutive_failures: int = 3,
+        max_steps: int = 25,
+        use_vision: bool = False,
+        auto_minimize: bool = False
+    ) -> None:
         self.name='Windows Use'
         self.description='An agent that can interact with GUI elements on Windows OS' 
         self.registry = Registry([
@@ -33,7 +44,7 @@ class Agent:
             shortcut_tool, scroll_tool, drag_tool, move_tool,memory_tool,
             wait_tool, scrape_tool, multi_select_tool, multi_edit_tool
         ])
-        self.instructions=instructions
+        self.instructions = instructions or []
         self.browser=browser
         self.max_steps=max_steps
         self.max_consecutive_failures=max_consecutive_failures
@@ -45,9 +56,14 @@ class Agent:
         self.desktop = Desktop()
         self.console=Console()
 
-    def invoke(self,query: str)->AgentResult:
+    def invoke(self, query: str) -> AgentResult:
         if query.strip()=='':
-            return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
+            raise ValidationError(
+                "Query cannot be empty", 
+                field="query", 
+                value=query, 
+                expected="non-empty string"
+            )
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
                 with self.watch_cursor:
@@ -71,37 +87,68 @@ class Agent:
                     ]
                     for steps in range(1,self.max_steps+1):
                         if steps==self.max_steps:
+                            timeout_error = TimeoutError(
+                                f"Agent reached maximum steps limit ({self.max_steps})",
+                                timeout_seconds=None,
+                                operation="agent_execution",
+                                details={"max_steps": self.max_steps, "query": query}
+                            )
                             self.telemetry.capture(AgentTelemetryEvent(
                                 query=query,
-                                error="Max steps reached",
+                                error=str(timeout_error),
                                 use_vision=self.use_vision,
                                 model=self.llm.model_name,
                                 provider=self.llm.provider,
                                 agent_log=agent_log
                             ))
-                            return AgentResult(is_done=False, error="Max steps reached")
+                            return AgentResult(is_done=False, error=str(timeout_error))
                         
                         for consecutive_failures in range(1,self.max_consecutive_failures+1):
                             try:
+                                start_time = time.time()
                                 llm_response=self.llm.invoke(messages)
+                                response_time = time.time() - start_time
+                                
+                                logger.log_llm_interaction(
+                                    provider=self.llm.provider,
+                                    model=self.llm.model_name,
+                                    response_time=response_time
+                                )
+                                
                                 agent_data=extract_agent_data(llm_response)
                                 break
                             except Exception as e:
-                                logger.error(f"[LLM]: {e}. Retrying attempt {consecutive_failures+1}...")
+                                logger.error(
+                                    f"LLM invocation failed (attempt {consecutive_failures}/{self.max_consecutive_failures})",
+                                    provider=self.llm.provider,
+                                    model=self.llm.model_name,
+                                    attempt=consecutive_failures,
+                                    error=str(e),
+                                    exc_info=True
+                                )
                                 if consecutive_failures==self.max_consecutive_failures:
+                                    llm_error = LLMError(
+                                        f"LLM failed after {self.max_consecutive_failures} attempts: {str(e)}",
+                                        provider=self.llm.provider,
+                                        model=self.llm.model_name,
+                                        details={"original_error": str(e), "attempts": consecutive_failures}
+                                    )
                                     self.telemetry.capture(AgentTelemetryEvent(
                                         query=query,
-                                        error=str(e),
+                                        error=str(llm_error),
                                         use_vision=self.use_vision,
                                         model=self.llm.model_name,
                                         provider=self.llm.provider,
                                         agent_log=agent_log
                                     ))
-                                    return AgentResult(is_done=False, error=str(e))
+                                    return AgentResult(is_done=False, error=str(llm_error))
 
-                        logger.info(f"[Agent] 🎯 Step: {steps}")
-                        logger.info(f"[Agent] 📝 Evaluate: {agent_data.evaluate}")
-                        logger.info(f"[Agent] 💭 Thought: {agent_data.thought}")
+                        logger.log_agent_step(
+                            step=steps,
+                            action=agent_data.action.name if agent_data.action else "unknown",
+                            thought=agent_data.thought,
+                            observation=agent_data.evaluate
+                        )
 
                         messages.pop() #Remove previous Desktop State Human Message
                         human_prompt=Prompt.previous_observation_prompt(steps=steps-1,max_steps=self.max_steps,observation=observation)
@@ -117,18 +164,38 @@ class Agent:
                         params=action.params
 
                         if action_name.startswith('Done'):
+                            start_time = time.time()
                             action_response=self.registry.execute(tool_name=action_name, desktop=None, **params)
+                            execution_time = time.time() - start_time
+                            
                             answer=action_response.content
-                            logger.info(f"[Agent] 📜 Final-Answer: {answer}\n")
+                            logger.log_tool_execution(
+                                tool_name=action_name,
+                                parameters=params,
+                                result=answer,
+                                success=action_response.is_success,
+                                execution_time=execution_time
+                            )
+                            logger.info(f"📜 Task completed: {answer}")
                             agent_data.observation=answer
                             agent_log.append(agent_data.model_dump_json())
                             human_prompt=Prompt.answer_prompt(agent_data=agent_data,tool_result=action_response)
                             break
                         else:
-                            logger.info(f"[Tool] 🔧 Action: {action_name}({', '.join(f'{k}={v}' for k, v in params.items())})")
+                            start_time = time.time()
                             action_response=self.registry.execute(tool_name=action_name, desktop=self.desktop, **params)
+                            execution_time = time.time() - start_time
+                            
                             observation=action_response.content if action_response.is_success else action_response.error
-                            logger.info(f"[Tool] 📝 Observation: {observation}\n")
+                            
+                            logger.log_tool_execution(
+                                tool_name=action_name,
+                                parameters=params,
+                                result=observation,
+                                success=action_response.is_success,
+                                execution_time=execution_time
+                            )
+                            
                             agent_data.observation=observation
                             agent_log.append(agent_data.model_dump_json())
 
