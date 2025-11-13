@@ -46,6 +46,7 @@ class Agent:
         self.console=Console()
 
     def invoke(self,query: str)->AgentResult:
+        """Invoke the agent with a query."""
         if query.strip()=='':
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         try:
@@ -62,7 +63,6 @@ class Agent:
                     human_prompt=Prompt.observation_prompt(query=query,steps=0,max_steps=self.max_steps,
                         tool_result=ToolResult(is_success=True, content=observation), desktop_state=desktop_state
                     )
-                    agent_log=[]
                     messages=[
                         SystemMessage(content=system_prompt),
                         ImageMessage(content=human_prompt,image=desktop_state.screenshot,mime_type="image/png") 
@@ -77,7 +77,6 @@ class Agent:
                                 use_vision=self.use_vision,
                                 model=self.llm.model_name,
                                 provider=self.llm.provider,
-                                agent_log=agent_log
                             ))
                             return AgentResult(is_done=False, error="Max steps reached")
                         
@@ -94,8 +93,7 @@ class Agent:
                                         error=str(e),
                                         use_vision=self.use_vision,
                                         model=self.llm.model_name,
-                                        provider=self.llm.provider,
-                                        agent_log=agent_log
+                                        provider=self.llm.provider
                                     ))
                                     return AgentResult(is_done=False, error=str(e))
 
@@ -121,7 +119,6 @@ class Agent:
                             answer=action_response.content
                             logger.info(f"[Agent] 📜 Final-Answer: {answer}\n")
                             agent_data.observation=answer
-                            agent_log.append(agent_data.model_dump_json())
                             human_prompt=Prompt.answer_prompt(agent_data=agent_data,tool_result=action_response)
                             break
                         else:
@@ -130,7 +127,6 @@ class Agent:
                             observation=action_response.content if action_response.is_success else action_response.error
                             logger.info(f"[Tool] 📝 Observation: {observation}\n")
                             agent_data.observation=observation
-                            agent_log.append(agent_data.model_dump_json())
 
                             desktop_state = self.desktop.get_state(use_vision=self.use_vision)
                             human_prompt=Prompt.observation_prompt(query=query,steps=steps,max_steps=self.max_steps,
@@ -145,7 +141,6 @@ class Agent:
                     use_vision=self.use_vision,
                     model=self.llm.model_name,
                     provider=self.llm.provider,
-                    agent_log=agent_log
                 ))
             return AgentResult(is_done=True,content=answer)
         except KeyboardInterrupt:
@@ -154,5 +149,6 @@ class Agent:
             return AgentResult(is_done=False, error="Interrupted by user")
         
     def print_response(self,query: str):
+        """Print the response from the agent."""
         response=self.invoke(query)
         self.console.print(Markdown(response.content or response.error))
