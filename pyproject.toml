@@ -46,8 +46,8 @@ dependencies = [
     "ollama>=0.5.1",
     "cerebras-cloud-sdk>=1.50.1",
     "anthropic>=0.68.1",
-    "pywin32>=311",
     "mistralai>=1.9.11",
+    "pywin32>=311",
     "huggingface>=0.0.1",
     "datasets>=4.4.1",
 ]

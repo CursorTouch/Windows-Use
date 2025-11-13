@@ -84,9 +84,12 @@ class ChatGroq(BaseChatLLM):
         )
         if structured_output:
             content=structured_output.model_validate_json(completion.choices[0].message.content)
+            thinking=None
         else:
+            thinking=completion.choices[0].message.reasoning
             content=completion.choices[0].message.content
         return ChatLLMResponse(
+            thinking=thinking,
             content=content,
             usage=ChatLLMUsage(
                 prompt_tokens=completion.usage.prompt_tokens,

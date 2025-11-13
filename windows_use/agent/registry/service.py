@@ -5,7 +5,7 @@ from textwrap import dedent
 import json
 
 class Registry:
-    def __init__(self,tools:list[Tool]):
+    def __init__(self,tools:list[Tool]=[]):
         self.tools=tools
         self.tools_registry=self.registry()
 

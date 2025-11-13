@@ -7,6 +7,6 @@ class ChatLLMUsage(BaseModel):
     image_tokens: int|None = None
 
 class ChatLLMResponse(BaseModel):
-    content: str|BaseModel
+    content: str|BaseModel| None=None
     thinking: str|None = None
     usage: ChatLLMUsage|None = None

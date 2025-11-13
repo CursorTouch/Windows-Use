@@ -7,9 +7,10 @@ from pydantic import BaseModel
 
 @dataclass
 class ChatOllama(BaseChatLLM):
-    def __init__(self,host: str|None=None, model: str|None=None, temperature: float = 0.7,timeout: int|None=None):
+    def __init__(self,host: str|None=None, model: str|None=None, think:bool=False, temperature: float = 0.7,timeout: int|None=None):
         self.host = host
         self.model = model
+        self.think=think
         self.temperature = temperature
         self.timeout = timeout
     
@@ -51,9 +52,12 @@ class ChatOllama(BaseChatLLM):
         )
         if structured_output:
             content=structured_output.model_validate_json(completion.message.content)
+            thinking=None
         else:
+            thinking=completion.message.thinking if self.think else None
             content=completion.message.content
         return ChatLLMResponse(
+            thinking=thinking,
             content=content,
             usage=ChatLLMUsage(
                 prompt_tokens=completion.get("prompt_eval_count"),

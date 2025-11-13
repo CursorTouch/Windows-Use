@@ -78,10 +78,13 @@ class ChatCerebras(BaseChatLLM):
             ) if structured_output else None
         )
         if structured_output:
+            thinking=None
             content=structured_output.model_validate_json(completion.choices[0].message.content)
         else:
+            thinking=completion.choices[0].message.reasoning
             content=completion.choices[0].message.content
         return ChatLLMResponse(
+            thinking=thinking,
             content=content,
             usage=ChatLLMUsage(
                 prompt_tokens=completion.usage.prompt_tokens,

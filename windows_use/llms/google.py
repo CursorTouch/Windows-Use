@@ -1,5 +1,5 @@
 from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
-from google.genai.types import Part, Content, GenerateContentConfigDict,Modality
+from google.genai.types import Part, Content, GenerateContentConfigDict,Modality,ThinkingConfig
 from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
 from google.genai.client import Client,DebugConfig
 from google.auth.credentials import Credentials
@@ -7,7 +7,6 @@ from windows_use.llms.base import BaseChatLLM
 from dataclasses import dataclass
 from google.genai import types
 from pydantic import BaseModel
-from google import genai
 import asyncio
 
 def run_async(coro):
@@ -31,7 +30,7 @@ def run_async(coro):
 
 @dataclass
 class ChatGoogle(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.7):
+    def __init__(self, model: str, thinking_budget: int=-1, api_key: str=None, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.7):
         self.model = model
         self.api_key = api_key
         self.vertexai = vertexai
@@ -41,6 +40,7 @@ class ChatGoogle(BaseChatLLM):
         self.location = location
         self.http_options = http_options
         self.debug_config = debug_config
+        self.thinking_budget = thinking_budget
         
     @property
     def provider(self) -> str:
@@ -92,7 +92,8 @@ class ChatGoogle(BaseChatLLM):
             "system_instruction":system_instruction,
             "response_mime_type": "application/json" if structured_output else "text/plain",
             "response_modalities": [Modality.TEXT],
-            "response_json_schema":structured_output.model_json_schema() if structured_output else None
+            "response_json_schema":structured_output.model_json_schema() if structured_output else None,
+            "thinking_config":ThinkingConfig(thinking_budget=self.thinking_budget,include_thoughts=True)
         }
         completion =run_async(self.client.aio.models.generate_content(
             model=self.model,
@@ -101,15 +102,24 @@ class ChatGoogle(BaseChatLLM):
             ))
         if structured_output:
             content=structured_output.model_validate(completion.parsed)
+            thinking=None
         else:
-            content=completion.text
+            thinking_parts,text_parts=[],[]
+            for part in completion.candidates[0].content.parts:
+                if part.thought:
+                    thinking_parts.append(part.text)
+                else:
+                    text_parts.append(part.text)
+            content="".join(text_parts)
+            thinking="".join(thinking_parts) if thinking_parts else None
         return ChatLLMResponse(
+            thinking=thinking,
             content=content,
             usage=ChatLLMUsage(
                 prompt_tokens=completion.usage_metadata.prompt_token_count or 0,
                 completion_tokens=completion.usage_metadata.candidates_token_count or 0,
                 total_tokens=completion.usage_metadata.total_token_count or 0
-            )
+            ),
         )
         
 
