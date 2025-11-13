@@ -3,6 +3,7 @@ shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_to
 from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage
 from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.telemetry.service import ProductTelemetry
+from windows_use.agent.views import AgentResult,AgentStep
 from windows_use.agent.registry.service import Registry
 from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.utils import extract_agent_data
@@ -10,7 +11,6 @@ from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
 from windows_use.agent.prompt.service import Prompt
 from live_inspect.watch_cursor import WatchCursor
-from windows_use.agent.views import AgentResult
 from windows_use.llms.base import BaseChatLLM
 from contextlib import nullcontext
 from rich.markdown import Markdown
@@ -35,7 +35,7 @@ class Agent:
         ])
         self.instructions=instructions
         self.browser=browser
-        self.max_steps=max_steps
+        self.agent_step=AgentStep(max_steps=max_steps)
         self.max_consecutive_failures=max_consecutive_failures
         self.auto_minimize=auto_minimize
         self.use_vision=use_vision
@@ -58,9 +58,9 @@ class Agent:
                     observation="The desktop is ready to operate."
                     system_prompt=Prompt.system_prompt(desktop=self.desktop,
                         browser=self.browser,language=language,instructions=self.instructions,
-                        tools_prompt=tools_prompt,max_steps=self.max_steps
+                        tools_prompt=tools_prompt,max_steps=self.agent_step.max_steps
                     )
-                    human_prompt=Prompt.observation_prompt(query=query,steps=0,max_steps=self.max_steps,
+                    human_prompt=Prompt.observation_prompt(query=query,agent_step=self.agent_step,
                         tool_result=ToolResult(is_success=True, content=observation), desktop_state=desktop_state
                     )
                     messages=[
@@ -69,14 +69,17 @@ class Agent:
                             if self.use_vision and desktop_state.screenshot else 
                         HumanMessage(content=human_prompt)
                     ]
-                    for steps in range(1,self.max_steps+1):
-                        if steps==self.max_steps:
+                    while True:
+                        if self.agent_step.steps>self.agent_step.max_steps:
                             self.telemetry.capture(AgentTelemetryEvent(
                                 query=query,
                                 error="Max steps reached",
+                                steps=self.agent_step.steps,
+                                max_steps=self.agent_step.max_steps,
                                 use_vision=self.use_vision,
                                 model=self.llm.model_name,
                                 provider=self.llm.provider,
+                                is_success=False
                             ))
                             return AgentResult(is_done=False, error="Max steps reached")
                         
@@ -91,18 +94,21 @@ class Agent:
                                     self.telemetry.capture(AgentTelemetryEvent(
                                         query=query,
                                         error=str(e),
+                                        steps=self.agent_step.steps,
+                                        max_steps=self.agent_step.max_steps,
                                         use_vision=self.use_vision,
                                         model=self.llm.model_name,
-                                        provider=self.llm.provider
+                                        provider=self.llm.provider,
+                                        is_success=False
                                     ))
                                     return AgentResult(is_done=False, error=str(e))
 
-                        logger.info(f"[Agent] 🎯 Step: {steps}")
+                        logger.info(f"[Agent] 🎯 Step: {self.agent_step.steps}")
                         logger.info(f"[Agent] 📝 Evaluate: {agent_data.evaluate}")
                         logger.info(f"[Agent] 💭 Thought: {agent_data.thought}")
 
                         messages.pop() #Remove previous Desktop State Human Message
-                        human_prompt=Prompt.previous_observation_prompt(steps=steps-1,max_steps=self.max_steps,observation=observation)
+                        human_prompt=Prompt.previous_observation_prompt(agent_step=self.agent_step,observation=observation)
                         human_message=HumanMessage(content=human_prompt)
                         messages.append(human_message)
 
@@ -129,19 +135,24 @@ class Agent:
                             agent_data.observation=observation
 
                             desktop_state = self.desktop.get_state(use_vision=self.use_vision)
-                            human_prompt=Prompt.observation_prompt(query=query,steps=steps,max_steps=self.max_steps,
+                            human_prompt=Prompt.observation_prompt(query=query,agent_step=self.agent_step,
                                 tool_result=action_response,desktop_state=desktop_state
                             )
                             human_message=ImageMessage(content=human_prompt,image=desktop_state.screenshot,mime_type="image/png") if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
                             messages.append(human_message)
+                        self.agent_step.step_increment()
                 
                 self.telemetry.capture(AgentTelemetryEvent(
                     query=query,
+                    steps=self.agent_step.steps,
+                    max_steps=self.agent_step.max_steps,
                     answer=answer,
                     use_vision=self.use_vision,
                     model=self.llm.model_name,
                     provider=self.llm.provider,
+                    is_success=True
                 ))
+            self.agent_step.reset()
             return AgentResult(is_done=True,content=answer)
         except KeyboardInterrupt:
             logger.warning("[Agent] ⚠️: Interrupted by user (Ctrl+C).")

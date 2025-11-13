@@ -150,6 +150,22 @@ Windows-Use makes use of several excellent open-source projects that power its W
 
 Huge thanks to the maintainers and contributors of these libraries for their outstanding work and open-source spirit.
 
+## 📡 Telemetry
+
+Windows-Use includes lightweight, privacy-friendly telemetry to help improve reliability, debug failures, and understand how the agent behaves in real environments.
+
+You can disable telemetry by setting the environment variable:
+
+```.env
+ANONYMIZED_TELEMETRY=false
+```
+Or in your Python code:
+
+```python
+import os
+os.environ["ANONYMIZED_TELEMETRY"] = "false"
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please check the [CONTRIBUTING](CONTRIBUTING) file for setup and development workflow.

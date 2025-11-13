@@ -1,7 +1,7 @@
 from windows_use.agent.desktop.views import DesktopState, Browser
+from windows_use.agent.views import AgentData,AgentStep
 from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.desktop.service import Desktop
-from windows_use.agent.views import AgentData
 from importlib.resources import files
 from datetime import datetime
 from getpass import getuser
@@ -38,8 +38,10 @@ class Prompt:
         })
     
     @staticmethod
-    def previous_observation_prompt(steps:int,max_steps:int,observation: str)-> str:
+    def previous_observation_prompt(agent_step:AgentStep,observation: str)-> str:
         template=Path(files('windows_use.agent.prompt').joinpath('previous_observation.md')).read_text()
+        steps = agent_step.steps
+        max_steps = agent_step.max_steps
         return template.format(**{
             'steps': steps,
             'max_steps': max_steps,
@@ -47,9 +49,11 @@ class Prompt:
         })
          
     @staticmethod
-    def observation_prompt(query:str,steps:int,max_steps:int, tool_result:ToolResult,desktop_state: DesktopState) -> str:
+    def observation_prompt(query:str,agent_step:AgentStep, tool_result:ToolResult,desktop_state: DesktopState) -> str:
         cursor_location = pg.position()
         tree_state = desktop_state.tree_state
+        steps = agent_step.steps
+        max_steps = agent_step.max_steps
         template = Path(files('windows_use.agent.prompt').joinpath('observation.md')).read_text()
         return template.format(**{
             'steps': steps,

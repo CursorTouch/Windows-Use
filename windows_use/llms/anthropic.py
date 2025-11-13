@@ -81,7 +81,6 @@ class ChatAnthropic(BaseChatLLM):
             messages=messages,
             temperature=self.temperature,
         )
-        print(completion)
         if not isinstance(completion,Message):
             raise ValueError("Unexpected response type from Anthropic API")
         thinking_content,text_content=[],[]

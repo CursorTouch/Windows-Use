@@ -1,4 +1,14 @@
 from pydantic import BaseModel,Field
+
+class AgentStep(BaseModel):
+    steps:int=0
+    max_steps:int
+
+    def step_increment(self):
+        self.steps+=1
+
+    def reset(self):
+        self.steps=0
     
 class AgentResult(BaseModel):
     is_done:bool
