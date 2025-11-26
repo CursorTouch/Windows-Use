@@ -132,9 +132,21 @@ Talk to your computer. Watch it get things done.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=CursorTouch/Windows-Use&type=Date)](https://www.star-history.com/#CursorTouch/Windows-Use&Date)
 
-## ⚠️ Caution
+## ⚠️ Security
 
-Agent interacts directly with your Windows OS at GUI layer to perform actions. While the agent is designed to act intelligently and safely, it can make mistakes that might bring undesired system behaviour or cause unintended changes. Try to run the agent in a sandbox envirnoment.
+This agent can:
+- Operate your computer on the behalf of the user
+- Modify files and system settings
+- Make irreversible changes to your system
+
+**⚠️ STRONGLY RECOMMENDED: Deploy in a Virtual Machine or Windows Sandbox**
+
+The project provides **NO sandbox or isolation layer**. For your safety:
+- ✅ Use a Virtual Machine (VirtualBox, VMware, Hyper-V)
+- ✅ Use Windows Sandbox (Windows 10/11 Pro/Enterprise)
+- ✅ Use a dedicated test machine
+
+**📖 Read the full [Security Policy](SECURITY.md) before deployment.**
 
 ## 🪪 License
 

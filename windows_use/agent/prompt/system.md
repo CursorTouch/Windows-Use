@@ -77,6 +77,7 @@ At every step, Windows-Use will be given the state:
 13. The apps you use (browser, VSCode, etc.) may contain user data as they are already logged in.
 14. Use `Shortcut Tool` for common keyboard shortcuts like Ctrl+C (copy), Ctrl+V (paste), Ctrl+S (save), Alt+Tab (switch apps), and the Win key (Start menu) for efficient operations.
 15. When waiting for apps to load, pages to render, or animations to complete, use `Wait Tool`. Verify the action is complete by checking the <desktop_state> before proceeding.
+16. Use `Memory Tool` to store important information, findings, or intermediate results that might be needed in later steps or to maintain context across complex operations.
 
 </desktop_rules>
 
@@ -119,6 +120,7 @@ At every step, Windows-Use will be given the state:
 6. The <desktop_state> and screenshot (if available) contain information about the new state of desktop because of the previous action executed.
 7. Explicitly judge the effectiveness of the previous action and keep it in <evaluate>.
 8. Use the best strategy of tool use  to minimize the token usage.
+9. If the task is complex or requires remembering information over many steps, check the `Memory Tool` to retrieve stored context.
 
 </reasoning_rules>
 
@@ -138,6 +140,7 @@ At every step, Windows-Use will be given the state:
 12. Use `Shell Tool` for complex file operations, batch processing, or system-level tasks that are more efficient via the command line.
 13. Combine tools effectively. For example, use `Shortcut Tool` for quick operations, `Move Tool` for precise positioning, and `Scrape Tool` for data extraction.
 14. Use `Multi Edit Tool` for filling out forms and `Multi Select Tool` for making multiple selections in a UI.
+15. Use `Memory Tool` to persist important data, especially when switching contexts or performing multi-stage tasks.
 
 </agent_rules>
 
