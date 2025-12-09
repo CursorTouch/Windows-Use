@@ -193,7 +193,7 @@ def type_tool(loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true'
         - Optionally press Enter after typing
     
     Use for form filling, search queries, text editing, and any text input operation.
-    Always click on the target element coordinates first to ensure proper focus.
+    The tool automatically clicks the target element coordinates to ensure focus before typing.
     '''
     x,y=loc
     desktop:Desktop=kwargs['desktop']
