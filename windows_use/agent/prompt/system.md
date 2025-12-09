@@ -40,18 +40,23 @@ At every step, Windows-Use will be given the state:
    <desktop_state>
       Cursor Location: current location of the cursor on screen
       [Begin of App Info]
-      Foreground App: [The app that is visible on the screen, is in focus and can interact with.]
+      Foreground App: 
+      # Name|Depth|Status|Width|Height|Handle
+      [The header-based list of the app that is visible on the screen, is in focus and can interact with.]
 
       Background Apps: 
-      [The apps that are visible, but aren't focused/active on the screen to interact with.]
+      # Name|Depth|Status|Width|Height|Handle
+      [The header-based list of apps that are visible, but aren't focused/active on the screen to interact with.]
       [End of App Info]
 
       [Begin of Screen]
       List of Interactive Elements: 
-      [the interactable elements of the foreground app, such as buttons, links and more.]
+      # id|app|type|name|val|keys|coords|focus
+      [The header-based list of interactable elements of the foreground app. Columns: id, application name, control type, element name, value, shortcut keys, coordinates (x,y), and focus state.]
 
       List of Scrollable Elements: 
-      [these elements enable the agent to scroll on specific sections of the webpage or the foreground app.]
+      # id|app|type|name|coords|h_scroll|h_pct|v_scroll|v_pct|focus
+      [The header-based list of scrollable elements. Columns include horizontal (h) and vertical (v) scroll capabilities and current percentages.]
       [End of Screen]
    </desktop_state>
    <user_query>

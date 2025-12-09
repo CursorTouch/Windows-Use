@@ -9,20 +9,28 @@ class TreeState:
     def interactive_elements_to_string(self) -> str:
         if not self.interactive_nodes:
             return "No interactive elements"
-        headers = ["Label", "App Name", "ControlType", "Name", "Value", "Shortcut", "Coordinates" ,"IsFocused"]
-        rows = [node.to_row(idx) for idx, node in enumerate(self.interactive_nodes)]
-        return tabulate(rows, headers=headers, tablefmt="simple")
+        # TOON-like format: Pipe-separated values with clear header
+        # Using abbreviations in header to save tokens
+        header = "# id|app|type|name|val|keys|coords|focus"
+        rows = [header]
+        for idx, node in enumerate(self.interactive_nodes):
+            row = f"{idx}|{node.app_name}|{node.control_type}|{node.name}|{node.value}|{node.shortcut}|{node.center.to_string()}|{node.is_focused}"
+            rows.append(row)
+        return "\n".join(rows)
 
     def scrollable_elements_to_string(self) -> str:
         if not self.scrollable_nodes:
             return "No scrollable elements"
-        headers = [
-            "Label", "App Name", "ControlType", "Name", "Coordinates",
-            "Horizontal Scrollable", "Horizontal Scroll Percent(%)", "Vertical Scrollable", "Vertical Scroll Percent(%)", "IsFocused"
-        ]
+        # TOON-like format
+        header = "# id|app|type|name|coords|h_scroll|h_pct|v_scroll|v_pct|focus"
+        rows = [header]
         base_index = len(self.interactive_nodes)
-        rows = [node.to_row(idx, base_index) for idx, node in enumerate(self.scrollable_nodes)]
-        return tabulate(rows, headers=headers, tablefmt="simple")
+        for idx, node in enumerate(self.scrollable_nodes):
+            row = (f"{base_index + idx}|{node.app_name}|{node.control_type}|{node.name}|"
+                   f"{node.center.to_string()}|{node.horizontal_scrollable}|{node.horizontal_scroll_percent}|"
+                   f"{node.vertical_scrollable}|{node.vertical_scroll_percent}|{node.is_focused}")
+            rows.append(row)
+        return "\n".join(rows)
     
 @dataclass
 class BoundingBox:
@@ -68,6 +76,7 @@ class TreeElementNode:
     xpath:str
     is_focused:bool
 
+    # Legacy method kept for compatibility if needed, but not used in new format
     def to_row(self, index: int):
         return [index, self.app_name, self.control_type, self.name, self.value, self.shortcut, self.center.to_string(),self.is_focused]
 
@@ -85,6 +94,7 @@ class ScrollElementNode:
     vertical_scroll_percent: float
     is_focused: bool
 
+    # Legacy method kept for compatibility
     def to_row(self, index: int, base_index: int):
         return [
             base_index + index,
