@@ -11,7 +11,7 @@ from groq import Groq
 
 @dataclass
 class ChatGroq(BaseChatLLM):
-    def __init__(self, model: str, base_url: str|None=None, api_key: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
+    def __init__(self, model: str, api_key: str, base_url: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
@@ -22,19 +22,22 @@ class ChatGroq(BaseChatLLM):
         self.default_query = default_query
         self.http_client = http_client
         self.strict_response_validation = strict_response_validation
+        self._client = None
 
     @property
     def client(self) -> Groq:
-        return Groq(**{
-            "api_key": self.api_key,
-            "base_url": self.base_url,
-            "timeout": self.timeout,
-            "max_retries": self.max_retries,
-            "default_headers": self.default_headers,
-            "default_query": self.default_query,
-            "http_client": self.http_client,
-            "_strict_response_validation": self.strict_response_validation,
-        })
+        if self._client is None:
+            self._client = Groq(**{
+                "api_key": self.api_key,
+                "base_url": self.base_url,
+                "timeout": self.timeout,
+                "max_retries": self.max_retries,
+                "default_headers": self.default_headers,
+                "default_query": self.default_query,
+                "http_client": self.http_client,
+                "_strict_response_validation": self.strict_response_validation,
+            })
+        return self._client
 
     @property
     def provider(self) -> str:

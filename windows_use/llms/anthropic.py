@@ -23,20 +23,23 @@ class ChatAnthropic(BaseChatLLM):
         self.default_query = default_query
         self.http_client = http_client
         self.strict_response_validation = strict_response_validation
+        self._client = None
 
     @property
     def client(self):
-        return Anthropic(**{
-            "api_key": self.api_key,
-            "auth_token": self.auth_token,
-            "base_url": self.base_url,
-            "timeout": self.timeout,
-            "max_retries": self.max_retries,
-            "default_headers": self.default_headers,
-            "default_query": self.default_query,
-            "http_client": self.http_client,
-            "_strict_response_validation": self.strict_response_validation
-        })
+        if self._client is None:
+            self._client = Anthropic(**{
+                "api_key": self.api_key,
+                "auth_token": self.auth_token,
+                "base_url": self.base_url,
+                "timeout": self.timeout,
+                "max_retries": self.max_retries,
+                "default_headers": self.default_headers,
+                "default_query": self.default_query,
+                "http_client": self.http_client,
+                "_strict_response_validation": self.strict_response_validation
+            })
+        return self._client
 
     @property
     def provider(self):

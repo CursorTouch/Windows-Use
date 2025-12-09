@@ -13,6 +13,7 @@ class ChatOllama(BaseChatLLM):
         self.think=think
         self.temperature = temperature
         self.timeout = timeout
+        self._client = None
     
     @property
     def provider(self) -> str:
@@ -20,7 +21,9 @@ class ChatOllama(BaseChatLLM):
     
     @property
     def client(self) -> Client:
-        return Client(host=self.host,timeout=self.timeout)
+        if self._client is None:
+            self._client = Client(host=self.host,timeout=self.timeout)
+        return self._client
     
     @property
     def model_name(self) -> str:

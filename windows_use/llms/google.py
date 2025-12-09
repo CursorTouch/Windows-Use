@@ -41,6 +41,7 @@ class ChatGoogle(BaseChatLLM):
         self.http_options = http_options
         self.debug_config = debug_config
         self.thinking_budget = thinking_budget
+        self._client = None
         
     @property
     def provider(self) -> str:
@@ -52,15 +53,17 @@ class ChatGoogle(BaseChatLLM):
     
     @property
     def client(self) -> Client:
-        return Client(**{
-            "api_key": self.api_key,
-            "vertexai": self.vertexai,
-            "project": self.project,
-            "location": self.location,
-            "credentials": self.credentials,
-            "http_options": self.http_options,
-            "debug_config": self.debug_config
-        })
+        if self._client is None:
+            self._client = Client(**{
+                "api_key": self.api_key,
+                "vertexai": self.vertexai,
+                "project": self.project,
+                "location": self.location,
+                "credentials": self.credentials,
+                "http_options": self.http_options,
+                "debug_config": self.debug_config
+            })
+        return self._client
     
     def serialize_messages(self, messages: list[BaseMessage])-> tuple[str|None,list[dict]]:
         serialized = []
@@ -95,11 +98,11 @@ class ChatGoogle(BaseChatLLM):
             "response_json_schema":structured_output.model_json_schema() if structured_output else None,
             "thinking_config":ThinkingConfig(thinking_budget=self.thinking_budget,include_thoughts=True)
         }
-        completion =run_async(self.client.aio.models.generate_content(
+        completion = self.client.models.generate_content(
             model=self.model,
             config=config,
             contents=contents
-            ))
+            )
         if structured_output:
             content=structured_output.model_validate(completion.parsed)
             thinking=None

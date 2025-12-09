@@ -22,20 +22,23 @@ class ChatMistral(BaseChatLLM):
         self.retry_config = retry_config
         self.timeout_ms = timeout_ms
         self.debug_logger = debug_logger
+        self._mistral_client = None
 
     @property
     def client(self) -> Mistral:
-        return Mistral(**{
-            "api_key": self.api_key,
-            "server": self.server,
-            "server_url": self.server_url,
-            "url_params": self.url_params,
-            "client": self._client,
-            "async_client": self.async_client,
-            "retry_config": self.retry_config,
-            "timeout_ms": self.timeout_ms,
-            "debug_logger": self.debug_logger
-        })
+        if self._mistral_client is None:
+            self._mistral_client = Mistral(**{
+                "api_key": self.api_key,
+                "server": self.server,
+                "server_url": self.server_url,
+                "url_params": self.url_params,
+                "client": self._client,
+                "async_client": self.async_client,
+                "retry_config": self.retry_config,
+                "timeout_ms": self.timeout_ms,
+                "debug_logger": self.debug_logger
+            })
+        return self._mistral_client
 
     @property
     def provider(self) -> str:
