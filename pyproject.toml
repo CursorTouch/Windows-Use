@@ -36,7 +36,6 @@ dependencies = [
     "termcolor>=3.1.0",
     "twine>=6.1.0",
     "uiautomation>=2.0.29",
-    "requests>=2.31.0",
     "python-dotenv>=1.0.0",
     "uuid7>=0.1.0",
     "posthog>=6.7.8",
@@ -48,8 +47,6 @@ dependencies = [
     "anthropic>=0.68.1",
     "mistralai>=1.9.11",
     "pywin32>=311",
-    "huggingface>=0.0.1",
-    "datasets>=4.4.1",
 ]
 
 [project.optional-dependencies]

@@ -117,4 +117,4 @@ class ScrollElementNode:
 class TextElementNode:
     text:str
 
-ElementNode=TreeElementNode|ScrollElementNode
+ElementNode=TreeElementNode|ScrollElementNode|TextElementNode

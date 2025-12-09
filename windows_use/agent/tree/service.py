@@ -41,20 +41,20 @@ class Tree:
         interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
         root_node=TreeElementNode(
             name="Desktop",
-            control_type=root.LocalizedControlType.title(),
+            control_type="PaneControl",
             bounding_box=self.screen_box,
             center=self.screen_box.get_center(),
             app_name="Desktop",
-            xpath=root.ControlTypeName,
-            value=root.Name.strip(),
-            shortcut=root.LocalizedControlType.title(),
-            is_focused=root.HasKeyboardFocus
+            xpath='',
+            value='',
+            shortcut='',
+            is_focused=False
         )
         if self.dom:
             scroll_pattern:ScrollPattern=self.dom.GetPattern(PatternId.ScrollPattern)
             dom_node=ScrollElementNode(
                 name="DOM",
-                control_type=self.dom.LocalizedControlType.title(),
+                control_type="DocumentControl",
                 bounding_box=self.dom_bounding_box,
                 center=self.dom_bounding_box.get_center(),
                 horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
@@ -63,7 +63,7 @@ class Tree:
                 vertical_scroll_percent=scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
                 xpath='',
                 app_name="DOM",
-                is_focused=self.dom.HasKeyboardFocus
+                is_focused=False
             )
         else:
             dom_node=None

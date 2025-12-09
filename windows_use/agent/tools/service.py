@@ -349,4 +349,6 @@ def scrape_tool(url:str,**kwargs)->str:
     dom_node=tree_state.dom_node
     vertical_scroll_percent=dom_node.vertical_scroll_percent
     content='\n'.join([node.text for node in tree_state.dom_informative_nodes])
-    return f'URL:{url}\nContent:\n{content}\n{'[Scroll down to see more]' if not vertical_scroll_percent>=100 else "[Reached bottom]"}'
+    header_status = "Reached top" if vertical_scroll_percent <= 0 else "Scroll up to see more"
+    footer_status = "Reached bottom" if vertical_scroll_percent >= 100 else "Scroll down to see more"
+    return f'URL:{url}\nContent:\n{header_status}\n{content}\n{footer_status}'
