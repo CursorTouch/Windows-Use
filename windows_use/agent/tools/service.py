@@ -342,5 +342,11 @@ def scrape_tool(url:str,**kwargs)->str:
     markdown text suitable for parsing, analysis, and information extraction.
     '''
     desktop:Desktop=kwargs['desktop']
-    content=desktop.scrape(url)
-    return f'Scraped the contents of the entire webpage:\n{content}'
+    desktop_state=desktop.desktop_state
+    tree_state=desktop_state.tree_state
+    if not tree_state.dom_node:
+        return f'Unable to scrape URL: {url}. No DOM node found.'
+    dom_node=tree_state.dom_node
+    vertical_scroll_percent=dom_node.vertical_scroll_percent
+    content='\n'.join([node.text for node in tree_state.dom_informative_nodes])
+    return f'URL:{url}\nContent:\n{content}\n{'[Scroll down to see more]' if not vertical_scroll_percent>=100 else "[Reached bottom]"}'

@@ -9,9 +9,9 @@ import os
 load_dotenv()
 
 def main():
-    api_key = os.getenv("GOOGLE_API_KEY")
-    # llm=ChatMistral(model='magistral-small-latest',api_key=api_key,temperature=0.7)
-    llm=ChatGoogle(model="gemini-2.5-flash",thinking_budget=0, api_key=api_key, temperature=0.7)
+    api_key = os.getenv("MISTRAL_API_KEY")
+    llm=ChatMistral(model='magistral-small-latest',api_key=api_key,temperature=0.7)
+    # llm=ChatGoogle(model="gemini-2.5-flash-lite",thinking_budget=0, api_key=api_key, temperature=0.7)
     # llm=ChatAnthropic(model="claude-sonnet-4-5", api_key=api_key, temperature=0.7,max_tokens=1000)
     # llm=ChatOllama(model="qwen3-vl:235b-cloud",temperature=0.2)
     agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False, auto_minimize=False)

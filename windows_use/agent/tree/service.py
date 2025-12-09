@@ -1,11 +1,11 @@
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, THREAD_MAX_RETRIES
-from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Center, BoundingBox, TreeState
+from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Center, BoundingBox, TreeState, TextElementNode
 from uiautomation import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from windows_use.agent.desktop.views import App
 from PIL import Image, ImageFont, ImageDraw
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING,Optional
 from time import sleep
 import logging
 import random
@@ -23,11 +23,12 @@ if TYPE_CHECKING:
 class Tree:
     def __init__(self,desktop:'Desktop'):
         self.desktop=desktop
-        screen_size=self.desktop.get_screen_size()
+        self.screen_size=desktop.get_screen_size()
+        self.dom:Optional[Control]=None
         self.dom_bounding_box:BoundingBox=None
         self.screen_box=BoundingBox(
-            top=0, left=0, bottom=screen_size.height, right=screen_size.width,
-            width=screen_size.width, height=screen_size.height 
+            top=0, left=0, bottom=self.screen_size.height, right=self.screen_size.width,
+            width=self.screen_size.width, height=self.screen_size.height
         )
 
     def get_state(self,active_app:App,other_apps:list[App])->TreeState:
@@ -37,18 +38,46 @@ class Tree:
         del other_apps_handle
         if active_app:
             apps=list(filter(lambda app:app.ClassName!='Progman',apps))
-        interactive_nodes,scrollable_nodes=self.get_appwise_nodes(apps=apps)
-        return TreeState(interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes)
+        interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
+        root_node=TreeElementNode(
+            name="Desktop",
+            control_type=root.LocalizedControlType.title(),
+            bounding_box=self.screen_box,
+            center=self.screen_box.get_center(),
+            app_name="Desktop",
+            xpath=root.ControlTypeName,
+            value=root.Name.strip(),
+            shortcut=root.LocalizedControlType.title(),
+            is_focused=root.HasKeyboardFocus
+        )
+        if self.dom:
+            scroll_pattern:ScrollPattern=self.dom.GetPattern(PatternId.ScrollPattern)
+            dom_node=ScrollElementNode(
+                name="DOM",
+                control_type=self.dom.LocalizedControlType.title(),
+                bounding_box=self.dom_bounding_box,
+                center=self.dom_bounding_box.get_center(),
+                horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
+                horizontal_scroll_percent=scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
+                vertical_scrollable=scroll_pattern.VerticallyScrollable,
+                vertical_scroll_percent=scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
+                xpath='',
+                app_name="DOM",
+                is_focused=self.dom.HasKeyboardFocus
+            )
+        else:
+            dom_node=None
+        return TreeState(root_node=root_node,dom_node=dom_node,interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes,dom_informative_nodes=dom_informative_nodes)
 
-    def get_appwise_nodes(self,apps:list[Control]) -> tuple[list[TreeElementNode],list[ScrollElementNode]]:
-        interactive_nodes, scrollable_nodes = [], []
+    def get_appwise_nodes(self,apps:list[Control]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
+        interactive_nodes, scrollable_nodes, dom_informative_nodes = [], [], []
         with ThreadPoolExecutor() as executor:
             retry_counts = {app: 0 for app in apps}
             future_to_app = {
                 executor.submit(
                     self.get_nodes, app, 
                     self.desktop.is_app_browser(app)
-                ): app 
+                ): app
                 for app in apps
             }
             while future_to_app:  # keep running until no pending futures
@@ -57,9 +86,10 @@ class Tree:
                     try:
                         result = future.result()
                         if result:
-                            element_nodes, scroll_nodes = result
+                            element_nodes, scroll_nodes, dom_informative_nodes = result
                             interactive_nodes.extend(element_nodes)
                             scrollable_nodes.extend(scroll_nodes)
+                            dom_informative_nodes.extend(dom_informative_nodes)
                     except Exception as e:
                         retry_counts[app] += 1
                         logger.debug(f"Error in processing node {app.Name}, retry attempt {retry_counts[app]}\nError: {e}")
@@ -68,7 +98,7 @@ class Tree:
                             future_to_app[new_future] = app
                         else:
                             logger.error(f"Task failed completely for {app.Name} after {THREAD_MAX_RETRIES} retries")
-        return interactive_nodes,scrollable_nodes
+        return interactive_nodes,scrollable_nodes,dom_informative_nodes
     
     def iou_bounding_box(self,window_box: Rect,element_box: Rect,) -> BoundingBox:
         # Step 1: Intersection of element and window (existing logic)
@@ -105,7 +135,7 @@ class Tree:
             )
         return bounding_box
 
-    def get_nodes(self, node: Control, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode]]:
+    def get_nodes(self, node: Control, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
         window_bounding_box=node.BoundingRectangle
 
         def is_element_visible(node:Control,threshold:int=0):
@@ -331,12 +361,11 @@ class Tree:
                         'is_focused':is_focused
                     })
                     interactive_nodes.append(tree_node)
-            # elif is_element_text(node):
-            #     informative_nodes.append(TextElementNode(
-            #         name=node.Name.strip() or "''",
-            #         app_name=app_name
-            #     ))
-            
+            if is_element_text(node):
+                if is_browser and is_dom:
+                    dom_informative_nodes.append(TextElementNode(
+                        text=node.Name.strip(),
+                    ))
             children=node.GetChildren()
 
             # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
@@ -344,11 +373,12 @@ class Tree:
                 # Incrementally building the xpath
                 
                 # Check if the child is a DOM element
-                if is_browser and child.ClassName == "Chrome_RenderWidgetHostHWND":
+                if is_browser and child.AutomationId=="RootWebArea":
                     bounding_box=child.BoundingRectangle
                     self.dom_bounding_box=BoundingBox(left=bounding_box.left,top=bounding_box.top,
                     right=bounding_box.right,bottom=bounding_box.bottom,width=bounding_box.width(),
                     height=bounding_box.height())
+                    self.dom=child
                     # enter DOM subtree
                     tree_traversal(child, is_dom=True, is_dialog=is_dialog)
                 # Check if the child is a dialog
@@ -369,7 +399,7 @@ class Tree:
                     # normal non-dialog children
                     tree_traversal(child, is_dom=is_dom, is_dialog=is_dialog)
 
-        interactive_nodes, dom_interactive_nodes, scrollable_nodes = [], [], []
+        interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
         app_name=node.Name.strip()
         match node.ClassName:
             case "Progman":
@@ -384,10 +414,11 @@ class Tree:
 
         logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
         logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
+        logger.debug(f'DOM informative nodes:{len(dom_informative_nodes)}')
         logger.debug(f'Scrollable nodes:{len(scrollable_nodes)}')
 
         interactive_nodes.extend(dom_interactive_nodes)
-        return (interactive_nodes,scrollable_nodes)
+        return (interactive_nodes,scrollable_nodes,dom_informative_nodes)
 
     def annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
         screenshot = self.desktop.get_screenshot()
