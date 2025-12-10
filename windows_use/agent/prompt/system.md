@@ -101,7 +101,7 @@ At every step, Windows-Use will be given the state:
 9. To scrape the entire webpage on the current tab, use `Scrape Tool` with the full URL (including https://) to convert the page content to markdown format for analysis.
 10. You can perform research on any topic to know more about it by going through multiple resources and analyzing them to gain more knowledge.
 11. When performing research, make sure you use SEO-optimized search queries to the search engine.
-12. Use `Scrape Tool` to extract and analyze webpage content without manual copying, especially useful for gathering data, reading articles, or extracting structured information.
+12. Use `Scrape Tool` to extract and analyze webpage content. Note that this tool reads the **visual accessibility tree** (what is currently rendered), NOT the raw HTML source. It is useful for gathering visible text data, articles, or structured information without manual copying.
 
 </browsing_rules>
 

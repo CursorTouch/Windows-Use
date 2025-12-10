@@ -338,8 +338,10 @@ def scrape_tool(url:str,**kwargs)->str:
         - Convert HTML pages to structured, readable text
         - Access web data without browser automation
     
-    Requires full URL including protocol (http:// or https://). Returns structured 
-    markdown text suitable for parsing, analysis, and information extraction.
+    Requires full URL including protocol (http:// or https://).
+    NOTE: This tool reads the visual accessibility tree (what is currently rendered on screen),
+    not the raw HTML source code. It captures visible text content accurately.
+    Returns structured text suitable for parsing, analysis, and information extraction.
     '''
     desktop:Desktop=kwargs['desktop']
     desktop_state=desktop.desktop_state
