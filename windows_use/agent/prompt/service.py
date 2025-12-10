@@ -49,16 +49,21 @@ class Prompt:
         })
          
     @staticmethod
-    def observation_prompt(query:str,agent_step:AgentStep, tool_result:ToolResult,desktop_state: DesktopState) -> str:
+    def observation_prompt(query:str,agent_step:AgentStep, tool_result:ToolResult,desktop_state: DesktopState, history: list[str] = []) -> str:
         cursor_location = pg.position()
         tree_state = desktop_state.tree_state
         steps = agent_step.steps
         max_steps = agent_step.max_steps
         template = Path(files('windows_use.agent.prompt').joinpath('observation.md')).read_text()
+        
+        # Format history
+        history_str = "\n".join(history) if history else "No previous actions."
+        
         return template.format(**{
             'steps': steps,
             'max_steps': max_steps,
             'observation': tool_result.content if tool_result.is_success else tool_result.error,
+            'history': history_str,
             'active_app': desktop_state.active_app_to_string(),
             'cursor_location': f'({cursor_location.x},{cursor_location.y})',
             'apps': desktop_state.apps_to_string(),

@@ -37,6 +37,9 @@ At every step, Windows-Use will be given the state:
       
       Action Response: [Result of executing the previous action]
    </agent_state>
+   <history>
+      [Summary of previous steps and actions taken to maintain context]
+   </history>
    <desktop_state>
       Cursor Location: current location of the cursor on screen
       [Begin of App Info]
@@ -119,7 +122,7 @@ At every step, Windows-Use will be given the state:
 
 <reasoning_rules>
 
-1. Use the recent steps to track the progress and context towards <user_query>.
+1. Use the <history> and recent steps to track the progress and context towards <user_query>.
 2. Incorporate <agent_state>, <desktop_state>, <user_query>, and screenshot (if available) in your reasoning process and explain what you want to achieve next based on the current state. Keep this reasoning in <thought>.
 3. **Plan & Track**: Explicitly state your plan in the <thought> section. E.g., "Step 3 of 5: Entering credentials." Use this to maintain context over long tasks.
 4. Analyze whether you are stuck at the same goal for a few steps. If so, try alternative methods.

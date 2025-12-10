@@ -4,7 +4,10 @@
         Steps: {steps}/{max_steps}
 
         Action Response: {observation}
-    <agent_state>
+    </agent_state>
+    <history>
+        {history}
+    </history>
     <desktop_state>
         Cursor Location: {cursor_location}
         [Begin of App Info]
