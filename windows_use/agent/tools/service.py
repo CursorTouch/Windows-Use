@@ -73,7 +73,7 @@ def memory_tool(mode: Literal['view','read','write','delete','update'],path: Opt
         case 'write':
             file_path = memory_path / path if not Path(path).is_absolute() else Path(path)
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_text(content)
+            file_path.write_text(content, encoding='utf-8')
             return f'{file_path.name} created in {file_path.parent.relative_to(memory_path.parent).as_posix()}.'
         
         case 'read':
@@ -81,7 +81,7 @@ def memory_tool(mode: Literal['view','read','write','delete','update'],path: Opt
             if not file_path.exists():
                 return f'Error: {file_path.name} not found.'
             
-            file_content = file_path.read_text()
+            file_content = file_path.read_text(encoding='utf-8')
             
             if read_range:
                 start, end = read_range
@@ -102,7 +102,7 @@ def memory_tool(mode: Literal['view','read','write','delete','update'],path: Opt
             if not file_path.exists():
                 return f'Error: {file_path.name} not found. Use "write" mode to create a new file.'
             
-            current_content = file_path.read_text()
+            current_content = file_path.read_text(encoding='utf-8')
             
             match operation:
                 case 'replace':
@@ -112,7 +112,7 @@ def memory_tool(mode: Literal['view','read','write','delete','update'],path: Opt
                         return f'Error: "{old_str}" not found in file.'
                     
                     new_content = current_content.replace(old_str, new_str)
-                    file_path.write_text(new_content)
+                    file_path.write_text(new_content, encoding='utf-8')
                     return f'{file_path.name} updated: replaced "{old_str[:50]}..." with "{new_str[:50]}...".'
                 
                 case 'insert':
@@ -127,7 +127,7 @@ def memory_tool(mode: Literal['view','read','write','delete','update'],path: Opt
                     
                     lines.insert(line_number, content + '\n' if not content.endswith('\n') else content)
                     new_content = ''.join(lines)
-                    file_path.write_text(new_content)
+                    file_path.write_text(new_content, encoding='utf-8')
                     return f'{file_path.name} updated: inserted content at line {line_number}.'
                 
                 case _:

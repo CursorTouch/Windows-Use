@@ -50,7 +50,7 @@ class Desktop:
         sleep(0.1)
         apps=self.get_apps()
         active_app=self.get_active_app()
-        if active_app is not None:
+        if active_app is not None and (active_app in apps):
             apps.remove(active_app)
         logger.debug(f"Active app: {active_app}")
         logger.debug(f"Apps: {apps}")

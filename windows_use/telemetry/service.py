@@ -31,10 +31,10 @@ class ProductTelemetry:
     @property
     def user_id(self):
         if (self.TEMP_FOLDER/'.windows-use-user-id').exists():
-            self.USER_ID = (self.TEMP_FOLDER/'.windows-use-user-id').read_text()
+            self.USER_ID = (self.TEMP_FOLDER/'.windows-use-user-id').read_text(encoding='utf-8')
         else:
             self.USER_ID = uuid7str()
-            (self.TEMP_FOLDER/'.windows-use-user-id').write_text(self.USER_ID)
+            (self.TEMP_FOLDER/'.windows-use-user-id').write_text(self.USER_ID, encoding='utf-8')
         return self.USER_ID
 
     def capture(self, event:BaseTelemetryEvent):
