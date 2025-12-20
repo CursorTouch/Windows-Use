@@ -58,7 +58,7 @@ class ChatCerebras(BaseChatLLM):
                 content = [MessageAssistantMessageRequestContentUnionMember1Typed(type="text",text=message.content)]
                 serialized.append(MessageAssistantMessageRequestTyped(role="assistant",content=content))
             elif isinstance(message, ImageMessage):
-                pass
+                raise ValueError("Image messages are not supported by Cerebras yet.")
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return serialized
