@@ -34,7 +34,7 @@ try:
 except Exception:  
     ctypes.windll.user32.SetProcessDPIAware()  
 
-import uiautomation as uia
+import windows_use.uia as uia
 import pyautogui as pg
 
 pg.FAILSAFE=False

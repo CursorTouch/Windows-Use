@@ -1,6 +1,7 @@
 from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool, multi_select_tool,memory_tool,
 shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_tool, multi_edit_tool)
 from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage
+from windows_use.agent.watchdog.watch_focus import WatchFocus
 from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.telemetry.service import ProductTelemetry
 from windows_use.agent.views import AgentResult,AgentStep
@@ -10,7 +11,6 @@ from windows_use.agent.utils import extract_agent_data
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
 from windows_use.agent.prompt.service import Prompt
-from live_inspect.watch_cursor import WatchCursor
 from windows_use.llms.base import BaseChatLLM
 from contextlib import nullcontext
 from rich.markdown import Markdown
@@ -41,7 +41,7 @@ class Agent:
         self.use_vision=use_vision
         self.llm = llm
         self.telemetry=ProductTelemetry()
-        self.watch_cursor = WatchCursor()
+        self.watch_focus = WatchFocus()
         self.desktop = Desktop()
         self.console=Console()
 
@@ -51,7 +51,7 @@ class Agent:
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
-                with self.watch_cursor:
+                with self.watch_focus:
                     desktop_state = self.desktop.get_state(use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
                     tools_prompt = self.registry.get_tools_prompt()

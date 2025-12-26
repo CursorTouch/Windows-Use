@@ -24,7 +24,6 @@ classifiers = [
 dependencies = [
     "fuzzywuzzy>=0.18.0",
     "ipykernel>=6.29.5",
-    "live-inspect==0.1.1",
     "markdownify>=1.1.0",
     "pillow>=11.2.1",
     "psutil>=7.0.0",
@@ -35,7 +34,6 @@ dependencies = [
     "tabulate>=0.9.0",
     "termcolor>=3.1.0",
     "twine>=6.1.0",
-    "uiautomation>=2.0.29",
     "python-dotenv>=1.0.0",
     "uuid7>=0.1.0",
     "posthog>=6.7.8",
@@ -47,6 +45,7 @@ dependencies = [
     "anthropic>=0.68.1",
     "mistralai>=1.9.11",
     "pywin32>=311",
+    "comtypes>=1.4.14",
 ]
 
 [project.optional-dependencies]

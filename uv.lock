@@ -210,27 +210,6 @@ wheels = [
 ]
 
 [[package]]
-name = "clr"
-version = "1.0.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/75/8f/22b6b4813e45da30d2411d7c807364e806188beb4a0a41cb8c5f739cb39c/clr-1.0.3.tar.gz", hash = "sha256:26505b51f73518d531a52b1f7855488f8c764de94f248ebb7cbe0549acc9d333", size = 2610, upload-time = "2017-01-26T17:06:43.688Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a4/71/fb95dfed94ce26310b54216f868d113cb0202691ae56ee4bca2e931f50b0/clr-1.0.3-py2.py3-none-any.whl", hash = "sha256:7553f81f7ddc5579e45616ced5fcbdae3941ec817dacf5972d39a156c7cdba1a", size = 4419, upload-time = "2017-01-26T17:06:45.2Z" },
-]
-
-[[package]]
-name = "clr-loader"
-version = "0.2.7.post0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cffi" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d5/b3/8ae917e458394e2cebdbf17bed0a8204f8d4ffc79a093a7b1141c7731d3c/clr_loader-0.2.7.post0.tar.gz", hash = "sha256:b7a8b3f8fbb1bcbbb6382d887e21d1742d4f10b5ea209e4ad95568fe97e1c7c6", size = 56701, upload-time = "2024-12-12T20:15:15.555Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/c0/06e64a54bced4e8b885c1e7ec03ee1869e52acf69e87da40f92391a214ad/clr_loader-0.2.7.post0-py3-none-any.whl", hash = "sha256:e0b9fcc107d48347a4311a28ffe3ae78c4968edb216ffb6564cb03f7ace0bb47", size = 50649, upload-time = "2024-12-12T20:15:13.714Z" },
-]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -250,11 +229,11 @@ wheels = [
 
 [[package]]
 name = "comtypes"
-version = "1.4.13"
+version = "1.4.14"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c0/5c/848f18615227fe20f5ba61b271bbeb670f2ea894f76fb3a533e53d4b52d4/comtypes-1.4.13.zip", hash = "sha256:fc573997ae32b374891cfa8d79ebb8289809ed3a4a3f789d5348371099c7788a", size = 281325, upload-time = "2025-10-12T14:25:09.061Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/12/63d8d4583289bec500df776af2f62611d732342ef0212e05b1a8d16ed945/comtypes-1.4.14.tar.gz", hash = "sha256:86016d30262a3155bc45b0451cdc5a8bb5cc5728831baa266752e4a8f1932565", size = 224342, upload-time = "2025-12-15T23:00:48.556Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/95/f30c80615fda0d3c0ee6493ac9db61183313b43499b62dec136773b0e870/comtypes-1.4.13-py3-none-any.whl", hash = "sha256:21546210748ba52e839e52112124b16ffab7d7fb68096493165fbc249e9023ad", size = 254433, upload-time = "2025-10-12T14:25:07.539Z" },
+    { url = "https://files.pythonhosted.org/packages/05/0e/9827d17a2c22f825c660195410a7cbbe3c7f87426ee1597bef42bd2d2594/comtypes-1.4.14-py3-none-any.whl", hash = "sha256:89f86810216d8daad7f7e521dac776a0ca0e2116bcf2e5b5e10beb0963eab6bc", size = 254775, upload-time = "2025-12-15T23:00:46.32Z" },
 ]
 
 [[package]]
@@ -739,19 +718,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2e/1a/aa6b07316e10781a6c5a5a8308f9bdc22213dc3911b959daa6d7ff654fc6/levenshtein-0.27.1-cp313-cp313-win32.whl", hash = "sha256:a520af67d976761eb6580e7c026a07eb8f74f910f17ce60e98d6e492a1f126c7", size = 88103, upload-time = "2025-03-02T19:44:02.42Z" },
     { url = "https://files.pythonhosted.org/packages/9d/7b/9bbfd417f80f1047a28d0ea56a9b38b9853ba913b84dd5998785c5f98541/levenshtein-0.27.1-cp313-cp313-win_amd64.whl", hash = "sha256:7dd60aa49c2d8d23e0ef6452c8329029f5d092f386a177e3385d315cabb78f2a", size = 100579, upload-time = "2025-03-02T19:44:04.142Z" },
     { url = "https://files.pythonhosted.org/packages/8b/01/5f3ff775db7340aa378b250e2a31e6b4b038809a24ff0a3636ef20c7ca31/levenshtein-0.27.1-cp313-cp313-win_arm64.whl", hash = "sha256:149cd4f0baf5884ac5df625b7b0d281721b15de00f447080e38f5188106e1167", size = 87933, upload-time = "2025-03-02T19:44:05.364Z" },
-]
-
-[[package]]
-name = "live-inspect"
-version = "0.1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "clr" },
-    { name = "pythonnet" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/49/19/17117df902e41bff25d0880b7e72ea7def90c0f575d9704abc8707728e1f/live_inspect-0.1.1.tar.gz", hash = "sha256:b2beaf0a74dd8656aeac9343810e09c5a8efa83c2ce183577040cae7e3acd80a", size = 235834, upload-time = "2025-06-25T14:04:00.17Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/f7/3ee6a7ddb88ad0bf8e4fbc581f90a55079b383c1c1ac229917d6da7dd198/live_inspect-0.1.1-py3-none-any.whl", hash = "sha256:406daee02db1d5b76783ad61952582caf76aae02c816ad466d788f6dd671199d", size = 237608, upload-time = "2025-06-25T14:03:58.638Z" },
 ]
 
 [[package]]
@@ -1338,18 +1304,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ef/c6/2c5999de3bb1533521f1101e8fe56fd9c266732f4d48011c7c69b29d12ae/python3-xlib-0.15.tar.gz", hash = "sha256:dc4245f3ae4aa5949c1d112ee4723901ade37a96721ba9645f2bfa56e5b383f8", size = 132828, upload-time = "2014-05-31T12:28:59.603Z" }
 
 [[package]]
-name = "pythonnet"
-version = "3.0.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "clr-loader" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9a/d6/1afd75edd932306ae9bd2c2d961d603dc2b52fcec51b04afea464f1f6646/pythonnet-3.0.5.tar.gz", hash = "sha256:48e43ca463941b3608b32b4e236db92d8d40db4c58a75ace902985f76dac21cf", size = 239212, upload-time = "2024-12-13T08:30:44.393Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/f1/bfb6811df4745f92f14c47a29e50e89a36b1533130fcc56452d4660bd2d6/pythonnet-3.0.5-py3-none-any.whl", hash = "sha256:f6702d694d5d5b163c9f3f5cc34e0bed8d6857150237fae411fefb883a656d20", size = 297506, upload-time = "2024-12-13T08:30:40.661Z" },
-]
-
-[[package]]
 name = "pytweening"
 version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1777,18 +1731,6 @@ wheels = [
 ]
 
 [[package]]
-name = "uiautomation"
-version = "2.0.29"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "comtypes" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/bc/23/8238b5cb73e54c3618ce4d443c1830a2749264a0d61a9b61637096b8dc7a/uiautomation-2.0.29.tar.gz", hash = "sha256:3c169112043ce21065aead1d79c3baebdafc9cf03bd24ded02b2db11d423d88d", size = 203970, upload-time = "2025-08-05T05:14:41.194Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b0/27/b9c4b33b4129805fa2c437fa13da06c71e74213ae46da098d194d89834fe/uiautomation-2.0.29-py3-none-any.whl", hash = "sha256:5dd51c9e77e70470142a13d903be67f256c445e7cf20b47ada0ece2bdaff9f32", size = 198985, upload-time = "2025-08-05T05:14:39.552Z" },
-]
-
-[[package]]
 name = "urllib3"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1842,11 +1784,11 @@ source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
     { name = "cerebras-cloud-sdk" },
+    { name = "comtypes" },
     { name = "fuzzywuzzy" },
     { name = "google-genai" },
     { name = "groq" },
     { name = "ipykernel" },
-    { name = "live-inspect" },
     { name = "markdownify" },
     { name = "mistralai" },
     { name = "ollama" },
@@ -1863,7 +1805,6 @@ dependencies = [
     { name = "tabulate" },
     { name = "termcolor" },
     { name = "twine" },
-    { name = "uiautomation" },
     { name = "uuid7" },
 ]
 
@@ -1877,11 +1818,11 @@ dev = [
 requires-dist = [
     { name = "anthropic", specifier = ">=0.68.1" },
     { name = "cerebras-cloud-sdk", specifier = ">=1.50.1" },
+    { name = "comtypes", specifier = ">=1.4.14" },
     { name = "fuzzywuzzy", specifier = ">=0.18.0" },
     { name = "google-genai", specifier = ">=1.45.0" },
     { name = "groq", specifier = ">=0.29.0" },
     { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "live-inspect", specifier = "==0.1.1" },
     { name = "markdownify", specifier = ">=1.1.0" },
     { name = "mistralai", specifier = ">=1.9.11" },
     { name = "ollama", specifier = ">=0.5.1" },
@@ -1900,7 +1841,6 @@ requires-dist = [
     { name = "tabulate", specifier = ">=0.9.0" },
     { name = "termcolor", specifier = ">=3.1.0" },
     { name = "twine", specifier = ">=6.1.0" },
-    { name = "uiautomation", specifier = ">=2.0.29" },
     { name = "uuid7", specifier = ">=0.1.0" },
 ]
 provides-extras = ["dev"]
