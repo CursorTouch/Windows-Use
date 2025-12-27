@@ -656,16 +656,189 @@ class Control():
         """
         return self.Element.CurrentProviderDescription
 
-    # FindAll
-    # FindAllBuildCache
-    # FindFirst
-    # FindFirstBuildCache
-    # GetCachedChildren
-    # GetCachedParent
-    # GetCachedPattern
-    # GetCachedPatternAs
-    # GetCachedPropertyValue
-    # GetCachedPropertyValueEx
+    def FindAll(self, scope: int, condition) -> List['Control']:
+        """
+        Find all UI Automation elements that satisfy the specified condition.
+        Call IUIAutomationElement::FindAll.
+        
+        scope: int, a value in class `TreeScope`, specifying the scope of the search.
+        condition: a condition object from IUIAutomation.CreateTrueCondition() or similar.
+        Return List[Control], a list of `Control` subclasses that match the condition.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-findall
+        """
+        elementArray = self.Element.FindAll(scope, condition)
+        if not elementArray:
+            return []
+        
+        controls = []
+        length = elementArray.Length
+        for i in range(length):
+            element = elementArray.GetElement(i)
+            control = Control.CreateControlFromElement(element)
+            if control:
+                controls.append(control)
+        return controls
+    
+    def FindAllBuildCache(self, scope: int, condition, cacheRequest: 'CacheRequest') -> List['Control']:
+        """
+        Find all UI Automation elements that satisfy the specified condition, and cache properties and patterns.
+        Call IUIAutomationElement::FindAllBuildCache.
+        
+        scope: int, a value in class `TreeScope`, specifying the scope of the search.
+        condition: a condition object from IUIAutomation.CreateTrueCondition() or similar.
+        cacheRequest: CacheRequest, specifies the properties and patterns to cache.
+        Return List[Control], a list of `Control` subclasses that match the condition with cached data.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-findallbuildcache
+        """
+        elementArray = self.Element.FindAllBuildCache(scope, condition, cacheRequest.check_request)
+        if not elementArray:
+            return []
+        
+        controls = []
+        length = elementArray.Length
+        for i in range(length):
+            element = elementArray.GetElement(i)
+            control = Control.CreateControlFromElement(element)
+            if control:
+                controls.append(control)
+        return controls
+    
+    def FindFirst(self, scope: int, condition) -> Optional['Control']:
+        """
+        Find the first UI Automation element that satisfies the specified condition.
+        Call IUIAutomationElement::FindFirst.
+        
+        scope: int, a value in class `TreeScope`, specifying the scope of the search.
+        condition: a condition object from IUIAutomation.CreateTrueCondition() or similar.
+        Return `Control` subclass or None.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-findfirst
+        """
+        element = self.Element.FindFirst(scope, condition)
+        return Control.CreateControlFromElement(element)
+    
+    def FindFirstBuildCache(self, scope: int, condition, cacheRequest: 'CacheRequest') -> Optional['Control']:
+        """
+        Find the first UI Automation element that satisfies the specified condition, and cache properties and patterns.
+        Call IUIAutomationElement::FindFirstBuildCache.
+        
+        scope: int, a value in class `TreeScope`, specifying the scope of the search.
+        condition: a condition object from IUIAutomation.CreateTrueCondition() or similar.
+        cacheRequest: CacheRequest, specifies the properties and patterns to cache.
+        Return `Control` subclass or None with cached data.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-findfirstbuildcache
+        """
+        element = self.Element.FindFirstBuildCache(scope, condition, cacheRequest.check_request)
+        return Control.CreateControlFromElement(element)
+    
+    def GetCachedChildren(self) -> List['Control']:
+        """
+        Retrieve the cached child elements of this UI Automation element.
+        Call IUIAutomationElement::GetCachedChildren.
+        
+        Return List[Control], a list of cached child `Control` subclasses.
+        Note: Children are cached only if the scope of the cache request included TreeScope_Subtree, 
+        TreeScope_Children, or TreeScope_Descendants.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-getcachedchildren
+        """
+        try:
+            elementArray = self.Element.GetCachedChildren()
+            if not elementArray:
+                return []
+            
+            controls = []
+            length = elementArray.Length
+            for i in range(length):
+                element = elementArray.GetElement(i)
+                control = Control.CreateControlFromElement(element)
+                if control:
+                    controls.append(control)
+            return controls
+        except comtypes.COMError as ex:
+            return []
+    
+    def GetCachedParent(self) -> Optional['Control']:
+        """
+        Retrieve the cached parent of this UI Automation element.
+        Call IUIAutomationElement::GetCachedParent.
+        
+        Return `Control` subclass or None.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-getcachedparent
+        """
+        try:
+            element = self.Element.GetCachedParent()
+            return Control.CreateControlFromElement(element)
+        except comtypes.COMError as ex:
+            return None
+    
+    def GetCachedPattern(self, patternId: int):
+        """
+        Retrieve a cached pattern interface from this UI Automation element.
+        Call IUIAutomationElement::GetCachedPattern.
+        
+        patternId: int, a value in class `PatternId`.
+        Return a pattern object if the pattern was cached, else None.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-getcachedpattern
+        """
+        try:
+            pattern = self.Element.GetCachedPattern(patternId)
+            if pattern:
+                return CreatePattern(patternId, pattern)
+        except comtypes.COMError as ex:
+            return None
+    
+    def GetCachedPatternAs(self, patternId: int, riid):
+        """
+        Retrieve a cached pattern interface from this UI Automation element, with a specific interface ID.
+        Call IUIAutomationElement::GetCachedPatternAs.
+        
+        patternId: int, a value in class `PatternId`.
+        riid: GUID, the interface identifier.
+        Return a pattern object if the pattern was cached, else None.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-getcachedpatternas
+        """
+        try:
+            return self.Element.GetCachedPatternAs(patternId, riid)
+        except comtypes.COMError as ex:
+            return None
+    
+    def GetCachedPropertyValue(self, propertyId: int) -> Any:
+        """
+        Retrieve a cached property value from this UI Automation element.
+        Call IUIAutomationElement::GetCachedPropertyValue.
+        
+        propertyId: int, a value in class `PropertyId`.
+        Return Any, the cached property value corresponding to propertyId.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-getcachedpropertyvalue
+        """
+        try:
+            return self.Element.GetCachedPropertyValue(propertyId)
+        except comtypes.COMError as ex:
+            return None
+    
+    def GetCachedPropertyValueEx(self, propertyId: int, ignoreDefaultValue: int) -> Any:
+        """
+        Retrieve a cached property value from this UI Automation element, optionally ignoring the default value.
+        Call IUIAutomationElement::GetCachedPropertyValueEx.
+        
+        propertyId: int, a value in class `PropertyId`.
+        ignoreDefaultValue: int, 0 or 1. If 1, a default value is not returned.
+        Return Any, the cached property value corresponding to propertyId.
+        
+        Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationelement-getcachedpropertyvalueex
+        """
+        try:
+            return self.Element.GetCachedPropertyValueEx(propertyId, ignoreDefaultValue)
+        except comtypes.COMError as ex:
+            return None
 
     def GetClickablePoint(self) -> Tuple[int, int, bool]:
         """

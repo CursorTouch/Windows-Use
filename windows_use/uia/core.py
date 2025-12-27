@@ -3194,3 +3194,76 @@ def RemoveAllEventHandlers() -> None:
     Removes all registered Microsoft UI Automation event handlers.
     """
     _AutomationClient.instance().IUIAutomation.RemoveAllEventHandlers()
+
+
+# Condition creation helper functions
+
+def CreateTrueCondition():
+    """
+    Create a condition that is always true. This matches all elements.
+    
+    Return: A condition object that can be used with FindAll, FindFirst, etc.
+    Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createtruecondition
+    """
+    return _AutomationClient.instance().IUIAutomation.CreateTrueCondition()
+
+
+def CreateFalseCondition():
+    """
+    Create a condition that is always false. This matches no elements.
+    
+    Return: A condition object that can be used with FindAll, FindFirst, etc.
+    Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createfalsecondition
+    """
+    return _AutomationClient.instance().IUIAutomation.CreateFalseCondition()
+
+
+def CreatePropertyCondition(propertyId: int, value):
+    """
+    Create a condition that matches elements with a specific property value.
+    
+    propertyId: int, a value in class `PropertyId`.
+    value: The value to match for the property.
+    Return: A condition object that can be used with FindAll, FindFirst, etc.
+    
+    Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createpropertycondition
+    """
+    return _AutomationClient.instance().IUIAutomation.CreatePropertyCondition(propertyId, value)
+
+
+def CreateAndCondition(condition1, condition2):
+    """
+    Create a condition that is the logical AND of two conditions.
+    
+    condition1: First condition.
+    condition2: Second condition.
+    Return: A condition object that can be used with FindAll, FindFirst, etc.
+    
+    Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createandcondition
+    """
+    return _AutomationClient.instance().IUIAutomation.CreateAndCondition(condition1, condition2)
+
+
+def CreateOrCondition(condition1, condition2):
+    """
+    Create a condition that is the logical OR of two conditions.
+    
+    condition1: First condition.
+    condition2: Second condition.
+    Return: A condition object that can be used with FindAll, FindFirst, etc.
+    
+    Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createorcondition
+    """
+    return _AutomationClient.instance().IUIAutomation.CreateOrCondition(condition1, condition2)
+
+
+def CreateNotCondition(condition):
+    """
+    Create a condition that is the logical NOT of another condition.
+    
+    condition: The condition to negate.
+    Return: A condition object that can be used with FindAll, FindFirst, etc.
+    
+    Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createnotcondition
+    """
+    return _AutomationClient.instance().IUIAutomation.CreateNotCondition(condition)
