@@ -25,12 +25,13 @@ class FocusChangedEventHandler(comtypes.COMObject):
         return 0 # S_OK
 
 class WatchFocus:
-    def __init__(self):
+    def __init__(self, callback=None):
         self.is_running = Event()
         self.focus_thread = None
         # We access the UIA object specifically within the thread if needed,
         # but using the shared interface pointer is generally fine if MTA.
         self.uia = uia_client.IUIAutomation
+        self.callback = callback
 
     def __enter__(self):
         self.start()
@@ -40,27 +41,34 @@ class WatchFocus:
         self.stop()
 
     def focus_changed_func(self):
+        # Default callback if none provided
+        def default_callback(sender):
+            try:
+                # Basic logging
+                element = Control.CreateControlFromElement(sender)
+                print(f"Focus Changed: '{element.Name}' ({element.ControlTypeName})", flush=True)
+            except Exception:
+                pass
+
+        callback_to_use = self.callback if self.callback else default_callback
+
         # Create the handler
-        focus_handler = FocusChangedEventHandler(lambda sender: None)
+        focus_handler = FocusChangedEventHandler(callback_to_use)
         try:
             comtypes.CoInitialize() 
             self.uia.AddFocusChangedEventHandler(None, focus_handler)
             
             while self.is_running.is_set():
-                try:
-                    element = self.uia.GetFocusedElement()
-                    control = Control.CreateControlFromElement(element)
-                except Exception as inner_e:
-                    print(f"Error reading focused element: {inner_e}")
-                sleep(1.0)
+                # Pump messages to allow COM events to be processed
+                comtypes.client.PumpEvents(0.1)
                 
         except Exception as e:
-            print(f"Error in WatchFocus loop: {e}")
+            print(f"Error in WatchFocus loop: {e}", flush=True)
         finally:
             try:
                 self.uia.RemoveFocusChangedEventHandler(focus_handler)
             except Exception as e:
-                print(f"Error removing focus handler: {e}")
+                print(f"Error removing focus handler: {e}", flush=True)
             
             comtypes.CoUninitialize()
 
@@ -80,3 +88,14 @@ class WatchFocus:
         
         if self.focus_thread and self.focus_thread.is_alive():
             self.focus_thread.join(timeout=2.0)
+
+if __name__ == "__main__":
+    watcher = WatchFocus()
+    try:
+        watcher.start()
+        print("Watching focus changes. Press Ctrl+C to stop.", flush=True)
+        while True:
+            sleep(1)
+    except KeyboardInterrupt:
+        print("Stopping...", flush=True)
+        watcher.stop()
