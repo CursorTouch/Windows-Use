@@ -1,17 +1,18 @@
 from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool, multi_select_tool,memory_tool,
 shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_tool, multi_edit_tool)
 from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage
-from windows_use.agent.watchdog.watch_focus import WatchFocus
 from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.telemetry.service import ProductTelemetry
 from windows_use.agent.views import AgentResult,AgentStep
 from windows_use.agent.registry.service import Registry
+from windows_use.agent.watchdog.service import WatchDog
 from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.utils import extract_agent_data
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
 from windows_use.agent.prompt.service import Prompt
 from windows_use.llms.base import BaseChatLLM
+from windows_use.uia import Control
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
@@ -41,7 +42,7 @@ class Agent:
         self.use_vision=use_vision
         self.llm = llm
         self.telemetry=ProductTelemetry()
-        self.watch_focus = WatchFocus()
+        self.watchdog = WatchDog()
         self.desktop = Desktop()
         self.console=Console()
 
@@ -51,7 +52,9 @@ class Agent:
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
-                with self.watch_focus:
+                self.watchdog.set_focus_callback(self._on_focus_change)
+                # self.watchdog.set_structure_callback(self._on_structure_change) 
+                with self.watchdog:
                     desktop_state = self.desktop.get_state(use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
                     tools_prompt = self.registry.get_tools_prompt()
@@ -170,3 +173,19 @@ class Agent:
         """Print the response from the agent."""
         response=self.invoke(query)
         self.console.print(Markdown(response.content or response.error))
+
+    def _on_focus_change(self, sender):
+        """Handle focus change events."""
+        try:
+            element = Control.CreateControlFromElement(sender)
+            logger.debug(f"[WatchDog] Focus changed to: '{element.Name}' ({element.ControlTypeName})")
+        except Exception:
+            pass
+
+    def _on_structure_change(self, sender, changeType, runtimeId):
+        """Handle structure change events."""
+        try:
+             # Basic logging for now, can be expanded to invalidate cache
+             logger.debug(f"[WatchDog] Structure changed: Type={changeType}")
+        except Exception:
+             pass

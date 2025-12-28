@@ -1912,7 +1912,7 @@ class TreeScope(IntEnum):
     TreeScope_Descendants = 4
     TreeScope_Parent = 8
     TreeScope_Ancestors = 16
-    TreeScope_Subtree = 17
+    TreeScope_Subtree = 7
 
 class TreeTraversalOptions(IntFlag):
     TreeTraversalOptions_Default = 0
