@@ -17,6 +17,31 @@ INTERACTIVE_CONTROL_TYPE_NAMES=set([
     'ScrollBarControl'
 ])
 
+INTERACTIVE_ROLES = {
+    # Buttons
+    'PushButton', 'SplitButton', 'ButtonDropDown', 'ButtonMenu', 
+    'ButtonDropDownGrid', 'OutlineButton',
+    
+    # Links
+    'Link',
+    
+    # Inputs & Selection
+    'Text', 'IpAddress', 'HotkeyField', 'ComboBox', 'DropList',
+    'CheckButton', 'RadioButton',
+    
+    # Menus & Tabs
+    'MenuItem', 'ListItem', 'PageTab',
+    
+    # Trees
+    'OutlineItem',
+    
+    # Values
+    'Slider', 'SpinButton', 'Dial', 'ScrollBar', 'Grip',
+    
+    # Grids
+    'ColumnHeader', 'RowHeader', 'Cell'
+}
+
 DOCUMENT_CONTROL_TYPE_NAMES=set([
     'DocumentControl'
 ])

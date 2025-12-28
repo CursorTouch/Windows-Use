@@ -1,6 +1,6 @@
-from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, THREAD_MAX_RETRIES
+from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
 from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Center, BoundingBox, TreeState, TextElementNode
-from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId
+from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from windows_use.agent.desktop.views import App
@@ -41,6 +41,7 @@ class Tree:
         interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
         root_node=TreeElementNode(
             name="Desktop",
+            cursor_type="",
             control_type="PaneControl",
             bounding_box=self.screen_box,
             center=self.screen_box.get_center(),
@@ -149,9 +150,16 @@ class Tree:
             is_offscreen=(not node.IsOffscreen) or node.ControlTypeName in ['EditControl']
             return area > threshold and is_offscreen and is_control
     
-        def is_element_enabled(node:Control):
+        def is_element_enabled(node: Control):
             try:
                 return node.IsEnabled
+            except Exception:
+                return False
+        
+        def is_element_role_interactive(node: Control):
+            legacy_pattern=node.GetLegacyIAccessiblePattern()
+            try:
+                return AccessibleRoleNames.get(legacy_pattern.Role, "Default") in INTERACTIVE_ROLES
             except Exception:
                 return False
             
@@ -226,10 +234,10 @@ class Tree:
                 elif not is_browser and node.ControlTypeName=="ImageControl" and is_keyboard_focusable(node):
                     return True
                 elif node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|DOCUMENT_CONTROL_TYPE_NAMES:
-                    return is_element_visible(node) and is_element_enabled(node) and (not is_element_image(node) or is_keyboard_focusable(node))
+                    return is_element_visible(node) and is_element_enabled(node) and is_element_role_interactive(node) and (not is_element_image(node) or is_keyboard_focusable(node))
                 elif node.ControlTypeName=='GroupControl':
                     if is_browser:
-                        return is_element_visible(node) and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node))
+                        return is_element_visible(node) and is_element_enabled(node) and is_element_role_interactive(node) and (is_default_action(node) or is_keyboard_focusable(node))
                     # else:
                     #     return is_element_visible and is_element_enabled(node) and is_default_action(node)
             except Exception:
@@ -261,6 +269,7 @@ class Tree:
                     is_focused=node.HasKeyboardFocus
                     dom_interactive_nodes.append(TreeElementNode(**{
                         'name':child.Name.strip(),
+                        'cursor_type':'',
                         'control_type':node.LocalizedControlType,
                         'value':value,
                         'shortcut':node.AcceleratorKey,
@@ -282,6 +291,7 @@ class Tree:
                 is_focused=node.HasKeyboardFocus
                 dom_interactive_nodes.append(TreeElementNode(**{
                     'name':node.Name.strip(),
+                    'cursor_type':'',
                     'control_type':control_type,
                     'value':node.Name.strip(),
                     'shortcut':node.AcceleratorKey,
@@ -327,6 +337,7 @@ class Tree:
             if is_element_interactive(node):
                 legacy_pattern=node.GetLegacyIAccessiblePattern()
                 value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
+                cursor_type=AccessibleRoleNames.get(legacy_pattern.Role, "Default")
                 is_focused=node.HasKeyboardFocus
                 name=node.Name.strip()
                 element_bounding_box = node.BoundingRectangle
@@ -351,6 +362,7 @@ class Tree:
                     center = bounding_box.get_center()
                     tree_node=TreeElementNode(**{
                         'name':name,
+                        'cursor_type':cursor_type.title(),
                         'control_type':node.LocalizedControlType.title(),
                         'value':value,
                         'shortcut':node.AcceleratorKey,

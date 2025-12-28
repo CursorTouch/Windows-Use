@@ -71,6 +71,7 @@ class Center:
 @dataclass
 class TreeElementNode:
     name: str
+    cursor_type:str
     control_type: str
     app_name: str
     value:str

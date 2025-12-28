@@ -647,6 +647,8 @@ class AccessibleRole:
     IpAddress = 0x3f
     OutlineButton = 0x40
 
+AccessibleRoleNames = {v: k for k, v in AccessibleRole.__dict__.items() if not k.startswith('_')}
+
 
 class AccessibleState():
     """
