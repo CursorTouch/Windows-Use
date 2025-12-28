@@ -50,10 +50,10 @@ class WatchFocus:
             except Exception:
                 pass
 
-        callback_to_use = self.callback if self.callback else default_callback
+        callback = self.callback if self.callback else default_callback
 
         # Create the handler
-        focus_handler = FocusChangedEventHandler(callback_to_use)
+        focus_handler = FocusChangedEventHandler(callback)
         try:
             comtypes.CoInitialize() 
             self.uia.AddFocusChangedEventHandler(None, focus_handler)

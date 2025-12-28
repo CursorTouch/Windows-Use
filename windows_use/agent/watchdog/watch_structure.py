@@ -20,17 +20,16 @@ class StructureChangedEventHandler(comtypes.COMObject):
         try:
             if self.callback:
                 self.callback(sender, changeType, runtimeId)
-        except Exception as e:
-            # Prevent exceptions from crashing the COM callback
+        except Exception:
             pass
         return 0 # S_OK
 
 class WatchStructure:
     def __init__(self, element=None, callback=None):
         self.is_running = Event()
-        self.thread = None
         self.uia = uia_client.IUIAutomation
-        self.element = element or self.uia.GetRootElement()
+        self.thread = None
+        self.element = element 
         self.callback = callback
 
     def __enter__(self):
@@ -44,6 +43,16 @@ class WatchStructure:
         def default_callback(sender, changeType, runtimeId):
             try:
                 msg = f"Structure Changed: Type={changeType}"
+                
+                try:
+                    control = Control.CreateControlFromElement(sender)
+                    if control:
+                        name = control.Name
+                        control_type_name = control.ControlTypeName
+                        msg += f" [Element: '{name}' ({control_type_name})]"
+                except Exception:
+                    pass
+
                 match changeType:
                     case StructureChangeType.StructureChangeType_ChildAdded:
                         msg += " (ChildAdded)"
@@ -62,12 +71,15 @@ class WatchStructure:
             except Exception:
                 pass
 
-        callback_to_use = self.callback if self.callback else default_callback
+        callback = self.callback if self.callback else default_callback
 
-        structure_handler = StructureChangedEventHandler(callback_to_use)
+        structure_handler = StructureChangedEventHandler(callback)
 
         try:
             comtypes.CoInitialize()
+            target_element = self.element
+            if target_element is None:
+                target_element = self.uia.GetRootElement()
 
             # Scope: TreeScope_Subtree
             try:
@@ -75,21 +87,22 @@ class WatchStructure:
             except AttributeError:
                 scope = 7 # Fallback
             
-            self.uia.AddStructureChangedEventHandler(self.element, scope, None, structure_handler)
+            self.uia.AddStructureChangedEventHandler(target_element, scope, None, structure_handler)
             
-            while self.is_running.is_set():
-                # We need to pump messages for STA COM events to fire
-                comtypes.client.PumpEvents(0.1)
-                
+            try:
+                while self.is_running.is_set():
+                    # Pump messages for STA COM events
+                    comtypes.client.PumpEvents(0.1)
+            finally:
+                # Always attempt to remove the handler
+                try:
+                    uia.RemoveStructureChangedEventHandler(target_element, structure_handler)
+                except Exception as e:
+                    print(f"Error removing structure handler: {e}", flush=True)
+
         except Exception as e:
             print(f"Error in WatchStructure loop: {e}", flush=True)
         finally:
-            try:
-                if self.element:
-                    self.uia.RemoveStructureChangedEventHandler(self.element, structure_handler)
-            except Exception as e:
-                print(f"Error removing structure handler: {e}", flush=True)
-            
             comtypes.CoUninitialize()
 
     def start(self):
