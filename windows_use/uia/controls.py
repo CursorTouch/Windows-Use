@@ -144,7 +144,7 @@ class Control():
             raise ValueError
 
     @staticmethod
-    def CreateControlFromElement(element) -> Optional['Control']:
+    def CreateControlFromElement(element:'ctypes.POINTER(IUIAutomationElement)') -> Optional['Control']:
         """
         Create a concreate `Control` from a com type `IUIAutomationElement`.
         element: `ctypes.POINTER(IUIAutomationElement)`.

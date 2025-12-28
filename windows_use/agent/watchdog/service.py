@@ -15,31 +15,31 @@ UIA = uia_client.UIAutomationCore
 class FocusChangedEventHandler(comtypes.COMObject):
     _com_interfaces_ = [UIA.IUIAutomationFocusChangedEventHandler]
 
-    def __init__(self, callback):
-        self.callback = callback
+    def __init__(self, parent):
+        self.parent = parent
         super(FocusChangedEventHandler, self).__init__()
 
     def HandleFocusChangedEvent(self, sender):
         try:
-            if self.callback:
-                self.callback(sender)
-        except Exception:
-            pass
+            if self.parent._focus_callback:
+                self.parent._focus_callback(sender)
+        except Exception as e:
+            print(f"Error in focus callback: {e}")
         return 0 # S_OK
 
 class StructureChangedEventHandler(comtypes.COMObject):
     _com_interfaces_ = [UIA.IUIAutomationStructureChangedEventHandler]
 
-    def __init__(self, callback):
-        self.callback = callback
+    def __init__(self, parent):
+        self.parent = parent
         super(StructureChangedEventHandler, self).__init__()
 
     def HandleStructureChangedEvent(self, sender, changeType, runtimeId):
         try:
-            if self.callback:
-                self.callback(sender, changeType, runtimeId)
-        except Exception:
-            pass
+            if self.parent._structure_callback:
+                self.parent._structure_callback(sender, changeType, runtimeId)
+        except Exception as e:
+            print(f"Error in structure callback: {e}")
         return 0 # S_OK
 
 class WatchDog:
@@ -93,22 +93,6 @@ class WatchDog:
         self._structure_callback = callback
         self._structure_element = element
 
-    def _proxy_focus_callback(self, sender):
-        """Proxy to route focus events to the current callback."""
-        if self._focus_callback:
-            try:
-                self._focus_callback(sender)
-            except Exception as e:
-                print(f"Error in focus callback: {e}")
-
-    def _proxy_structure_callback(self, sender, changeType, runtimeId):
-        """Proxy to route structure events to the current callback."""
-        if self._structure_callback:
-            try:
-                self._structure_callback(sender, changeType, runtimeId)
-            except Exception as e:
-                print(f"Error in structure callback: {e}")
-
     def _run(self):
         """Main event loop running in a dedicated STA thread."""
         comtypes.CoInitialize()
@@ -117,7 +101,7 @@ class WatchDog:
                 # --- Focus Monitoring ---
                 if self._focus_callback and not self._focus_handler:
                     try:
-                        self._focus_handler = FocusChangedEventHandler(self._proxy_focus_callback)
+                        self._focus_handler = FocusChangedEventHandler(self)
                         self.uia.AddFocusChangedEventHandler(None, self._focus_handler)
                     except Exception as e:
                         print(f"Failed to add focus handler: {e}")
@@ -150,7 +134,7 @@ class WatchDog:
                         target = self._structure_element if self._structure_element else self.uia.GetRootElement()
                         scope = TreeScope.TreeScope_Subtree
                         
-                        self._structure_handler = StructureChangedEventHandler(self._proxy_structure_callback)
+                        self._structure_handler = StructureChangedEventHandler(self)
                         self.uia.AddStructureChangedEventHandler(target, scope, None, self._structure_handler)
                         self._active_structure_element = target
                     except Exception as e:

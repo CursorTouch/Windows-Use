@@ -7,6 +7,7 @@ from windows_use.agent.views import AgentResult,AgentStep
 from windows_use.agent.registry.service import Registry
 from windows_use.agent.watchdog.service import WatchDog
 from windows_use.agent.registry.views import ToolResult
+from windows_use.uia.enums import StructureChangeType
 from windows_use.agent.utils import extract_agent_data
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
@@ -53,7 +54,7 @@ class Agent:
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
                 self.watchdog.set_focus_callback(self._on_focus_change)
-                # self.watchdog.set_structure_callback(self._on_structure_change) 
+                self.watchdog.set_structure_callback(self._on_structure_change) 
                 with self.watchdog:
                     desktop_state = self.desktop.get_state(use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
@@ -174,7 +175,7 @@ class Agent:
         response=self.invoke(query)
         self.console.print(Markdown(response.content or response.error))
 
-    def _on_focus_change(self, sender):
+    def _on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
         """Handle focus change events."""
         try:
             element = Control.CreateControlFromElement(sender)
@@ -182,10 +183,11 @@ class Agent:
         except Exception:
             pass
 
-    def _on_structure_change(self, sender, changeType, runtimeId):
+    def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtimeId:list[int]):
         """Handle structure change events."""
         try:
-             # Basic logging for now, can be expanded to invalidate cache
-             logger.debug(f"[WatchDog] Structure changed: Type={changeType}")
+            # Basic logging for now, can be expanded to invalidate cache
+            element = Control.CreateControlFromElement(sender)
+            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} Element: '{element.Name}' ({element.ControlTypeName})")
         except Exception:
-             pass
+            pass
