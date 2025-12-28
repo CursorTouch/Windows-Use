@@ -20,7 +20,7 @@ from rich.console import Console
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 formatter = logging.Formatter('[%(levelname)s] %(message)s')
 handler.setFormatter(formatter)
@@ -55,6 +55,7 @@ class Agent:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
                 self.watchdog.set_focus_callback(self._on_focus_change)
                 self.watchdog.set_structure_callback(self._on_structure_change) 
+                self.watchdog.set_property_callback(self._on_property_change)
                 with self.watchdog:
                     desktop_state = self.desktop.get_state(use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
@@ -189,5 +190,13 @@ class Agent:
             # Basic logging for now, can be expanded to invalidate cache
             element = Control.CreateControlFromElement(sender)
             logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} Element: '{element.Name}' ({element.ControlTypeName})")
+        except Exception:
+            pass
+
+    def _on_property_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', propertyId:int, newValue):
+        """Handle property change events."""
+        try:
+            element = Control.CreateControlFromElement(sender)
+            logger.debug(f"[WatchDog] Property changed: ID={propertyId} Value={newValue} Element: '{element.Name}' ({element.ControlTypeName})")
         except Exception:
             pass
