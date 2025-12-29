@@ -53,9 +53,9 @@ class Agent:
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
-                self.watchdog.set_focus_callback(self._on_focus_change)
-                self.watchdog.set_structure_callback(self._on_structure_change) 
-                self.watchdog.set_property_callback(self._on_property_change)
+                self.watchdog.set_focus_callback(self.desktop.tree._on_focus_change)
+                self.watchdog.set_structure_callback(self.desktop.tree._on_structure_change) 
+                self.watchdog.set_property_callback(self.desktop.tree._on_property_change)
                 with self.watchdog:
                     desktop_state = self.desktop.get_state(use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
@@ -170,33 +170,7 @@ class Agent:
             self.telemetry.flush()
             return AgentResult(is_done=False, error="Interrupted by user")
         
-        
     def print_response(self,query: str):
         """Print the response from the agent."""
         response=self.invoke(query)
         self.console.print(Markdown(response.content or response.error))
-
-    def _on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
-        """Handle focus change events."""
-        try:
-            element = Control.CreateControlFromElement(sender)
-            logger.debug(f"[WatchDog] Focus changed to: '{element.Name}' ({element.ControlTypeName})")
-        except Exception:
-            pass
-
-    def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtimeId:list[int]):
-        """Handle structure change events."""
-        try:
-            # Basic logging for now, can be expanded to invalidate cache
-            element = Control.CreateControlFromElement(sender)
-            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} Element: '{element.Name}' ({element.ControlTypeName})")
-        except Exception:
-            pass
-
-    def _on_property_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', propertyId:int, newValue):
-        """Handle property change events."""
-        try:
-            element = Control.CreateControlFromElement(sender)
-            logger.debug(f"[WatchDog] Property changed: ID={propertyId} Value={newValue} Element: '{element.Name}' ({element.ControlTypeName})")
-        except Exception:
-            pass

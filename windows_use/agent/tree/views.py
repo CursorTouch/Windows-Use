@@ -71,6 +71,7 @@ class Center:
 @dataclass
 class TreeElementNode:
     name: str
+    runtime_id:tuple[int, ...]
     cursor_type:str
     control_type: str
     app_name: str
@@ -88,6 +89,7 @@ class TreeElementNode:
 @dataclass
 class ScrollElementNode:
     name: str
+    runtime_id:tuple[int, ...]
     control_type: str
     xpath:str
     app_name: str

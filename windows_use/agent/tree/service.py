@@ -1,6 +1,6 @@
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
+from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl
 from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Center, BoundingBox, TreeState, TextElementNode
-from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from windows_use.agent.desktop.views import App
@@ -30,6 +30,7 @@ class Tree:
             top=0, left=0, bottom=self.screen_size.height, right=self.screen_size.width,
             width=self.screen_size.width, height=self.screen_size.height
         )
+        self.tree_state=None
 
     def get_state(self,active_app:App,other_apps:list[App])->TreeState:
         root=GetRootControl()
@@ -41,6 +42,7 @@ class Tree:
         interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
         root_node=TreeElementNode(
             name="Desktop",
+            runtime_id=(),
             cursor_type="",
             control_type="PaneControl",
             bounding_box=self.screen_box,
@@ -55,6 +57,7 @@ class Tree:
             scroll_pattern:ScrollPattern=self.dom.GetPattern(PatternId.ScrollPattern)
             dom_node=ScrollElementNode(
                 name="DOM",
+                runtime_id=(),
                 control_type="DocumentControl",
                 bounding_box=self.dom_bounding_box,
                 center=self.dom_bounding_box.get_center(),
@@ -136,153 +139,129 @@ class Tree:
             )
         return bounding_box
 
-    def get_nodes(self, node: Control, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
-        window_bounding_box=node.BoundingRectangle
-
-        def is_element_visible(node:Control,threshold:int=0):
-            is_control=node.IsControlElement
-            box=node.BoundingRectangle
-            if box.isempty():
-                return False
-            width=box.width()
-            height=box.height()
-            area=width*height
-            is_offscreen=(not node.IsOffscreen) or node.ControlTypeName in ['EditControl']
-            return area > threshold and is_offscreen and is_control
+    def is_element_visible(self, node:Control, threshold:int=0):
+        is_control=node.IsControlElement
+        box=node.BoundingRectangle
+        if box.isempty():
+            return False
+        width=box.width()
+        height=box.height()
+        area=width*height
+        is_offscreen=(not node.IsOffscreen) or node.ControlTypeName in ['EditControl']
+        return area > threshold and is_offscreen and is_control
     
-        def is_element_enabled(node: Control):
-            try:
-                return node.IsEnabled
-            except Exception:
-                return False
+    def is_element_enabled(self, node: Control):
+        try:
+            return node.IsEnabled
+        except Exception:
+            return False
         
-        def is_element_role_interactive(node: Control):
-            legacy_pattern=node.GetLegacyIAccessiblePattern()
-            try:
-                return AccessibleRoleNames.get(legacy_pattern.Role, "Default") in INTERACTIVE_ROLES
-            except Exception:
-                return False
+    def is_element_role_interactive(self, node: Control):
+        legacy_pattern=node.GetLegacyIAccessiblePattern()
+        try:
+            return AccessibleRoleNames.get(legacy_pattern.Role, "Default") in INTERACTIVE_ROLES
+        except Exception:
+            return False
             
-        def is_default_action(node:Control):
-            legacy_pattern=node.GetLegacyIAccessiblePattern()
-            default_action=legacy_pattern.DefaultAction.title()
-            if default_action in DEFAULT_ACTIONS:
+    def is_default_action(self, node:Control):
+        legacy_pattern=node.GetLegacyIAccessiblePattern()
+        default_action=legacy_pattern.DefaultAction.title()
+        if default_action in DEFAULT_ACTIONS:
+            return True
+        return False
+        
+    def is_element_image(self, node:Control):
+        if isinstance(node,ImageControl):
+            if node.LocalizedControlType=='graphic' or not node.IsKeyboardFocusable:
                 return True
-            return False
+        return False
         
-        def is_element_image(node:Control):
-            if isinstance(node,ImageControl):
-                if node.LocalizedControlType=='graphic' or not node.IsKeyboardFocusable:
+    def is_element_text(self, node:Control):
+        try:
+            if node.ControlTypeName in INFORMATIVE_CONTROL_TYPE_NAMES:
+                if self.is_element_visible(node) and self.is_element_enabled(node) and not self.is_element_image(node):
+                    return True
+        except Exception:
+            return False
+        return False
+            
+    def is_window_modal(self, node:WindowControl):
+        try:
+            window_pattern=node.GetWindowPattern()
+            return window_pattern.IsModal
+        except Exception:
+            return False
+            
+    def is_keyboard_focusable(self, node:Control):
+        try:
+            if node.ControlTypeName in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
+                return True
+            return node.IsKeyboardFocusable
+        except Exception:
+            return False
+            
+    def element_has_child_element(self, node:Control,control_type:str,child_control_type:str):
+        if node.LocalizedControlType==control_type:
+            first_child=node.GetFirstChildControl()
+            if first_child is None:
+                return False
+            return first_child.LocalizedControlType==child_control_type
+            
+    def group_has_no_name(self, node:Control):
+        try:
+            if node.ControlTypeName=='GroupControl':
+                if not node.Name.strip():
                     return True
             return False
-        
-        def is_element_text(node:Control):
-            try:
-                if node.ControlTypeName in INFORMATIVE_CONTROL_TYPE_NAMES:
-                    if is_element_visible(node) and is_element_enabled(node) and not is_element_image(node):
-                        return True
-            except Exception:
-                return False
+        except Exception:
             return False
             
-        def is_window_modal(node:WindowControl):
-            try:
-                window_pattern=node.GetWindowPattern()
-                return window_pattern.IsModal
-            except Exception:
+    def is_element_scrollable(self, node:Control):
+        try:
+            if (node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|INFORMATIVE_CONTROL_TYPE_NAMES) or node.IsOffscreen:
                 return False
-            
-        def is_keyboard_focusable(node:Control):
-            try:
-                if node.ControlTypeName in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
-                    return True
-                return node.IsKeyboardFocusable
-            except Exception:
+            scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
+            if scroll_pattern is None:
                 return False
-            
-        def element_has_child_element(node:Control,control_type:str,child_control_type:str):
-            if node.LocalizedControlType==control_type:
-                first_child=node.GetFirstChildControl()
-                if first_child is None:
-                    return False
-                return first_child.LocalizedControlType==child_control_type
-            
-        def group_has_no_name(node:Control):
-            try:
-                if node.ControlTypeName=='GroupControl':
-                    if not node.Name.strip():
-                        return True
-                return False
-            except Exception:
-                return False
-            
-        def is_element_scrollable(node:Control):
-            try:
-                if (node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|INFORMATIVE_CONTROL_TYPE_NAMES) or node.IsOffscreen:
-                    return False
-                scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
-                if scroll_pattern is None:
-                    return False
-                return scroll_pattern.VerticallyScrollable
-            except Exception:
-                return False
-            
-        def is_element_interactive(node:Control):
-            try:
-                if is_browser and node.ControlTypeName in set(['DataItemControl','ListItemControl']) and not is_keyboard_focusable(node):
-                    return False
-                elif not is_browser and node.ControlTypeName=="ImageControl" and is_keyboard_focusable(node):
-                    return True
-                elif node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|DOCUMENT_CONTROL_TYPE_NAMES:
-                    return is_element_visible(node) and is_element_enabled(node) and is_element_role_interactive(node) and (not is_element_image(node) or is_keyboard_focusable(node))
-                elif node.ControlTypeName=='GroupControl':
-                    if is_browser:
-                        return is_element_visible(node) and is_element_enabled(node) and is_element_role_interactive(node) and (is_default_action(node) or is_keyboard_focusable(node))
-                    # else:
-                    #     return is_element_visible and is_element_enabled(node) and is_default_action(node)
-            except Exception:
-                return False
+            return scroll_pattern.VerticallyScrollable
+        except Exception:
             return False
-        
-        def dom_correction(node:Control):
-            if element_has_child_element(node,'list item','link') or element_has_child_element(node,'item','link'):
-                dom_interactive_nodes.pop()
-                return None
+            
+    def is_element_interactive(self, node:Control, is_browser:bool):
+        try:
+            if is_browser and node.ControlTypeName in set(['DataItemControl','ListItemControl']) and not self.is_keyboard_focusable(node):
+                return False
+            elif not is_browser and node.ControlTypeName=="ImageControl" and self.is_keyboard_focusable(node):
+                return True
+            elif node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|DOCUMENT_CONTROL_TYPE_NAMES:
+                return self.is_element_visible(node) and self.is_element_enabled(node) and self.is_element_role_interactive(node) and (not self.is_element_image(node) or self.is_keyboard_focusable(node))
             elif node.ControlTypeName=='GroupControl':
-                dom_interactive_nodes.pop()
-                if is_keyboard_focusable(node):
-                    child=node
-                    try:
-                        while child.GetFirstChildControl() is not None:
-                            if child.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
-                                return None
-                            child=child.GetFirstChildControl()
-                    except Exception:
-                        return None
-                    if child.ControlTypeName!='TextControl':
-                        return None
-                    legacy_pattern=node.GetLegacyIAccessiblePattern()
-                    value=legacy_pattern.Value
-                    element_bounding_box = node.BoundingRectangle
-                    bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
-                    center = bounding_box.get_center()
-                    is_focused=node.HasKeyboardFocus
-                    dom_interactive_nodes.append(TreeElementNode(**{
-                        'name':child.Name.strip(),
-                        'cursor_type':'',
-                        'control_type':node.LocalizedControlType,
-                        'value':value,
-                        'shortcut':node.AcceleratorKey,
-                        'bounding_box':bounding_box,
-                        'xpath':'',
-                        'center':center,
-                        'app_name':app_name,
-                        'is_focused':is_focused
-                    }))
-            elif element_has_child_element(node,'link','heading'):
-                dom_interactive_nodes.pop()
-                node=node.GetFirstChildControl()
-                control_type='link'
+                if is_browser:
+                    return self.is_element_visible(node) and self.is_element_enabled(node) and self.is_element_role_interactive(node) and (self.is_default_action(node) or self.is_keyboard_focusable(node))
+                    # else:
+                    #     return is_element_visible(node) and is_element_enabled(node) and is_default_action(node)
+        except Exception:
+            return False
+        return False
+
+    def _dom_correction(self, node:Control, dom_interactive_nodes:list[TreeElementNode], app_name:str):
+        if self.element_has_child_element(node,'list item','link') or self.element_has_child_element(node,'item','link'):
+            dom_interactive_nodes.pop()
+            return None
+        elif node.ControlTypeName=='GroupControl':
+            dom_interactive_nodes.pop()
+            if self.is_keyboard_focusable(node):
+                child=node
+                try:
+                    while child.GetFirstChildControl() is not None:
+                        if child.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
+                            return None
+                        child=child.GetFirstChildControl()
+                except Exception:
+                    return None
+                if child.ControlTypeName!='TextControl':
+                    return None
+                runtime_id=node.GetRuntimeId()
                 legacy_pattern=node.GetLegacyIAccessiblePattern()
                 value=legacy_pattern.Value
                 element_bounding_box = node.BoundingRectangle
@@ -290,10 +269,11 @@ class Tree:
                 center = bounding_box.get_center()
                 is_focused=node.HasKeyboardFocus
                 dom_interactive_nodes.append(TreeElementNode(**{
-                    'name':node.Name.strip(),
+                    'name':child.Name.strip(),
+                    'runtime_id':tuple(runtime_id),
                     'cursor_type':'',
-                    'control_type':control_type,
-                    'value':node.Name.strip(),
+                    'control_type':node.LocalizedControlType,
+                    'value':value,
                     'shortcut':node.AcceleratorKey,
                     'bounding_box':bounding_box,
                     'xpath':'',
@@ -301,116 +281,151 @@ class Tree:
                     'app_name':app_name,
                     'is_focused':is_focused
                 }))
-            
-        def tree_traversal(node: Control,is_dom:bool=False,is_dialog:bool=False):
-            # Checks to skip the nodes that are not interactive
-            if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
-                return None
-            
-            if is_element_scrollable(node):
-                scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
-                box = node.BoundingRectangle
-                # Get the center
-                x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
-                center = Center(x=x,y=y)
-                scrollable_nodes.append(ScrollElementNode(**{
-                    'name':node.Name.strip() or node.AutomationId or node.LocalizedControlType.capitalize() or "''",
-                    'app_name':app_name,
+        elif self.element_has_child_element(node,'link','heading'):
+            dom_interactive_nodes.pop()
+            node=node.GetFirstChildControl()
+            control_type='link'
+            runtime_id=node.GetRuntimeId()
+            legacy_pattern=node.GetLegacyIAccessiblePattern()
+            value=legacy_pattern.Value
+            element_bounding_box = node.BoundingRectangle
+            bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
+            center = bounding_box.get_center()
+            is_focused=node.HasKeyboardFocus
+            dom_interactive_nodes.append(TreeElementNode(**{
+                'name':node.Name.strip(),
+                'runtime_id':tuple(runtime_id),
+                'cursor_type':'',
+                'control_type':control_type,
+                'value':node.Name.strip(),
+                'shortcut':node.AcceleratorKey,
+                'bounding_box':bounding_box,
+                'xpath':'',
+                'center':center,
+                'app_name':app_name,
+                'is_focused':is_focused
+            }))
+
+    def tree_traversal(self, node: Control, window_bounding_box:Rect, app_name:str, is_browser:bool, 
+                       interactive_nodes:list[TreeElementNode], scrollable_nodes:list[ScrollElementNode], 
+                       dom_interactive_nodes:list[TreeElementNode], dom_informative_nodes:list[TextElementNode],
+                       is_dom:bool=False, is_dialog:bool=False):
+        # Checks to skip the nodes that are not interactive
+        if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
+            return None
+        
+        if self.is_element_scrollable(node):
+            scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
+            runtime_id=node.GetRuntimeId()
+            box = node.BoundingRectangle
+            # Get the center
+            x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
+            center = Center(x=x,y=y)
+            scrollable_nodes.append(ScrollElementNode(**{
+                'name':node.Name.strip() or node.AutomationId or node.LocalizedControlType.capitalize() or "''",
+                'runtime_id':tuple(runtime_id),
+                'control_type':node.LocalizedControlType.title(),
+                'bounding_box':BoundingBox(**{
+                    'left':box.left,
+                    'top':box.top,
+                    'right':box.right,
+                    'bottom':box.bottom,
+                    'width':box.width(),
+                    'height':box.height()
+                }),
+                'center':center,
+                'xpath':'',
+                'horizontal_scrollable':scroll_pattern.HorizontallyScrollable,
+                'horizontal_scroll_percent':scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
+                'vertical_scrollable':scroll_pattern.VerticallyScrollable,
+                'vertical_scroll_percent':scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
+                'app_name':app_name,
+                'is_focused':node.HasKeyboardFocus
+            }))
+                
+        if self.is_element_interactive(node, is_browser):
+            legacy_pattern=node.GetLegacyIAccessiblePattern()
+            value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
+            cursor_type=AccessibleRoleNames.get(legacy_pattern.Role, "Default")
+            runtime_id=node.GetRuntimeId()
+            is_focused=node.HasKeyboardFocus
+            name=node.Name.strip()
+            element_bounding_box = node.BoundingRectangle
+            if is_browser and is_dom:
+                bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
+                center = bounding_box.get_center()
+                tree_node=TreeElementNode(**{
+                    'name':name,
+                    'runtime_id':tuple(runtime_id),
                     'control_type':node.LocalizedControlType.title(),
-                    'bounding_box':BoundingBox(**{
-                        'left':box.left,
-                        'top':box.top,
-                        'right':box.right,
-                        'bottom':box.bottom,
-                        'width':box.width(),
-                        'height':box.height()
-                    }),
+                    'value':value,
+                    'shortcut':node.AcceleratorKey,
+                    'bounding_box':bounding_box,
                     'center':center,
                     'xpath':'',
-                    'horizontal_scrollable':scroll_pattern.HorizontallyScrollable,
-                    'horizontal_scroll_percent':scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
-                    'vertical_scrollable':scroll_pattern.VerticallyScrollable,
-                    'vertical_scroll_percent':scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
-                    'is_focused':node.HasKeyboardFocus
-                }))
-                    
-            if is_element_interactive(node):
-                legacy_pattern=node.GetLegacyIAccessiblePattern()
-                value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
-                cursor_type=AccessibleRoleNames.get(legacy_pattern.Role, "Default")
-                is_focused=node.HasKeyboardFocus
-                name=node.Name.strip()
-                element_bounding_box = node.BoundingRectangle
-                if is_browser and is_dom:
-                    bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
-                    center = bounding_box.get_center()
-                    tree_node=TreeElementNode(**{
-                        'name':name,
-                        'control_type':node.LocalizedControlType.title(),
-                        'value':value,
-                        'shortcut':node.AcceleratorKey,
-                        'bounding_box':bounding_box,
-                        'center':center,
-                        'xpath':'',
-                        'app_name':app_name,
-                        'is_focused':is_focused
-                    })
-                    dom_interactive_nodes.append(tree_node)
-                    dom_correction(node=node)
-                else:
-                    bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
-                    center = bounding_box.get_center()
-                    tree_node=TreeElementNode(**{
-                        'name':name,
-                        'cursor_type':cursor_type.title(),
-                        'control_type':node.LocalizedControlType.title(),
-                        'value':value,
-                        'shortcut':node.AcceleratorKey,
-                        'bounding_box':bounding_box,
-                        'center':center,
-                        'xpath':'',
-                        'app_name':app_name,
-                        'is_focused':is_focused
-                    })
-                    interactive_nodes.append(tree_node)
-            if is_element_text(node):
-                if is_browser and is_dom:
-                    dom_informative_nodes.append(TextElementNode(
-                        text=node.Name.strip(),
-                    ))
-            children=node.GetChildren()
+                    'app_name':app_name,
+                    'is_focused':is_focused
+                })
+                dom_interactive_nodes.append(tree_node)
+                self._dom_correction(node, dom_interactive_nodes, app_name)
+            else:
+                bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
+                center = bounding_box.get_center()
+                tree_node=TreeElementNode(**{
+                    'name':name,
+                    'runtime_id':tuple(runtime_id),
+                    'cursor_type':cursor_type.title(),
+                    'control_type':node.LocalizedControlType.title(),
+                    'value':value,
+                    'shortcut':node.AcceleratorKey,
+                    'bounding_box':bounding_box,
+                    'center':center,
+                    'xpath':'',
+                    'app_name':app_name,
+                    'is_focused':is_focused
+                })
+                interactive_nodes.append(tree_node)
+        if self.is_element_text(node):
+            if is_browser and is_dom:
+                dom_informative_nodes.append(TextElementNode(
+                    text=node.Name.strip(),
+                ))
+        children=node.GetChildren()
 
-            # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
-            for child in (children if is_dom else children[::-1]):
-                # Incrementally building the xpath
-                
-                # Check if the child is a DOM element
-                if is_browser and child.AutomationId=="RootWebArea":
-                    bounding_box=child.BoundingRectangle
-                    self.dom_bounding_box=BoundingBox(left=bounding_box.left,top=bounding_box.top,
-                    right=bounding_box.right,bottom=bounding_box.bottom,width=bounding_box.width(),
-                    height=bounding_box.height())
-                    self.dom=child
-                    # enter DOM subtree
-                    tree_traversal(child, is_dom=True, is_dialog=is_dialog)
-                # Check if the child is a dialog
-                elif isinstance(child,WindowControl):
-                    if not child.IsOffscreen:
-                        if is_dom:
-                            bounding_box=child.BoundingRectangle
-                            if bounding_box.width() > 0.8*self.dom_bounding_box.width:
-                                # Because this window element covers the majority of the screen
-                                dom_interactive_nodes.clear()
-                        else:
-                            if is_window_modal(child):
-                                # Because this window element is modal
-                                interactive_nodes.clear()
-                    # enter dialog subtree
-                    tree_traversal(child, is_dom=is_dom, is_dialog=True)
-                else:
-                    # normal non-dialog children
-                    tree_traversal(child, is_dom=is_dom, is_dialog=is_dialog)
+        # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
+        for child in (children if is_dom else children[::-1]):
+            # Incrementally building the xpath
+            
+            # Check if the child is a DOM element
+            if is_browser and child.AutomationId=="RootWebArea":
+                bounding_box=child.BoundingRectangle
+                self.dom_bounding_box=BoundingBox(left=bounding_box.left,top=bounding_box.top,
+                right=bounding_box.right,bottom=bounding_box.bottom,width=bounding_box.width(),
+                height=bounding_box.height())
+                self.dom=child
+                # enter DOM subtree
+                self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=True, is_dialog=is_dialog)
+            # Check if the child is a dialog
+            elif isinstance(child,WindowControl):
+                if not child.IsOffscreen:
+                    if is_dom:
+                        bounding_box=child.BoundingRectangle
+                        if bounding_box.width() > 0.8*self.dom_bounding_box.width:
+                            # Because this window element covers the majority of the screen
+                            dom_interactive_nodes.clear()
+                    else:
+                        if self.is_window_modal(child):
+                            # Because this window element is modal
+                            interactive_nodes.clear()
+                # enter dialog subtree
+                self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=True)
+            else:
+                # normal non-dialog children
+                self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog)
 
+    def get_nodes(self, node: Control, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
+        window_bounding_box=node.BoundingRectangle
+        
         interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
         app_name=node.Name.strip()
         match node.ClassName:
@@ -422,8 +437,8 @@ class Tree:
                 app_name="Context Menu"
             case _:
                 pass
-        tree_traversal(node,is_dom=False,is_dialog=False)
-
+        self.tree_traversal(node, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False)
+        logger.debug(f'App name:{app_name}')
         logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
         logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
         logger.debug(f'DOM informative nodes:{len(dom_informative_nodes)}')
@@ -431,6 +446,43 @@ class Tree:
 
         interactive_nodes.extend(dom_interactive_nodes)
         return (interactive_nodes,scrollable_nodes,dom_informative_nodes)
+
+    def _on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
+        """Handle focus change events."""
+        try:
+            element = Control.CreateControlFromElement(sender)
+            logger.debug(f"[WatchDog] Focus changed to: '{element.Name}' ({element.ControlTypeName})")
+        except Exception:
+            pass
+
+    def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtimeId:list[int]):
+        """Handle structure change events."""
+        try:
+            control = Control.CreateControlFromElement(sender)
+            match StructureChangeType(changeType).name:
+                case "StructureChangeType_ChildAdded":
+                    #Check whether the element is interactive or not
+                    if isinstance(control,WindowControl|PaneControl|GroupControl):
+                        pass
+                    
+                case "StructureChangeType_ChildRemoved":
+                    pass
+                case _:
+                    pass
+                
+                
+            element = Control.CreateControlFromElement(sender)
+            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} Element: '{element.Name}' ({element.ControlTypeName})")
+        except Exception:
+            pass
+
+    def _on_property_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', propertyId:int, newValue):
+        """Handle property change events."""
+        try:
+            element = Control.CreateControlFromElement(sender)
+            logger.debug(f"[WatchDog] Property changed: ID={propertyId} Value={newValue} Element: '{element.Name}' ({element.ControlTypeName})")
+        except Exception:
+            pass
 
     def annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
         screenshot = self.desktop.get_screenshot()
