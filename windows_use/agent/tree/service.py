@@ -1,6 +1,6 @@
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
 from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl
-from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Center, BoundingBox, TreeState, TextElementNode
+from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, TextElementNode, Center, BoundingBox, TreeState
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from windows_use.agent.desktop.views import App
@@ -11,7 +11,7 @@ import logging
 import random
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 formatter = logging.Formatter('[%(levelname)s] %(message)s')
 handler.setFormatter(formatter)
@@ -71,7 +71,8 @@ class Tree:
             )
         else:
             dom_node=None
-        return TreeState(root_node=root_node,dom_node=dom_node,interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes,dom_informative_nodes=dom_informative_nodes)
+        self.tree_state=TreeState(root_node=root_node,dom_node=dom_node,interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes,dom_informative_nodes=dom_informative_nodes)
+        return self.tree_state
 
     def get_appwise_nodes(self,apps:list[Control]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
         interactive_nodes, scrollable_nodes, dom_informative_nodes = [], [], []
@@ -307,14 +308,14 @@ class Tree:
             }))
 
     def tree_traversal(self, node: Control, window_bounding_box:Rect, app_name:str, is_browser:bool, 
-                       interactive_nodes:list[TreeElementNode], scrollable_nodes:list[ScrollElementNode], 
-                       dom_interactive_nodes:list[TreeElementNode], dom_informative_nodes:list[TextElementNode],
-                       is_dom:bool=False, is_dialog:bool=False):
+                    interactive_nodes:Optional[list[TreeElementNode]]=None, scrollable_nodes:Optional[list[ScrollElementNode]]=None, 
+                    dom_interactive_nodes:Optional[list[TreeElementNode]]=None, dom_informative_nodes:Optional[list[TextElementNode]]=None,
+                    is_dom:bool=False, is_dialog:bool=False):
         # Checks to skip the nodes that are not interactive
         if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
             return None
         
-        if self.is_element_scrollable(node):
+        if scrollable_nodes is not None and self.is_element_scrollable(node):
             scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
             runtime_id=node.GetRuntimeId()
             box = node.BoundingRectangle
@@ -343,7 +344,7 @@ class Tree:
                 'is_focused':node.HasKeyboardFocus
             }))
                 
-        if self.is_element_interactive(node, is_browser):
+        if interactive_nodes is not None and self.is_element_interactive(node, is_browser):
             legacy_pattern=node.GetLegacyIAccessiblePattern()
             value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
             cursor_type=AccessibleRoleNames.get(legacy_pattern.Role, "Default")
@@ -385,7 +386,7 @@ class Tree:
                     'is_focused':is_focused
                 })
                 interactive_nodes.append(tree_node)
-        if self.is_element_text(node):
+        if dom_informative_nodes is not None and self.is_element_text(node):
             if is_browser and is_dom:
                 dom_informative_nodes.append(TextElementNode(
                     text=node.Name.strip(),
@@ -455,22 +456,105 @@ class Tree:
         except Exception:
             pass
 
-    def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtimeId:list[int]):
+    def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtime_id:list[int]):
         """Handle structure change events."""
         try:
-            control = Control.CreateControlFromElement(sender)
+            node = Control.CreateControlFromElement(sender)
             match StructureChangeType(changeType).name:
                 case "StructureChangeType_ChildAdded":
-                    #Check whether the element is interactive or not
-                    if isinstance(control,WindowControl|PaneControl|GroupControl):
-                        pass
+                    #Check whether the element is already in the interactive_nodes
+                    if tuple(runtime_id) in [node.runtime_id for node in self.tree_state.interactive_nodes]:
+                        return None
                     
+                    nodes=[node]
+                    # If it's a container, traverse its children
+                    if isinstance(node, WindowControl|PaneControl|GroupControl):
+                        if app := self.desktop.get_app_from_element(node):
+                            collected_nodes=[]
+                            self.tree_traversal(
+                                node=node,
+                                window_bounding_box=node.BoundingRectangle,
+                                app_name=app.name,
+                                is_browser=self.desktop.is_app_browser(node),
+                                interactive_nodes=collected_nodes
+                            )
+                            # Filter out nodes we already have
+                            current_ids = {n.runtime_id for n in self.tree_state.interactive_nodes}
+                            nodes = [n for n in collected_nodes if n.runtime_id not in current_ids]
+                    for item in nodes:
+                        is_browser = False
+                        # Try to get app info for the specific node
+                        if app := self.desktop.get_app_from_element(item):
+                            is_browser = self.desktop.is_app_browser(item)
+
+                        if not self.is_element_interactive(item, is_browser=is_browser):
+                            continue
+
+                        bounding_box = self.iou_bounding_box(self.screen_box, item.BoundingRectangle)
+                        center = bounding_box.get_center()
+                        legacy_pattern = item.GetLegacyIAccessiblePattern()
+                        value = legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
+                        cursor_type = AccessibleRoleNames.get(legacy_pattern.Role, "Default")
+                        
+                        item_runtime_id = item.GetRuntimeId()
+                        is_focused = item.HasKeyboardFocus
+                        name = item.Name.strip()
+                        app_name = app.name if app else ""
+                        
+                        self.tree_state.interactive_nodes.append(TreeElementNode(**{
+                            'name': name,
+                            'runtime_id': tuple(item_runtime_id),
+                            'cursor_type': cursor_type,
+                            'control_type': item.LocalizedControlType.title(),
+                            'bounding_box': bounding_box,
+                            'center': center,
+                            'app_name': app_name,
+                            'xpath': '',
+                            'value': value,
+                            'shortcut': '',
+                            'is_focused': is_focused,
+                        }))
+
                 case "StructureChangeType_ChildRemoved":
+                    # Correctly compare tuple to tuple
+                    target_id = tuple(runtime_id)
+                    self.tree_state.interactive_nodes = [
+                        n for n in self.tree_state.interactive_nodes 
+                        if n.runtime_id != target_id
+                    ]
+                case "StructureChangeType_ChildrenInvalidated":
+                    # # For invalidated children, we need to refresh the subtree
+                    # # 1. Remove all nodes that are descendants of this node (or the node itself)
+                    # # Note: RuntimeID structure usually allows checking ancestry, but for safety/simplicity 
+                    # # we often just check if the node is in the bounding box of the invalidated container 
+                    # # OR we can assume we need a way to check hierarchy. 
+                    # # A simple approximation for now: Remove nodes within the bounding box of the invalidated element
+                    
+                    # invalidated_box = node.BoundingRectangle
+                    # # Filter out nodes that are contained within the invalidated node's box
+                    # self.tree_state.interactive_nodes = [
+                    #     n for n in self.tree_state.interactive_nodes 
+                    #     if not invalidated_box.contains(n.bounding_box.)
+                    # ]
+                    
+                    # # 2. Re-traverse and add
+                    # if app := self.desktop.get_app_from_element(node):
+                    #     collected_nodes = []
+                    #     self.tree_traversal(
+                    #         node=node,
+                    #         window_bounding_box=node.BoundingRectangle,
+                    #         app_name=app.name,
+                    #         is_browser=self.desktop.is_app_browser(node),
+                    #         interactive_nodes=collected_nodes
+                    #     )
+                    #     self.tree_state.interactive_nodes.extend(collected_nodes)
                     pass
                 case _:
                     pass
-                
-                
+        except Exception:
+            pass
+        
+        try:
             element = Control.CreateControlFromElement(sender)
             logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} Element: '{element.Name}' ({element.ControlTypeName})")
         except Exception:

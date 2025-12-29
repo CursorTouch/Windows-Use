@@ -332,6 +332,18 @@ class Desktop:
         content=markdownify(html=html)
         return content
     
+    def get_app_from_element(self,element:uia.Control)->App|None:
+        if element is None:
+            return None
+        top_window=element.GetTopLevelControl()
+        if top_window is None:
+            return None
+        handle=top_window.NativeWindowHandle
+        for app in self.get_apps():
+            if app.handle==handle:
+                return app
+        return None
+    
     def get_app_size(self,control:uia.Control):
         window=control.BoundingRectangle
         if window.isempty():
