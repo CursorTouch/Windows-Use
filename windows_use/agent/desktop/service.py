@@ -1,5 +1,6 @@
 from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
-from windows_use.agent.desktop.views import DesktopState, App, Size, Status
+from windows_use.agent.desktop.views import DesktopState, App, Status, Size
+from windows_use.agent.tree.views import BoundingBox
 from windows_use.agent.tree.service import Tree
 from locale import getpreferredencoding
 from contextlib import contextmanager
@@ -63,9 +64,12 @@ class Desktop:
         return self.desktop_state
     
     def get_window_element_from_element(self,element:uia.Control)->uia.Control|None:
+        '''Give any element of the app and it will return the top level window element.'''
         while element is not None:
+            # Check if handle is top-level AND the element is structurally a Window or Pane
             if uia.IsTopLevelWindow(element.NativeWindowHandle):
-                return element
+                if element.ControlTypeName in ['WindowControl', 'PaneControl']:
+                    return element
             element = element.GetParentControl()
         return None
     
@@ -122,6 +126,7 @@ class Desktop:
             return ('Command execution failed', 1)
         
     def is_app_browser(self,node:uia.Control):
+        '''Give any node of the app and it will return True if the app is a browser, False otherwise.'''
         process=Process(node.ProcessId)
         return process.name() in BROWSER_NAMES
     
@@ -344,15 +349,9 @@ class Desktop:
                 return app
         return None
     
-    def get_app_size(self,control:uia.Control):
-        window=control.BoundingRectangle
-        if window.isempty():
-            return Size(width=0,height=0)
-        return Size(width=window.width(),height=window.height())
-    
     def is_app_visible(self,app)->bool:
         is_minimized=self.get_app_status(app)!=Status.MINIMIZED
-        size=self.get_app_size(app)
+        size=app.bounding_box
         area=size.width*size.height
         is_overlay=self.is_overlay_app(app)
         return not is_overlay and is_minimized and area>10
@@ -373,13 +372,24 @@ class Desktop:
                     if (window_pattern is None):
                         continue
                     if window_pattern.CanMinimize and window_pattern.CanMaximize:
+                        bounding_rect=child.BoundingRectangle
+                        if bounding_rect.isempty():
+                            continue
                         status = self.get_app_status(child)
-                        size=self.get_app_size(child)
+                        bounding_box=BoundingBox(
+                            left=bounding_rect.left,
+                            top=bounding_rect.top,
+                            right=bounding_rect.right,
+                            bottom=bounding_rect.bottom,
+                            width=bounding_rect.width(),
+                            height=bounding_rect.height()
+                        )
                         apps.append(App(**{
                             "name":child.Name,
+                            "runtime_id":tuple(child.GetRuntimeId()),
                             "depth":depth,
                             "status":status,
-                            "size":size,
+                            "bounding_box":bounding_box,
                             "handle":child.NativeWindowHandle,
                             "process_id":child.ProcessId
                         }))

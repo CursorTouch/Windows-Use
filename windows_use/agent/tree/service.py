@@ -1,5 +1,5 @@
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
-from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl
+from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl,StructureChangeType
 from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, TextElementNode, Center, BoundingBox, TreeState
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING,Optional
 from time import sleep
 import logging
 import random
+import time
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 formatter = logging.Formatter('[%(levelname)s] %(message)s')
 handler.setFormatter(formatter)
@@ -31,6 +32,7 @@ class Tree:
             width=self.screen_size.width, height=self.screen_size.height
         )
         self.tree_state=None
+        self._last_structure_event = None
 
     def get_state(self,active_app:App,other_apps:list[App])->TreeState:
         root=GetRootControl()
@@ -441,8 +443,9 @@ class Tree:
         self.tree_traversal(node, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False)
         logger.debug(f'App name:{app_name}')
         logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
-        logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
-        logger.debug(f'DOM informative nodes:{len(dom_informative_nodes)}')
+        if is_browser:
+            logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
+            logger.debug(f'DOM informative nodes:{len(dom_informative_nodes)}')
         logger.debug(f'Scrollable nodes:{len(scrollable_nodes)}')
 
         interactive_nodes.extend(dom_interactive_nodes)
@@ -458,10 +461,21 @@ class Tree:
 
     def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtime_id:list[int]):
         """Handle structure change events."""
+        return None
+        #TODO: Work in progress
         try:
+            # Debounce duplicate events
+            current_time = time.time()
+            event_key = (changeType, tuple(runtime_id))
+            if hasattr(self, '_last_structure_event') and self._last_structure_event:
+                last_key, last_time = self._last_structure_event
+                if last_key == event_key and (current_time - last_time) < 0.1:
+                    return None
+            self._last_structure_event = (event_key, current_time)
+
             node = Control.CreateControlFromElement(sender)
-            match StructureChangeType(changeType).name:
-                case "StructureChangeType_ChildAdded":
+            match StructureChangeType(changeType):
+                case StructureChangeType.StructureChangeType_ChildAdded:
                     #Check whether the element is already in the interactive_nodes
                     if tuple(runtime_id) in [node.runtime_id for node in self.tree_state.interactive_nodes]:
                         return None
@@ -470,17 +484,20 @@ class Tree:
                     # If it's a container, traverse its children
                     if isinstance(node, WindowControl|PaneControl|GroupControl):
                         if app := self.desktop.get_app_from_element(node):
-                            collected_nodes=[]
+                            interactive_nodes=[]
+                            is_browser=self.desktop.is_app_browser(node)
+                            window_element = self.desktop.get_window_element_from_element(node)
+                            window_bounding_box = window_element.BoundingRectangle if window_element else node.BoundingRectangle
                             self.tree_traversal(
                                 node=node,
-                                window_bounding_box=node.BoundingRectangle,
+                                window_bounding_box=window_bounding_box,
                                 app_name=app.name,
-                                is_browser=self.desktop.is_app_browser(node),
-                                interactive_nodes=collected_nodes
+                                is_browser=is_browser,
+                                interactive_nodes=interactive_nodes
                             )
                             # Filter out nodes we already have
                             current_ids = {n.runtime_id for n in self.tree_state.interactive_nodes}
-                            nodes = [n for n in collected_nodes if n.runtime_id not in current_ids]
+                            nodes = [n for n in interactive_nodes if n.runtime_id not in current_ids]
                     for item in nodes:
                         is_browser = False
                         # Try to get app info for the specific node
@@ -515,40 +532,83 @@ class Tree:
                             'is_focused': is_focused,
                         }))
 
-                case "StructureChangeType_ChildRemoved":
-                    # Correctly compare tuple to tuple
-                    target_id = tuple(runtime_id)
+                case StructureChangeType.StructureChangeType_ChildRemoved:
+                    # Case 1: The removed element is a known node in our tree (e.g. a Window closing)
+                    app=self.desktop.desktop_state.active_app #Closed app/Active App
+                    if app and app.runtime_id==tuple(runtime_id):
+                        # Use the CACHED bounding box from our state (safest for closed windows)
+                        invalidated_rect = app.bounding_box
+                        # Remove the node AND its visual descendants (anything inside its box)
+                        self.tree_state.interactive_nodes = [
+                            n for n in self.tree_state.interactive_nodes 
+                            if not (
+                                n.bounding_box.left >= invalidated_rect.left and 
+                                n.bounding_box.right <= invalidated_rect.right and 
+                                n.bounding_box.top >= invalidated_rect.top and 
+                                n.bounding_box.bottom <= invalidated_rect.bottom
+                            ) and n.app_name!=app.name
+                        ]
+                        # If a top-level window closed, we are done. No need to re-scan the desktop.
+                        return None
+                    else:
+                        # Case 2: The removed element wasn't tracked directly, or we need to refresh siblings matches.
+                        # Fallback to refreshing the parent (sender) to ensure consistency.
+                        try:
+                            # 1. Identify the parent's bounding box
+                            invalidated_rect = node.BoundingRectangle
+
+                            # 2. Remove ALL nodes within this parent's box
+                            self.tree_state.interactive_nodes = [
+                                n for n in self.tree_state.interactive_nodes 
+                            if not (
+                                n.bounding_box.left >= invalidated_rect.left and 
+                                n.bounding_box.right <= invalidated_rect.right and 
+                                n.bounding_box.top >= invalidated_rect.top and 
+                                n.bounding_box.bottom <= invalidated_rect.bottom
+                            ) and n.app_name==app.name
+                            ]
+                        except Exception:
+                            # Element likely dead/inaccessible
+                            pass
+
+                case StructureChangeType.StructureChangeType_ChildrenInvalidated:
+                    # For invalidated children, we need to refresh the subtree
+                    # Remove nodes within the bounding box of the invalidated element
+                    invalidated_rect = node.BoundingRectangle
+
+                    # Filter out nodes that are contained within the invalidated node's box
                     self.tree_state.interactive_nodes = [
                         n for n in self.tree_state.interactive_nodes 
-                        if n.runtime_id != target_id
+                        if not (
+                            n.bounding_box.left >= invalidated_rect.left and 
+                            n.bounding_box.right <= invalidated_rect.right and 
+                            n.bounding_box.top >= invalidated_rect.top and 
+                            n.bounding_box.bottom <= invalidated_rect.bottom
+                        )
                     ]
-                case "StructureChangeType_ChildrenInvalidated":
-                    # # For invalidated children, we need to refresh the subtree
-                    # # 1. Remove all nodes that are descendants of this node (or the node itself)
-                    # # Note: RuntimeID structure usually allows checking ancestry, but for safety/simplicity 
-                    # # we often just check if the node is in the bounding box of the invalidated container 
-                    # # OR we can assume we need a way to check hierarchy. 
-                    # # A simple approximation for now: Remove nodes within the bounding box of the invalidated element
                     
-                    # invalidated_box = node.BoundingRectangle
-                    # # Filter out nodes that are contained within the invalidated node's box
-                    # self.tree_state.interactive_nodes = [
-                    #     n for n in self.tree_state.interactive_nodes 
-                    #     if not invalidated_box.contains(n.bounding_box.)
-                    # ]
-                    
-                    # # 2. Re-traverse and add
-                    # if app := self.desktop.get_app_from_element(node):
-                    #     collected_nodes = []
-                    #     self.tree_traversal(
-                    #         node=node,
-                    #         window_bounding_box=node.BoundingRectangle,
-                    #         app_name=app.name,
-                    #         is_browser=self.desktop.is_app_browser(node),
-                    #         interactive_nodes=collected_nodes
-                    #     )
-                    #     self.tree_state.interactive_nodes.extend(collected_nodes)
+                    # Re-traverse and add
+                    if app := self.desktop.get_app_from_element(node):
+                        interactive_nodes = []
+                        window_element = self.desktop.get_window_element_from_element(node)
+                        window_bounding_box = window_element.BoundingRectangle if window_element else node.BoundingRectangle
+                        
+                        self.tree_traversal(
+                            node=node,
+                            window_bounding_box=window_bounding_box,
+                            app_name=app.name,
+                            is_browser=self.desktop.is_app_browser(node),
+                            interactive_nodes=interactive_nodes
+                        )
+                        
+                        # Filter duplicates to avoid adding nodes that weren't removed
+                        current_ids = {n.runtime_id for n in self.tree_state.interactive_nodes}
+                        new_unique_nodes = [n for n in interactive_nodes if n.runtime_id not in current_ids]
+                        self.tree_state.interactive_nodes.extend(new_unique_nodes)
+
+                case StructureChangeType.StructureChangeType_ChildrenBulkAdded:
                     pass
+
                 case _:
                     pass
         except Exception:
@@ -556,7 +616,7 @@ class Tree:
         
         try:
             element = Control.CreateControlFromElement(sender)
-            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} Element: '{element.Name}' ({element.ControlTypeName})")
+            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} RuntimeID={tuple(runtime_id)} Sender: '{element.Name}' ({element.ControlTypeName})")
         except Exception:
             pass
 

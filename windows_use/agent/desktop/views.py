@@ -1,4 +1,4 @@
-from windows_use.agent.tree.views import TreeState
+from windows_use.agent.tree.views import TreeState,BoundingBox
 from dataclasses import dataclass
 from tabulate import tabulate
 from typing import Optional
@@ -20,14 +20,15 @@ class Status(Enum):
 @dataclass
 class App:
     name:str
+    runtime_id:tuple[int]
     depth:int
     status:Status
-    size:'Size'
+    bounding_box:BoundingBox
     handle: int
     process_id:int
     
     def to_row(self):
-        return [self.name, self.depth, self.status.value, self.size.width, self.size.height, self.handle]
+        return [self.name, self.depth, self.status.value, self.bounding_box.width, self.bounding_box.height, self.handle]
 
 @dataclass
 class Size:
