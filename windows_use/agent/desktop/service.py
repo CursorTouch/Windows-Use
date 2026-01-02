@@ -391,7 +391,8 @@ class Desktop:
                             "status":status,
                             "bounding_box":bounding_box,
                             "handle":child.NativeWindowHandle,
-                            "process_id":child.ProcessId
+                            "process_id":child.ProcessId,
+                            "is_browser":self.is_app_browser(child)
                         }))
         except Exception as ex:
             logger.error(f"Error in get_apps: {ex}")

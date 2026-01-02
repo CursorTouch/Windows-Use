@@ -41,7 +41,6 @@ class Tree:
         del other_apps_handle
         if active_app:
             apps=list(filter(lambda app:app.ClassName!='Progman',apps))
-        print([app.Name for app in apps])
         interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
         root_node=TreeElementNode(
             name="Desktop",
@@ -427,20 +426,24 @@ class Tree:
                 # normal non-dialog children
                 self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog)
 
+    def app_name_correction(self,app_name:str)->str:
+        match app_name:
+            case "Progman":
+                return "Desktop"
+            case 'Shell_TrayWnd'|'Shell_SecondaryTrayWnd':
+                return "Taskbar"
+            case 'Microsoft.UI.Content.PopupWindowSiteBridge':
+                return "Context Menu"
+            case _:
+                return app_name
+    
     def get_nodes(self, node: Control, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
         window_bounding_box=node.BoundingRectangle
         
         interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
         app_name=node.Name.strip()
-        match node.ClassName:
-            case "Progman":
-                app_name="Desktop"
-            case 'Shell_TrayWnd'|'Shell_SecondaryTrayWnd':
-                app_name="Taskbar"
-            case 'Microsoft.UI.Content.PopupWindowSiteBridge':
-                app_name="Context Menu"
-            case _:
-                pass
+        app_name=self.app_name_correction(app_name)
+
         self.tree_traversal(node, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False)
         logger.debug(f'App name:{app_name}')
         logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
@@ -454,8 +457,18 @@ class Tree:
 
     def _on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
         """Handle focus change events."""
+        # Debounce duplicate events
+        current_time = time.time()
+        element = Control.CreateControlFromElement(sender)
+        runtime_id=element.GetRuntimeId()
+        event_key = tuple(runtime_id)
+        if hasattr(self, '_last_focus_event') and self._last_focus_event:
+            last_key, last_time = self._last_focus_event
+            if last_key == event_key and (current_time - last_time) < 1.0:
+                return None
+        self._last_focus_event = (event_key, current_time)
+
         try:
-            element = Control.CreateControlFromElement(sender)
             logger.debug(f"[WatchDog] Focus changed to: '{element.Name}' ({element.ControlTypeName})")
         except Exception:
             pass
@@ -468,7 +481,7 @@ class Tree:
             event_key = (changeType, tuple(runtime_id))
             if hasattr(self, '_last_structure_event') and self._last_structure_event:
                 last_key, last_time = self._last_structure_event
-                if last_key == event_key and (current_time - last_time) < 0.1:
+                if last_key == event_key and (current_time - last_time) < 5.0:
                     return None
             self._last_structure_event = (event_key, current_time)
 
@@ -478,7 +491,7 @@ class Tree:
                 case StructureChangeType.StructureChangeType_ChildAdded|StructureChangeType.StructureChangeType_ChildrenBulkAdded:
                     interactive_nodes=[]
                     app=self.desktop.get_app_from_element(node)
-                    app_name=app.name if app else node.Name.strip()
+                    app_name=self.app_name_correction(app.name if app else node.Name.strip())
                     is_browser=app.is_browser if app else False
                     if isinstance(node,WindowControl|PaneControl):
                         #Subtree traversal
@@ -516,9 +529,6 @@ class Tree:
                         self.tree_state.interactive_nodes.extend(interactive_nodes)
                 case StructureChangeType.StructureChangeType_ChildrenBulkRemoved | StructureChangeType.StructureChangeType_ChildRemoved:
                     if changeType == StructureChangeType.StructureChangeType_ChildRemoved and self.tree_state:
-                        app=self.desktop.get_app_from_element(node)
-                        app_name=app.name if app else node.Name.strip()
-                        is_browser=app.is_browser if app else False
                         if isinstance(node,WindowControl|PaneControl):
                             parent_bounding_box=BoundingBox.from_bounding_rectangle(node.BoundingRectangle)
                             # Remove nodes spatially contained in the parent (heuristic for "is descendant")
@@ -534,7 +544,7 @@ class Tree:
                     #Rebuild subtree
                     parent_bounding_box=BoundingBox.from_bounding_rectangle(node.BoundingRectangle)
                     app=self.desktop.get_app_from_element(node)
-                    app_name=app.name if app else node.Name.strip()
+                    app_name=self.app_name_correction(app.name if app else node.Name.strip())
                     is_browser=app.is_browser if app else False
                     window_bounding_box=app.bounding_box if app else parent_bounding_box
                     interactive_nodes=[]
@@ -551,7 +561,7 @@ class Tree:
                         self.tree_state.interactive_nodes.extend(interactive_nodes)
                 case StructureChangeType.StructureChangeType_ChildrenReordered:
                     app=self.desktop.get_app_from_element(node)
-                    app_name=app.name if app else node.Name.strip()
+                    app_name=self.app_name_correction(app.name if app else node.Name.strip())
                     is_browser=app.is_browser if app else False
                     window_bounding_box=app.bounding_box if app else node.BoundingRectangle
                     interactive_nodes=[]
@@ -564,7 +574,7 @@ class Tree:
                             existing_node.update_from_node(new_node)
                     list(map(update_node,self.tree_state.interactive_nodes))
         except Exception as e:
-            logger.debug(f"[WatchDog] Structure changed with error: {e}")
+            logger.debug(f"[WatchDog] Structure changed with error: {e}, StructureChangeType={StructureChangeType(changeType).name}")
         
         try:
             logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} RuntimeID={tuple(runtime_id)} Sender: '{node.Name}' ({node.ControlTypeName})")

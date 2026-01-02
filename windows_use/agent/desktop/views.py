@@ -21,6 +21,7 @@ class Status(Enum):
 class App:
     name:str
     runtime_id:tuple[int]
+    is_browser:bool
     depth:int
     status:Status
     bounding_box:BoundingBox
