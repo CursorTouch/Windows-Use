@@ -181,8 +181,10 @@ All responses must be exclusively in the following format:
 <output>
   <evaluate>Success | Neutral | Fail — assess the last action</evaluate>
   <thought>Brief reasoning for the next step based on current state</thought>
-  <action_name>Tool name</action_name>
-  <action_input>{{"param":"value",...}}</action_input>
+  <action>
+    <name>[Tool to use]</name>
+    <input>{{"param":"value",...}}</input>
+  </action>
 </output>
 ```
 

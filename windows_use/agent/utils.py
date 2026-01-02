@@ -23,11 +23,11 @@ def extract_agent_data(message: ChatLLMResponse) -> AgentData:
         result['thought'] = thought_match.group(1).strip()
     # Extract Action-Name
     action = {}
-    action_name_match = re.search(r"<action_name>(.*?)<\/action_name>", text, re.DOTALL)
+    action_name_match = re.search(r"<name>(.*?)<\/name>", text, re.DOTALL)
     if action_name_match:
         action['name'] = action_name_match.group(1).strip()
     # Extract and convert Action-Input to a dictionary
-    action_input_match = re.search(r"<action_input>(.*?)<\/action_input>", text, re.DOTALL)
+    action_input_match = re.search(r"<input>(.*?)<\/input>", text, re.DOTALL)
     if action_input_match:
         action_input_str = action_input_match.group(1).strip()
         try:
