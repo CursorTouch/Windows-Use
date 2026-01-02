@@ -45,6 +45,17 @@ class BoundingBox:
     width:int
     height:int
 
+    @classmethod
+    def from_bounding_rectangle(cls,bounding_rectangle:'BoundingRectangle')->'BoundingBox':
+        return cls(
+            left=bounding_rectangle.left,
+            top=bounding_rectangle.top,
+            right=bounding_rectangle.right,
+            bottom=bounding_rectangle.bottom,
+            width=bounding_rectangle.width(),
+            height=bounding_rectangle.height()
+        )
+
     def get_center(self)->'Center':
         return Center(x=self.left+self.width//2,y=self.top+self.height//2)
 
@@ -70,17 +81,30 @@ class Center:
 
 @dataclass
 class TreeElementNode:
-    name: str
-    runtime_id:tuple[int, ...]
-    cursor_type:str
-    control_type: str
-    app_name: str
-    value:str
-    shortcut: str
     bounding_box: BoundingBox
     center: Center
-    xpath:str
-    is_focused:bool
+    name: str=''
+    runtime_id:tuple[int, ...]=()
+    cursor_type:str=''
+    control_type: str=''
+    app_name: str=''
+    value:str=''
+    shortcut: str=''
+    xpath:str=''
+    is_focused:bool=False
+
+    def update_from_node(self,node:'TreeElementNode'):
+        self.name=node.name
+        self.runtime_id=node.runtime_id
+        self.cursor_type=node.cursor_type
+        self.control_type=node.control_type
+        self.app_name=node.app_name
+        self.value=node.value
+        self.shortcut=node.shortcut
+        self.bounding_box=node.bounding_box
+        self.center=node.center
+        self.xpath=node.xpath
+        self.is_focused=node.is_focused
 
     # Legacy method kept for compatibility if needed, but not used in new format
     def to_row(self, index: int):

@@ -37,10 +37,11 @@ class Tree:
     def get_state(self,active_app:App,other_apps:list[App])->TreeState:
         root=GetRootControl()
         other_apps_handle=set(map(lambda other_app: other_app.handle,other_apps))
-        apps=list(filter(lambda app:app.NativeWindowHandle not in other_apps_handle,root.GetChildren()))
+        apps=list(filter(lambda app:(app.NativeWindowHandle not in other_apps_handle) and not self.desktop.is_overlay_app(app),root.GetChildren()))
         del other_apps_handle
         if active_app:
             apps=list(filter(lambda app:app.ClassName!='Progman',apps))
+        print([app.Name for app in apps])
         interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
         root_node=TreeElementNode(
             name="Desktop",
@@ -461,8 +462,6 @@ class Tree:
 
     def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtime_id:list[int]):
         """Handle structure change events."""
-        return None
-        #TODO: Work in progress
         try:
             # Debounce duplicate events
             current_time = time.time()
@@ -474,149 +473,101 @@ class Tree:
             self._last_structure_event = (event_key, current_time)
 
             node = Control.CreateControlFromElement(sender)
+
             match StructureChangeType(changeType):
-                case StructureChangeType.StructureChangeType_ChildAdded:
-                    #Check whether the element is already in the interactive_nodes
-                    if tuple(runtime_id) in [node.runtime_id for node in self.tree_state.interactive_nodes]:
-                        return None
-                    
-                    nodes=[node]
-                    # If it's a container, traverse its children
-                    if isinstance(node, WindowControl|PaneControl|GroupControl):
-                        if app := self.desktop.get_app_from_element(node):
-                            interactive_nodes=[]
-                            is_browser=self.desktop.is_app_browser(node)
-                            window_element = self.desktop.get_window_element_from_element(node)
-                            window_bounding_box = window_element.BoundingRectangle if window_element else node.BoundingRectangle
-                            self.tree_traversal(
-                                node=node,
-                                window_bounding_box=window_bounding_box,
-                                app_name=app.name,
-                                is_browser=is_browser,
-                                interactive_nodes=interactive_nodes
-                            )
-                            # Filter out nodes we already have
-                            current_ids = {n.runtime_id for n in self.tree_state.interactive_nodes}
-                            nodes = [n for n in interactive_nodes if n.runtime_id not in current_ids]
-                    for item in nodes:
-                        is_browser = False
-                        # Try to get app info for the specific node
-                        if app := self.desktop.get_app_from_element(item):
-                            is_browser = self.desktop.is_app_browser(item)
-
-                        if not self.is_element_interactive(item, is_browser=is_browser):
-                            continue
-
-                        bounding_box = self.iou_bounding_box(self.screen_box, item.BoundingRectangle)
-                        center = bounding_box.get_center()
-                        legacy_pattern = item.GetLegacyIAccessiblePattern()
-                        value = legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
-                        cursor_type = AccessibleRoleNames.get(legacy_pattern.Role, "Default")
-                        
-                        item_runtime_id = item.GetRuntimeId()
-                        is_focused = item.HasKeyboardFocus
-                        name = item.Name.strip()
-                        app_name = app.name if app else ""
-                        
-                        self.tree_state.interactive_nodes.append(TreeElementNode(**{
-                            'name': name,
-                            'runtime_id': tuple(item_runtime_id),
-                            'cursor_type': cursor_type,
-                            'control_type': item.LocalizedControlType.title(),
-                            'bounding_box': bounding_box,
-                            'center': center,
-                            'app_name': app_name,
-                            'xpath': '',
-                            'value': value,
-                            'shortcut': '',
-                            'is_focused': is_focused,
-                        }))
-
-                case StructureChangeType.StructureChangeType_ChildRemoved:
-                    # Case 1: The removed element is a known node in our tree (e.g. a Window closing)
-                    app=self.desktop.desktop_state.active_app #Closed app/Active App
-                    if app and app.runtime_id==tuple(runtime_id):
-                        # Use the CACHED bounding box from our state (safest for closed windows)
-                        invalidated_rect = app.bounding_box
-                        # Remove the node AND its visual descendants (anything inside its box)
-                        self.tree_state.interactive_nodes = [
-                            n for n in self.tree_state.interactive_nodes 
-                            if not (
-                                n.bounding_box.left >= invalidated_rect.left and 
-                                n.bounding_box.right <= invalidated_rect.right and 
-                                n.bounding_box.top >= invalidated_rect.top and 
-                                n.bounding_box.bottom <= invalidated_rect.bottom
-                            ) and n.app_name!=app.name
-                        ]
-                        # If a top-level window closed, we are done. No need to re-scan the desktop.
-                        return None
+                case StructureChangeType.StructureChangeType_ChildAdded|StructureChangeType.StructureChangeType_ChildrenBulkAdded:
+                    interactive_nodes=[]
+                    app=self.desktop.get_app_from_element(node)
+                    app_name=app.name if app else node.Name.strip()
+                    is_browser=app.is_browser if app else False
+                    if isinstance(node,WindowControl|PaneControl):
+                        #Subtree traversal
+                        window_bounding_box=app.bounding_box if app else node.BoundingRectangle
+                        self.tree_traversal(node,window_bounding_box,app_name,is_browser,interactive_nodes=interactive_nodes)
                     else:
-                        # Case 2: The removed element wasn't tracked directly, or we need to refresh siblings matches.
-                        # Fallback to refreshing the parent (sender) to ensure consistency.
-                        try:
-                            # 1. Identify the parent's bounding box
-                            invalidated_rect = node.BoundingRectangle
+                        #If element is interactive take it else skip it
+                        if not self.is_element_interactive(node=node,is_browser=is_browser):
+                            return None
+                        legacy_pattern=node.GetLegacyIAccessiblePattern()
+                        value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
+                        cursor_type=AccessibleRoleNames.get(legacy_pattern.Role, "Default")
+                        runtime_id=node.GetRuntimeId()
+                        is_focused=node.HasKeyboardFocus
+                        name=node.Name.strip()
+                        element_bounding_box = node.BoundingRectangle
+                        bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
+                        center = bounding_box.get_center()
 
-                            # 2. Remove ALL nodes within this parent's box
-                            self.tree_state.interactive_nodes = [
-                                n for n in self.tree_state.interactive_nodes 
-                            if not (
-                                n.bounding_box.left >= invalidated_rect.left and 
-                                n.bounding_box.right <= invalidated_rect.right and 
-                                n.bounding_box.top >= invalidated_rect.top and 
-                                n.bounding_box.bottom <= invalidated_rect.bottom
-                            ) and n.app_name==app.name
-                            ]
-                        except Exception:
-                            # Element likely dead/inaccessible
-                            pass
-
+                        interactive_nodes.append(TreeElementNode(
+                            name=name,
+                            control_type=cursor_type,
+                            bounding_box=bounding_box,
+                            center=center,
+                            runtime_id=runtime_id,
+                            app_name=app_name,
+                            value=value,
+                            shortcut="",
+                            xpath="",
+                            is_focused=is_focused
+                        ))
+                    if self.tree_state:    
+                        existing_ids={n.runtime_id for n in self.tree_state.interactive_nodes}
+                        interactive_nodes=[n for n in interactive_nodes if n.runtime_id not in existing_ids]
+                        self.tree_state.interactive_nodes.extend(interactive_nodes)
+                case StructureChangeType.StructureChangeType_ChildrenBulkRemoved | StructureChangeType.StructureChangeType_ChildRemoved:
+                    if changeType == StructureChangeType.StructureChangeType_ChildRemoved and self.tree_state:
+                        app=self.desktop.get_app_from_element(node)
+                        app_name=app.name if app else node.Name.strip()
+                        is_browser=app.is_browser if app else False
+                        if isinstance(node,WindowControl|PaneControl):
+                            parent_bounding_box=BoundingBox.from_bounding_rectangle(node.BoundingRectangle)
+                            # Remove nodes spatially contained in the parent (heuristic for "is descendant")
+                            def is_contained(n:'TreeElementNode'):
+                                cx, cy = n.center.x, n.center.y
+                                return (parent_bounding_box.left <= cx <= parent_bounding_box.right and 
+                                        parent_bounding_box.top <= cy <= parent_bounding_box.bottom)
+                            self.tree_state.interactive_nodes = list(filter(lambda n:not is_contained(n),self.tree_state.interactive_nodes))
+                        else:
+                            target_runtime_id = tuple(runtime_id)
+                            self.tree_state.interactive_nodes = list(filter(lambda n:n.runtime_id != target_runtime_id,self.tree_state.interactive_nodes))
                 case StructureChangeType.StructureChangeType_ChildrenInvalidated:
-                    # For invalidated children, we need to refresh the subtree
-                    # Remove nodes within the bounding box of the invalidated element
-                    invalidated_rect = node.BoundingRectangle
+                    #Rebuild subtree
+                    parent_bounding_box=BoundingBox.from_bounding_rectangle(node.BoundingRectangle)
+                    app=self.desktop.get_app_from_element(node)
+                    app_name=app.name if app else node.Name.strip()
+                    is_browser=app.is_browser if app else False
+                    window_bounding_box=app.bounding_box if app else parent_bounding_box
+                    interactive_nodes=[]
+                    self.tree_traversal(node,window_bounding_box,app_name,is_browser,interactive_nodes=interactive_nodes)
 
-                    # Filter out nodes that are contained within the invalidated node's box
-                    self.tree_state.interactive_nodes = [
-                        n for n in self.tree_state.interactive_nodes 
-                        if not (
-                            n.bounding_box.left >= invalidated_rect.left and 
-                            n.bounding_box.right <= invalidated_rect.right and 
-                            n.bounding_box.top >= invalidated_rect.top and 
-                            n.bounding_box.bottom <= invalidated_rect.bottom
-                        )
-                    ]
+                    # Remove nodes spatially contained in the parent (heuristic for "is descendant")
+                    def is_contained(n:'TreeElementNode'):
+                        cx, cy = n.center.x, n.center.y
+                        return (parent_bounding_box.left <= cx <= parent_bounding_box.right and 
+                                parent_bounding_box.top <= cy <= parent_bounding_box.bottom)
                     
-                    # Re-traverse and add
-                    if app := self.desktop.get_app_from_element(node):
-                        interactive_nodes = []
-                        window_element = self.desktop.get_window_element_from_element(node)
-                        window_bounding_box = window_element.BoundingRectangle if window_element else node.BoundingRectangle
-                        
-                        self.tree_traversal(
-                            node=node,
-                            window_bounding_box=window_bounding_box,
-                            app_name=app.name,
-                            is_browser=self.desktop.is_app_browser(node),
-                            interactive_nodes=interactive_nodes
-                        )
-                        
-                        # Filter duplicates to avoid adding nodes that weren't removed
-                        current_ids = {n.runtime_id for n in self.tree_state.interactive_nodes}
-                        new_unique_nodes = [n for n in interactive_nodes if n.runtime_id not in current_ids]
-                        self.tree_state.interactive_nodes.extend(new_unique_nodes)
-
-                case StructureChangeType.StructureChangeType_ChildrenBulkAdded:
-                    pass
-
-                case _:
-                    pass
-        except Exception:
-            pass
+                    if self.tree_state:
+                        self.tree_state.interactive_nodes = list(filter(lambda n:not is_contained(n),self.tree_state.interactive_nodes))
+                        self.tree_state.interactive_nodes.extend(interactive_nodes)
+                case StructureChangeType.StructureChangeType_ChildrenReordered:
+                    app=self.desktop.get_app_from_element(node)
+                    app_name=app.name if app else node.Name.strip()
+                    is_browser=app.is_browser if app else False
+                    window_bounding_box=app.bounding_box if app else node.BoundingRectangle
+                    interactive_nodes=[]
+                    self.tree_traversal(node,window_bounding_box,app_name,is_browser,interactive_nodes=interactive_nodes)
+                    
+                    # Update existing nodes
+                    fresh_nodes_map = {n.runtime_id: n for n in interactive_nodes}
+                    def update_node(existing_node:'TreeElementNode'):
+                        if new_node:=fresh_nodes_map.get(existing_node.runtime_id):
+                            existing_node.update_from_node(new_node)
+                    list(map(update_node,self.tree_state.interactive_nodes))
+        except Exception as e:
+            logger.debug(f"[WatchDog] Structure changed with error: {e}")
         
         try:
-            element = Control.CreateControlFromElement(sender)
-            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} RuntimeID={tuple(runtime_id)} Sender: '{element.Name}' ({element.ControlTypeName})")
+            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} RuntimeID={tuple(runtime_id)} Sender: '{node.Name}' ({node.ControlTypeName})")
         except Exception:
             pass
 

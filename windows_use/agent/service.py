@@ -54,7 +54,7 @@ class Agent:
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
                 self.watchdog.set_focus_callback(self.desktop.tree._on_focus_change)
-                self.watchdog.set_structure_callback(self.desktop.tree._on_structure_change) 
+                # self.watchdog.set_structure_callback(self.desktop.tree._on_structure_change) 
                 self.watchdog.set_property_callback(self.desktop.tree._on_property_change)
                 with self.watchdog:
                     desktop_state = self.desktop.get_state(use_vision=self.use_vision)
