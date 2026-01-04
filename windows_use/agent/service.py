@@ -8,11 +8,11 @@ from windows_use.agent.registry.service import Registry
 from windows_use.agent.watchdog.service import WatchDog
 from windows_use.agent.registry.views import ToolResult
 from windows_use.uia.enums import StructureChangeType
-from windows_use.agent.utils import extract_agent_data
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
 from windows_use.agent.prompt.service import Prompt
 from windows_use.llms.base import BaseChatLLM
+from windows_use.agent.utils import xml_parser
 from windows_use.uia import Control
 from contextlib import nullcontext
 from rich.markdown import Markdown
@@ -80,14 +80,33 @@ class Agent:
                         
                         logger.info(f"[Agent] 🎯 Step: {self.agent_step.steps}/{self.agent_step.max_steps}")
                         
+                        error_messages=[]
+
                         # Retry logic for LLM failures
                         for consecutive_failures in range(1, self.max_consecutive_failures + 1):
                             try:
-                                llm_response = self.llm.invoke(messages)
-                                agent_data = extract_agent_data(llm_response)
+                                llm_response = self.llm.invoke(messages+error_messages)
+                                agent_data = xml_parser(llm_response)
                                 break
+                            except ValueError as e:
+                                error_messages.clear()
+                                error_messages.append(llm_response)
+                                error_messages.append(HumanMessage(content=f"Response rejected, invalid response format\nError: {e}\nAdhere to the format specified in <output_contract>"))
+                                logger.warning(f"[LLM]: Invalid response format, Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...")
+                                if consecutive_failures == self.max_consecutive_failures:
+                                    self.telemetry.capture(AgentTelemetryEvent(
+                                        query=query,
+                                        error=str(e),
+                                        steps=self.agent_step.steps,
+                                        max_steps=self.agent_step.max_steps,
+                                        use_vision=self.use_vision,
+                                        model=self.llm.model_name,
+                                        provider=self.llm.provider,
+                                        is_success=False
+                                    ))
+                                    return AgentResult(is_done=False, error=str(e))
                             except Exception as e:
-                                logger.error(f"[LLM]: {e}. Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...")
+                                logger.error(f"[LLM]: Failed to generate response. Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...")
                                 if consecutive_failures == self.max_consecutive_failures:
                                     self.telemetry.capture(AgentTelemetryEvent(
                                         query=query,

@@ -9,7 +9,7 @@ def read_file(file_path: str) -> str:
     with open(file_path, 'r') as file:
         return file.read()
     
-def extract_agent_data(message: ChatLLMResponse) -> AgentData:
+def xml_parser(message: ChatLLMResponse) -> AgentData:
     text = message.content
     # Dictionary to store extracted values
     result = {}
@@ -21,34 +21,32 @@ def extract_agent_data(message: ChatLLMResponse) -> AgentData:
     thought_match = re.search(r"<thought>(.*?)<\/thought>", text, re.DOTALL)
     if thought_match:
         result['thought'] = thought_match.group(1).strip()
-    # Extract Action-Name
-    action = {}
+    # Extract Action
     action_name_match = re.search(r"<name>(.*?)<\/name>", text, re.DOTALL)
     if action_name_match:
+        action = {}
         action['name'] = action_name_match.group(1).strip()
-    # Extract and convert Action-Input to a dictionary
-    action_input_match = re.search(r"<input>(.*?)<\/input>", text, re.DOTALL)
-    if action_input_match:
-        action_input_str = action_input_match.group(1).strip()
-        try:
-            # Convert string to dictionary safely using ast.literal_eval
-            action['params'] = ast.literal_eval(action_input_str)
-        except (ValueError, SyntaxError):
-            # If there's an issue with conversion, store it as raw string
-            action['params'] = json.loads(action_input_str)
-    result['action'] = action
+        
+        # Extract and convert Action-Input to a dictionary
+        action_input_match = re.search(r"<input>(.*?)<\/input>", text, re.DOTALL)
+        if action_input_match:
+            action_input_str = action_input_match.group(1).strip()
+            try:
+                # First try to evaluate as a Python literal (handles Python dicts)
+                action['params'] = ast.literal_eval(action_input_str)
+            except (ValueError, SyntaxError):
+                try:
+                    # Fallback to JSON parsing
+                    action['params'] = json.loads(action_input_str)
+                except json.JSONDecodeError:
+                    # If both fail, we can't parse params as a dict. 
+                    # Depending on strictness, we might want to error or leave params empty.
+                    # Here we will raise to inform the caller/system of invalid format.
+                    raise ValueError(f"Failed to parse action params: {action_input_str}")
+
+        result['action'] = action
     
-    # Print the message content for debugging when validation fails
     try:
         return AgentData.model_validate(result)
     except Exception as e:
-        print("=" * 50)
-        print("FAILED TO EXTRACT AGENT DATA")
-        print("=" * 50)
-        print("Message content:")
-        print(text)
-        print("=" * 50)
-        print("Extracted result:")
-        print(result)
-        print("=" * 50)
-        raise e
+        raise ValueError(f"Validation failed: {e}")
