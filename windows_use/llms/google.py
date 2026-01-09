@@ -42,7 +42,7 @@ class ChatGoogle(BaseChatLLM):
         self.debug_config = debug_config
         self.thinking_budget = thinking_budget
         self._client = None
-        
+
     @property
     def provider(self) -> str:
         return "google"
@@ -50,7 +50,7 @@ class ChatGoogle(BaseChatLLM):
     @property
     def model_name(self) -> str:
         return self.model
-    
+
     @property
     def client(self) -> Client:
         if self._client is None:
@@ -64,7 +64,7 @@ class ChatGoogle(BaseChatLLM):
                 "debug_config": self.debug_config
             })
         return self._client
-    
+
     def serialize_messages(self, messages: list[BaseMessage])-> tuple[str|None,list[dict]]:
         serialized = []
         system_instruction = None
@@ -87,7 +87,7 @@ class ChatGoogle(BaseChatLLM):
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return system_instruction, serialized
-        
+
     def invoke(self, messages: list[BaseMessage], structured_output: BaseModel | None = None) -> ChatLLMResponse:
         system_instruction, contents = self.serialize_messages(messages)
         config: GenerateContentConfigDict = {
@@ -124,5 +124,3 @@ class ChatGoogle(BaseChatLLM):
                 total_tokens=completion.usage_metadata.total_token_count or 0
             ),
         )
-        
-

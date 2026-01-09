@@ -12,13 +12,13 @@ from httpx import Client
 @dataclass
 class ChatAzureOpenAI(BaseChatLLM):
     def __init__(
-        self, 
+        self,
         endpoint: str,
         deployment_name: str,
         api_key: str,
         model: str | None = None,
         api_version: str = "2024-10-21",
-        temperature: float = 0.7, 
+        temperature: float = 0.7,
         max_retries: int = 3,
         timeout: float | None = None,
         default_headers: dict[str, str] | None = None,
@@ -43,17 +43,17 @@ class ChatAzureOpenAI(BaseChatLLM):
         if self._client is None:
             # Build the base URL with deployment
             base_url = f"{self.endpoint}/openai/deployments/{self.deployment_name}"
-            
+
             # Azure requires 'api-key' header for authentication (not Authorization: Bearer)
             headers = {"api-key": self.api_key}
             if self.default_headers:
                 headers.update(self.default_headers)
-            
+
             # Add api-version as default query parameter
             query = {"api-version": self.api_version}
             if self.default_query:
                 query.update(self.default_query)
-            
+
             self._client = OpenAI(
                 api_key=self.api_key,
                 base_url=base_url,
@@ -64,15 +64,15 @@ class ChatAzureOpenAI(BaseChatLLM):
                 http_client=self.http_client,
             )
         return self._client
-    
+
     @property
     def provider(self) -> str:
         return "azure_openai"
-    
+
     @property
     def model_name(self) -> str:
         return self.model or self.deployment_name
-    
+
     def serialize_messages(self, messages: list[BaseMessage]) -> list:
         serialized = []
         for message in messages:
@@ -96,7 +96,7 @@ class ChatAzureOpenAI(BaseChatLLM):
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return serialized
-    
+
     def invoke(self, messages: list[BaseMessage], structured_output: BaseModel | None = None) -> ChatLLMResponse:
         completion = self.client.chat.completions.create(
             model=self.deployment_name,
@@ -112,10 +112,10 @@ class ChatAzureOpenAI(BaseChatLLM):
             ) if structured_output else None
         )
         content = completion.choices[0].message.content
-        
+
         if structured_output:
             content = structured_output.model_validate_json(content)
-        
+
         return ChatLLMResponse(
             content=content,
             usage=ChatLLMUsage(
