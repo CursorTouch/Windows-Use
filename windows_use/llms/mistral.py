@@ -9,10 +9,11 @@ import logging
 
 @dataclass
 class ChatMistral(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, max_tokens: int|None=None, temperature: float = 0.7, server: Union[str, None] = None, server_url: Union[str, None] = None, url_params: Dict[str, str] = None, client: Type[HttpClient] = None, async_client: Type[AsyncHttpClient] = None,retry_config: OptionalNullable[RetryConfig] = None,timeout_ms: Union[int, None] = None,debug_logger: Union[logging.Logger, None] = None):
+    def __init__(self, model: str, api_key: str, max_tokens: int|None=None, temperature: float = 0.0, profile: str | None = None, server: Union[str, None] = None, server_url: Union[str, None] = None, url_params: Dict[str, str] = None, client: Type[HttpClient] = None, async_client: Type[AsyncHttpClient] = None,retry_config: OptionalNullable[RetryConfig] = None,timeout_ms: Union[int, None] = None,debug_logger: Union[logging.Logger, None] = None):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
+        self.profile = profile
         self.server = server
         self.max_tokens = max_tokens
         self.server_url = server_url

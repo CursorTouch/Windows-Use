@@ -30,11 +30,12 @@ def run_async(coro):
 
 @dataclass
 class ChatGoogle(BaseChatLLM):
-    def __init__(self, model: str, thinking_budget: int=-1, api_key: str=None, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.7):
+    def __init__(self, model: str, thinking_budget: int=-1, api_key: str=None, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.0, profile: str | None = None):
         self.model = model
         self.api_key = api_key
         self.vertexai = vertexai
         self.temperature = temperature
+        self.profile = profile
         self.credentials = credentials
         self.project = project
         self.location = location

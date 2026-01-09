@@ -9,12 +9,13 @@ from httpx import Client
 
 @dataclass
 class ChatAnthropic(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, thinking_budget:int=-1, temperature: float = 0.7, max_tokens: int = 8192, auth_token: str | None = None, base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
+    def __init__(self, model: str, api_key: str, thinking_budget:int=-1, temperature: float = 0.0, profile: str | None = None, max_tokens: int = 8192, auth_token: str | None = None, base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
         self.api_key = api_key
         self.auth_token = auth_token
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.profile = profile
         self.base_url = base_url
         self.thinking_budget=thinking_budget
         self.timeout = timeout

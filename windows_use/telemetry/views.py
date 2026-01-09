@@ -25,4 +25,9 @@ class AgentTelemetryEvent(BaseTelemetryEvent):
     error: str | None=None
     event_name: str = "agent_event"
     is_success:bool=False
+    action_intent_confidence: float | None = None
+    action_success: bool | None = None
+    evidence_mismatch: bool | None = None
+    rerun_count: int | None = None
+    post_check_pass: bool | None = None
     
