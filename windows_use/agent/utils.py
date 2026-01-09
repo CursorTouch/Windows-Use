@@ -445,6 +445,11 @@ def xml_parser(message: ChatLLMResponse) -> AgentData:
 
         result['action'] = action
 
+    try:
+        return AgentData.model_validate(result)
+    except Exception as e:
+        raise ValueError(f"Validation failed: {e}")
+
 def read_file(file_path: str) -> str:
     with open(file_path, 'r') as file:
         return file.read()
