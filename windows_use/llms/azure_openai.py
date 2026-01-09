@@ -18,7 +18,8 @@ class ChatAzureOpenAI(BaseChatLLM):
         api_key: str,
         model: str | None = None,
         api_version: str = "2024-10-21",
-        temperature: float = 0.7, 
+        temperature: float = 0.0, 
+        profile: str | None = None,
         max_retries: int = 3,
         timeout: float | None = None,
         default_headers: dict[str, str] | None = None,
@@ -31,6 +32,7 @@ class ChatAzureOpenAI(BaseChatLLM):
         self.model = model
         self.api_version = api_version
         self.temperature = temperature
+        self.profile = profile
         self.max_retries = max_retries
         self.timeout = timeout
         self.default_headers = default_headers

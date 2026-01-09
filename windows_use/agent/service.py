@@ -86,11 +86,17 @@ class Agent:
                         for consecutive_failures in range(1, self.max_consecutive_failures + 1):
                             try:
                                 llm_response = self.llm.invoke(messages+error_messages)
+                                # Ensure LLM returned usable content
+                                if not hasattr(llm_response, 'content') or llm_response.content is None:
+                                    raise ValueError("LLM returned empty or invalid content")
                                 agent_data = xml_parser(llm_response)
                                 break
                             except ValueError as e:
                                 error_messages.clear()
-                                error_messages.append(llm_response)
+                                # Append previous LLM content if available for context
+                                if 'llm_response' in locals() and llm_response is not None:
+                                    prev_content = getattr(llm_response, 'content', None) or str(llm_response)
+                                    error_messages.append(HumanMessage(content=f"Previous response: {prev_content}"))
                                 error_messages.append(HumanMessage(content=f"Response rejected, invalid response format\nError: {e}\nAdhere to the format specified in <output_contract>"))
                                 logger.warning(f"[LLM]: Invalid response format, Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...")
                                 if consecutive_failures == self.max_consecutive_failures:
@@ -147,9 +153,25 @@ class Agent:
                         else:
                             logger.info(f"[Tool] 🔧 Action: {action_name}({', '.join(f'{k}={v}' for k, v in params.items())})")
                             action_response = self.registry.execute(tool_name=action_name, desktop=self.desktop, **params)
+                            # Basic post-action verification and confidence handling
                             observation = action_response.content if action_response.is_success else action_response.error
                             logger.info(f"[Tool] 📝 Observation: {observation}\n")
                             agent_data.observation = observation
+
+                            # If tool returned a confidence and it's low, treat as non-success and request retry
+                            low_confidence = False
+                            if getattr(action_response, 'confidence', None) is not None:
+                                try:
+                                    conf = float(action_response.confidence)
+                                    if conf < 0.95:
+                                        low_confidence = True
+                                except Exception:
+                                    pass
+
+                            if low_confidence:
+                                logger.warning(f"[Tool] ⚠️ Low confidence ({action_response.confidence}); requesting clarification/retry.")
+                                # Convert to observation that signals failure for the LLM to reconsider
+                                agent_data.observation = f"LOW_CONFIDENCE: {observation}"
 
                             desktop_state = self.desktop.get_state(use_vision=self.use_vision)
                             human_prompt = Prompt.observation_prompt(query=query, agent_step=self.agent_step,

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Union
 
 class Tool:
     def __init__(self, name: str|None=None, description: str|None=None, args_schema:BaseModel|None=None):
@@ -28,4 +28,21 @@ class Tool:
         return self
     
     def invoke(self, *args, **kwargs):
-        return self.function(*args, **kwargs)
+        result = self.function(*args, **kwargs)
+        # Normalize and validate result to ToolResult when possible
+        if isinstance(result, dict):
+            try:
+                return ToolResult.parse_obj(result)
+            except Exception:
+                return ToolResult(status="error", evidence={"raw": result}, confidence=0.0, details="invalid tool result schema")
+        if isinstance(result, ToolResult):
+            return result
+        # Wrap arbitrary return values
+        return ToolResult(status="ok", evidence={"result": result}, confidence=1.0)
+
+
+class ToolResult(BaseModel):
+    status: str
+    evidence: dict | None = None
+    confidence: float = 1.0
+    details: Union[str, dict, None] = None

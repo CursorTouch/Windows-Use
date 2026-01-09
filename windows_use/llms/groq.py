@@ -11,10 +11,11 @@ from groq import Groq
 
 @dataclass
 class ChatGroq(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, base_url: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
+    def __init__(self, model: str, api_key: str, base_url: str|None=None, temperature: float = 0.0, profile: str | None = None, max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
+        self.profile = profile
         self.max_retries = max_retries
         self.base_url = base_url
         self.timeout = timeout

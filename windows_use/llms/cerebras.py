@@ -10,10 +10,11 @@ from httpx import Client
 
 @dataclass
 class ChatCerebras(BaseChatLLM):
-    def __init__(self, model: str, api_key: str, temperature: float = 0.7,  base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False, warm_tcp_connection: bool = True):
+    def __init__(self, model: str, api_key: str, temperature: float = 0.0, profile: str | None = None, base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False, warm_tcp_connection: bool = True):
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
+        self.profile = profile
         self.base_url = base_url
         self.timeout = timeout
         self.max_retries = max_retries

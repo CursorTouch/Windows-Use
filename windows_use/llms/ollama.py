@@ -7,11 +7,12 @@ from pydantic import BaseModel
 
 @dataclass
 class ChatOllama(BaseChatLLM):
-    def __init__(self,host: str|None=None, model: str|None=None, think:bool=False, temperature: float = 0.7,timeout: int|None=None):
+    def __init__(self,host: str|None=None, model: str|None=None, think:bool=False, temperature: float = 0.0, profile: str | None = None, timeout: int|None=None):
         self.host = host
         self.model = model
         self.think=think
         self.temperature = temperature
+        self.profile = profile
         self.timeout = timeout
         self._client = None
     
