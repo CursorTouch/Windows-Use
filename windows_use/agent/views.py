@@ -9,7 +9,7 @@ class AgentStep(BaseModel):
 
     def reset(self):
         self.steps=0
-    
+
 class AgentResult(BaseModel):
     is_done:bool
     content:str|None=None
