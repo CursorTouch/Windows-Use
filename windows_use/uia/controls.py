@@ -1449,48 +1449,6 @@ class Control():
         self.SetFocus()
         SendKeys(text, interval, waitTime, charMode)
 
-    def GetPixelColor(self, x: int, y: int) -> Optional[int]:
-        """
-        Call native `GetPixelColor` if control has a valid native handle.
-        Use `self.ToBitmap` if control doesn't have a valid native handle or you get many pixels.
-        x: int, internal x position.
-        y: int, internal y position.
-        Return int, a color value in bgr.
-        r = bgr & 0x0000FF
-        g = (bgr & 0x00FF00) >> 8
-        b = (bgr & 0xFF0000) >> 16
-        """
-        handle = self.NativeWindowHandle
-        if handle:
-            return GetPixelColor(x, y, handle)
-        return None
-
-    def ToBitmap(self, x: int = 0, y: int = 0, width: int = 0, height: int = 0,
-                 captureCursor: bool = False) -> Optional[Bitmap]:
-        """
-        Capture control to a `Bitmap` object.
-        x, y: int, the point in control's internal position(from 0,0).
-        width, height: int, image's width and height from x, y, use 0 for entire area.
-                       If width(or height) < 0, image size will be control's width(or height) - width(or height).
-        """
-        return Bitmap.FromControl(self, x, y, width, height, captureCursor)
-
-    def CaptureToImage(self, savePath: str, x: int = 0, y: int = 0, width: int = 0, height: int = 0,
-                       captureCursor: bool = False) -> bool:
-        """
-        Capture control to a image file.
-        savePath: str, should end with .bmp, .jpg, .jpeg, .png, .gif, .tif, .tiff.
-        x, y: int, the point in control's internal position(from 0,0).
-        width, height: int, image's width and height from x, y, use 0 for entire area.
-                       If width(or height) < 0, image size will be control's width(or height) - width(or height).
-        Return bool, True if succeed otherwise False.
-        """
-        bitmap = Bitmap.FromControl(self, x, y, width, height, captureCursor)
-        if bitmap:
-            with bitmap:
-                return bitmap.ToFile(savePath)
-        return False
-
     def IsTopLevel(self) -> bool:
         """Determine whether current control is top level."""
         handle = self.NativeWindowHandle

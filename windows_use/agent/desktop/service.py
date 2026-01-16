@@ -1,6 +1,6 @@
 from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
 from windows_use.agent.desktop.views import DesktopState, App, Status, Size
-from windows_use.agent.tree.views import BoundingBox
+from windows_use.agent.tree.views import BoundingBox, TreeElementNode
 from windows_use.agent.tree.service import Tree
 from locale import getpreferredencoding
 from contextlib import contextmanager
@@ -47,7 +47,7 @@ class Desktop:
         self.tree=Tree(self)
         self.desktop_state=None
         
-    def get_state(self,use_vision:bool=False)->DesktopState:
+    def get_state(self,annotation:bool=False,use_vision:bool=False)->DesktopState:
         sleep(0.1)
         apps=self.get_apps()
         active_app=self.get_active_app()
@@ -57,7 +57,11 @@ class Desktop:
         logger.debug(f"Apps: {apps}")
         tree_state=self.tree.get_state(active_app,apps)
         if use_vision:
-            screenshot=self.tree.annotated_screenshot(tree_state.interactive_nodes)
+            if annotation:
+                nodes=tree_state.interactive_nodes
+                screenshot=self.get_annotated_screenshot(nodes=nodes)
+            else:
+                screenshot=self.get_screenshot()
         else:
             screenshot=None
         self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
@@ -462,6 +466,60 @@ class Desktop:
 
     def get_screenshot(self)->Image.Image:
         return pg.screenshot()
+
+    def get_annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
+        screenshot = self.desktop.get_screenshot()
+        sleep(0.10)
+        # Add padding
+        padding = 5
+        width = int(screenshot.width + (1.5 * padding))
+        height = int(screenshot.height + (1.5 * padding))
+        padded_screenshot = Image.new("RGB", (width, height), color=(255, 255, 255))
+        padded_screenshot.paste(screenshot, (padding, padding))
+
+        draw = ImageDraw.Draw(padded_screenshot)
+        font_size = 12
+        try:
+            font = ImageFont.truetype('arial.ttf', font_size)
+        except IOError:
+            font = ImageFont.load_default()
+
+        def get_random_color():
+            return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+        def draw_annotation(label, node: TreeElementNode):
+            box = node.bounding_box
+            color = get_random_color()
+
+            # Scale and pad the bounding box also clip the bounding box
+            adjusted_box = (
+                int(box.left) + padding,
+                int(box.top) + padding,
+                int(box.right) + padding,
+                int(box.bottom) + padding
+            )
+            # Draw bounding box
+            draw.rectangle(adjusted_box, outline=color, width=2)
+
+            # Label dimensions
+            label_width = draw.textlength(str(label), font=font)
+            label_height = font_size
+            left, top, right, bottom = adjusted_box
+
+            # Label position above bounding box
+            label_x1 = right - label_width
+            label_y1 = top - label_height - 4
+            label_x2 = label_x1 + label_width
+            label_y2 = label_y1 + label_height + 4
+
+            # Draw label background and text
+            draw.rectangle([(label_x1, label_y1), (label_x2, label_y2)], fill=color)
+            draw.text((label_x1 + 2, label_y1 + 2), str(label), fill=(255, 255, 255), font=font)
+
+        # Draw annotations in parallel
+        with ThreadPoolExecutor() as executor:
+            executor.map(draw_annotation, range(len(nodes)), nodes)
+        return padded_screenshot
     
     @contextmanager
     def auto_minimize(self):
