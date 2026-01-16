@@ -17,6 +17,7 @@ from windows_use.uia import Control
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
+import warnings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,24 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 class Agent:
-    def __init__(self,instructions:list[str]=[],browser:Browser=Browser.EDGE, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
+    def __init__(self,instructions:list[str]=[],browser:Browser=Browser.EDGE, use_annotation:bool=False, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
+        '''
+        Initialize the Windows Use Agent.
+
+        The Agent is the core component that orchestrates interactions with the Windows GUI.
+        It uses an LLM to process instructions, analyze the desktop state (via UI automation 
+        and optionally vision), and execute tools to achieve the desired goals.
+
+        Args:
+            instructions (list[str]): A list of additional instructions or goals for the agent to execute.
+            browser (Browser): The target web browser for web-related tasks. Defaults to Browser.EDGE.
+            use_annotation (bool): Whether to overlay UI element annotations on screenshots before providing to the LLM. Defaults to False.
+            llm (BaseChatLLM): The Large Language Model instance used for decision making.
+            max_consecutive_failures (int): Maximum number of consecutive failures before giving up.
+            max_steps (int): Maximum number of steps allowed in the agent's execution.
+            use_vision (bool): Whether to provide screenshots to the LLM. Defaults to False.
+            auto_minimize (bool): Whether to automatically minimize the current window before agent proceeds. Defaults to False.
+        '''
         self.name='Windows Use'
         self.description='An agent that can interact with GUI elements on Windows OS' 
         self.registry = Registry([
@@ -40,7 +58,8 @@ class Agent:
         self.agent_step=AgentStep(max_steps=max_steps)
         self.max_consecutive_failures=max_consecutive_failures
         self.auto_minimize=auto_minimize
-        self.use_vision=use_vision
+        self.use_annotation=use_annotation
+        self.use_vision=True if use_annotation else use_vision
         self.llm = llm
         self.telemetry=ProductTelemetry()
         self.watchdog = WatchDog()
@@ -49,6 +68,9 @@ class Agent:
 
     def invoke(self,query: str)->AgentResult:
         """Invoke the agent with a query."""
+        if self.use_annotation and not self.use_vision:
+            warnings.warn("use_vision is set to True if use_annotation is True.")
+            self.use_vision=True
         if query.strip()=='':
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         try:
@@ -57,7 +79,7 @@ class Agent:
                 # self.watchdog.set_structure_callback(self.desktop.tree._on_structure_change) 
                 self.watchdog.set_property_callback(self.desktop.tree._on_property_change)
                 with self.watchdog:
-                    desktop_state = self.desktop.get_state(use_vision=self.use_vision)
+                    desktop_state = self.desktop.get_state(use_annotation=self.use_annotation,use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
                     tools_prompt = self.registry.get_tools_prompt()
                     observation="The desktop is ready to operate."
@@ -151,7 +173,7 @@ class Agent:
                             logger.info(f"[Tool] 📝 Observation: {observation}\n")
                             agent_data.observation = observation
 
-                            desktop_state = self.desktop.get_state(use_vision=self.use_vision)
+                            desktop_state = self.desktop.get_state(use_annotation=self.use_annotation,use_vision=self.use_vision)
                             human_prompt = Prompt.observation_prompt(query=query, agent_step=self.agent_step,
                                 tool_result=action_response, desktop_state=desktop_state
                             )

@@ -1,7 +1,9 @@
 from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
 from windows_use.agent.desktop.views import DesktopState, App, Status, Size
 from windows_use.agent.tree.views import BoundingBox, TreeElementNode
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from windows_use.agent.tree.service import Tree
+from PIL import Image, ImageFont, ImageDraw
 from locale import getpreferredencoding
 from contextlib import contextmanager
 from typing import Optional,Literal
@@ -9,7 +11,6 @@ from markdownify import markdownify
 from fuzzywuzzy import process
 from psutil import Process
 from time import sleep
-from PIL import Image
 import win32process
 import subprocess
 import win32gui
@@ -47,7 +48,7 @@ class Desktop:
         self.tree=Tree(self)
         self.desktop_state=None
         
-    def get_state(self,annotation:bool=False,use_vision:bool=False)->DesktopState:
+    def get_state(self,use_annotation:bool=True,use_vision:bool=False)->DesktopState:
         sleep(0.1)
         apps=self.get_apps()
         active_app=self.get_active_app()
@@ -57,7 +58,7 @@ class Desktop:
         logger.debug(f"Apps: {apps}")
         tree_state=self.tree.get_state(active_app,apps)
         if use_vision:
-            if annotation:
+            if use_annotation:
                 nodes=tree_state.interactive_nodes
                 screenshot=self.get_annotated_screenshot(nodes=nodes)
             else:
@@ -468,7 +469,7 @@ class Desktop:
         return pg.screenshot()
 
     def get_annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
-        screenshot = self.desktop.get_screenshot()
+        screenshot = self.get_screenshot()
         sleep(0.10)
         # Add padding
         padding = 5

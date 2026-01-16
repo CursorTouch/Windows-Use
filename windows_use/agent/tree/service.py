@@ -4,7 +4,6 @@ from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Tex
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from windows_use.agent.desktop.views import App
-from PIL import Image, ImageFont, ImageDraw
 from typing import TYPE_CHECKING,Optional
 from time import sleep
 import logging
