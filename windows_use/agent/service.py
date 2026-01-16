@@ -17,7 +17,6 @@ from windows_use.uia import Control
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
-import warnings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -59,6 +58,8 @@ class Agent:
         self.max_consecutive_failures=max_consecutive_failures
         self.auto_minimize=auto_minimize
         self.use_annotation=use_annotation
+        if self.use_annotation and not use_vision:
+            logger.warning("use_vision is set to True if use_annotation is True.")
         self.use_vision=True if use_annotation else use_vision
         self.llm = llm
         self.telemetry=ProductTelemetry()
@@ -67,10 +68,21 @@ class Agent:
         self.console=Console()
 
     def invoke(self,query: str)->AgentResult:
-        """Invoke the agent with a query."""
-        if self.use_annotation and not self.use_vision:
-            warnings.warn("use_vision is set to True if use_annotation is True.")
-            self.use_vision=True
+        """
+        Executes a natural language query by orchestrating interactions with the Windows GUI.
+
+        This method serves as the primary entry point for the agent. It captures the current 
+        desktop state, initializes monitoring via the watchdog, and manages a multi-step 
+        execution loop where the LLM analyzes the environment and selects tools to 
+        fulfill the user's request.
+
+        Args:
+            query (str): The natural language instruction or task for the agent to perform.
+
+        Returns:
+            AgentResult: The final result of the execution, indicating success or failure 
+                        and providing a summary of the actions taken.
+        """
         if query.strip()=='':
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         try:
