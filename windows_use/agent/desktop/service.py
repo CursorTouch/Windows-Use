@@ -10,7 +10,7 @@ from typing import Optional,Literal
 from markdownify import markdownify
 from fuzzywuzzy import process
 from psutil import Process
-from time import sleep
+from time import sleep,time
 import win32process
 import subprocess
 import win32gui
@@ -46,6 +46,7 @@ class Desktop:
         self.desktop_state=None
         
     def get_state(self,use_annotation:bool=True,use_vision:bool=False)->DesktopState:
+        start_time = time()
         sleep(0.1)
         apps=self.get_apps()
         active_app=self.get_active_app()
@@ -63,6 +64,9 @@ class Desktop:
         else:
             screenshot=None
         self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
+        # Log the time taken to capture the state
+        end_time = time()
+        logger.info(f"State capture took {end_time - start_time:.2f} seconds")
         return self.desktop_state
     
     def get_window_element_from_element(self,element:uia.Control)->uia.Control|None:

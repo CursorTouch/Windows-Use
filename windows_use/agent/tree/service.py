@@ -1,11 +1,13 @@
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
-from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl,StructureChangeType
+from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl,StructureChangeType,TreeScope
 from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, TextElementNode, Center, BoundingBox, TreeState
+from windows_use.agent.tree.cache_utils import CacheRequestFactory,CachedPropertyAccessor,CachedControlHelper
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from windows_use.agent.desktop.views import App
 from typing import TYPE_CHECKING,Optional
 from time import sleep
+import threading
 import logging
 import random
 import time
@@ -27,7 +29,21 @@ class Tree:
             width=self.screen_size.width, height=self.screen_size.height
         )
         self.tree_state=None
-        self._last_structure_event = None
+        # Use thread-local storage for cache requests to prevent threading issues with COM objects
+        self._thread_local = threading.local()
+
+    def _get_thread_cache(self):
+        """Get or create thread-local cache requests."""
+        if not hasattr(self._thread_local, 'element_cache_request'):
+            # Initialize cache requests for this thread
+            self._thread_local.element_cache_request = CacheRequestFactory.create_tree_traversal_cache()
+            self._thread_local.element_cache_request.TreeScope = TreeScope.TreeScope_Element
+            
+            self._thread_local.children_cache_request = CacheRequestFactory.create_tree_traversal_cache()
+            self._thread_local.children_cache_request.TreeScope = TreeScope.TreeScope_Element | TreeScope.TreeScope_Children
+            
+        return self._thread_local.element_cache_request, self._thread_local.children_cache_request
+
 
     def get_state(self,active_app:App,other_apps:list[App])->TreeState:
         root=GetRootControl()
@@ -40,7 +56,6 @@ class Tree:
         root_node=TreeElementNode(
             name="Desktop",
             runtime_id=(),
-            cursor_type="",
             control_type="PaneControl",
             bounding_box=self.screen_box,
             center=self.screen_box.get_center(),
@@ -69,6 +84,7 @@ class Tree:
         else:
             dom_node=None
         self.tree_state=TreeState(root_node=root_node,dom_node=dom_node,interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes,dom_informative_nodes=dom_informative_nodes)
+        
         return self.tree_state
 
     def get_appwise_nodes(self,apps:list[Control]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
@@ -99,6 +115,7 @@ class Tree:
                             new_future = executor.submit(self.get_nodes, app, self.desktop.is_app_browser(app))
                             future_to_app[new_future] = app
                         else:
+                            print(e)
                             logger.error(f"Task failed completely for {app.Name} after {THREAD_MAX_RETRIES} retries")
         return interactive_nodes,scrollable_nodes,dom_informative_nodes
     
@@ -138,34 +155,39 @@ class Tree:
         return bounding_box
 
     def is_element_visible(self, node:Control, threshold:int=0):
-        is_control=node.IsControlElement
-        box=node.BoundingRectangle
+        is_control = CachedPropertyAccessor.get_is_control_element(node, True)
+        box = CachedPropertyAccessor.get_bounding_rectangle(node, True)
         if box.isempty():
             return False
         width=box.width()
         height=box.height()
         area=width*height
-        is_offscreen=(not node.IsOffscreen) or node.ControlTypeName in ['EditControl']
-        return area > threshold and is_offscreen and is_control
+        is_offscreen = CachedPropertyAccessor.get_is_offscreen(node, True)
+        control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+        is_offscreen_check = (not is_offscreen) or control_type_name in ['EditControl']
+        return area > threshold and is_offscreen_check and is_control
     
     def is_element_enabled(self, node: Control):
         try:
-            return node.IsEnabled
+            return CachedPropertyAccessor.get_is_enabled(node, True)
         except Exception:
             return False
         
     def is_element_role_interactive(self, node: Control):
-        legacy_pattern=node.GetLegacyIAccessiblePattern()
         try:
+            legacy_pattern=node.GetLegacyIAccessiblePattern()
             return AccessibleRoleNames.get(legacy_pattern.Role, "Default") in INTERACTIVE_ROLES
         except Exception:
             return False
             
     def is_default_action(self, node:Control):
-        legacy_pattern=node.GetLegacyIAccessiblePattern()
-        default_action=legacy_pattern.DefaultAction.title()
-        if default_action in DEFAULT_ACTIONS:
-            return True
+        try:
+            legacy_pattern=node.GetLegacyIAccessiblePattern()
+            default_action=legacy_pattern.DefaultAction.title()
+            if default_action in DEFAULT_ACTIONS:
+                return True
+        except Exception:
+            pass
         return False
         
     def is_element_image(self, node:Control):
@@ -176,7 +198,8 @@ class Tree:
         
     def is_element_text(self, node:Control):
         try:
-            if node.ControlTypeName in INFORMATIVE_CONTROL_TYPE_NAMES:
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+            if control_type_name in INFORMATIVE_CONTROL_TYPE_NAMES:
                 if self.is_element_visible(node) and self.is_element_enabled(node) and not self.is_element_image(node):
                     return True
         except Exception:
@@ -192,9 +215,10 @@ class Tree:
             
     def is_keyboard_focusable(self, node:Control):
         try:
-            if node.ControlTypeName in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+            if control_type_name in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
                 return True
-            return node.IsKeyboardFocusable
+            return CachedPropertyAccessor.get_is_keyboard_focusable(node, True)
         except Exception:
             return False
             
@@ -207,8 +231,10 @@ class Tree:
             
     def group_has_no_name(self, node:Control):
         try:
-            if node.ControlTypeName=='GroupControl':
-                if not node.Name.strip():
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+            if control_type_name=='GroupControl':
+                name = CachedPropertyAccessor.get_name(node, True)
+                if not name.strip():
                     return True
             return False
         except Exception:
@@ -269,7 +295,6 @@ class Tree:
                 dom_interactive_nodes.append(TreeElementNode(**{
                     'name':child.Name.strip(),
                     'runtime_id':tuple(runtime_id),
-                    'cursor_type':'',
                     'control_type':node.LocalizedControlType,
                     'value':value,
                     'shortcut':node.AcceleratorKey,
@@ -293,7 +318,6 @@ class Tree:
             dom_interactive_nodes.append(TreeElementNode(**{
                 'name':node.Name.strip(),
                 'runtime_id':tuple(runtime_id),
-                'cursor_type':'',
                 'control_type':control_type,
                 'value':node.Name.strip(),
                 'shortcut':node.AcceleratorKey,
@@ -308,118 +332,144 @@ class Tree:
                     interactive_nodes:Optional[list[TreeElementNode]]=None, scrollable_nodes:Optional[list[ScrollElementNode]]=None, 
                     dom_interactive_nodes:Optional[list[TreeElementNode]]=None, dom_informative_nodes:Optional[list[TextElementNode]]=None,
                     is_dom:bool=False, is_dialog:bool=False):
-        # Checks to skip the nodes that are not interactive
-        if node.IsOffscreen and (node.ControlTypeName not in set(["GroupControl","EditControl","TitleBarControl"])) and node.ClassName not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
-            return None
-        
-        if scrollable_nodes is not None and self.is_element_scrollable(node):
-            scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
-            runtime_id=node.GetRuntimeId()
-            box = node.BoundingRectangle
-            # Get the center
-            x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
-            center = Center(x=x,y=y)
-            scrollable_nodes.append(ScrollElementNode(**{
-                'name':node.Name.strip() or node.AutomationId or node.LocalizedControlType.capitalize() or "''",
-                'runtime_id':tuple(runtime_id),
-                'control_type':node.LocalizedControlType.title(),
-                'bounding_box':BoundingBox(**{
-                    'left':box.left,
-                    'top':box.top,
-                    'right':box.right,
-                    'bottom':box.bottom,
-                    'width':box.width(),
-                    'height':box.height()
-                }),
-                'center':center,
-                'xpath':'',
-                'horizontal_scrollable':scroll_pattern.HorizontallyScrollable,
-                'horizontal_scroll_percent':scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
-                'vertical_scrollable':scroll_pattern.VerticallyScrollable,
-                'vertical_scroll_percent':scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
-                'app_name':app_name,
-                'is_focused':node.HasKeyboardFocus
-            }))
-                
-        if interactive_nodes is not None and self.is_element_interactive(node, is_browser):
-            legacy_pattern=node.GetLegacyIAccessiblePattern()
-            value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
-            cursor_type=AccessibleRoleNames.get(legacy_pattern.Role, "Default")
-            runtime_id=node.GetRuntimeId()
-            is_focused=node.HasKeyboardFocus
-            name=node.Name.strip()
-            element_bounding_box = node.BoundingRectangle
-            if is_browser and is_dom:
-                bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
-                center = bounding_box.get_center()
-                tree_node=TreeElementNode(**{
-                    'name':name,
-                    'runtime_id':tuple(runtime_id),
-                    'control_type':node.LocalizedControlType.title(),
-                    'value':value,
-                    'shortcut':node.AcceleratorKey,
-                    'bounding_box':bounding_box,
-                    'center':center,
-                    'xpath':'',
-                    'app_name':app_name,
-                    'is_focused':is_focused
-                })
-                dom_interactive_nodes.append(tree_node)
-                self._dom_correction(node, dom_interactive_nodes, app_name)
-            else:
-                bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
-                center = bounding_box.get_center()
-                tree_node=TreeElementNode(**{
-                    'name':name,
-                    'runtime_id':tuple(runtime_id),
-                    'cursor_type':cursor_type.title(),
-                    'control_type':node.LocalizedControlType.title(),
-                    'value':value,
-                    'shortcut':node.AcceleratorKey,
-                    'bounding_box':bounding_box,
-                    'center':center,
-                    'xpath':'',
-                    'app_name':app_name,
-                    'is_focused':is_focused
-                })
-                interactive_nodes.append(tree_node)
-        if dom_informative_nodes is not None and self.is_element_text(node):
-            if is_browser and is_dom:
-                dom_informative_nodes.append(TextElementNode(
-                    text=node.Name.strip(),
-                ))
-        children=node.GetChildren()
-
-        # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
-        for child in (children if is_dom else children[::-1]):
-            # Incrementally building the xpath
+        try:
+            # Build cached control if caching is enabled
+            if not hasattr(node, '_is_cached'):
+                # Use reusable element cache request from thread-local storage
+                element_req, _ = self._get_thread_cache()
+                node = CachedControlHelper.build_cached_control(node, element_req)
             
-            # Check if the child is a DOM element
-            if is_browser and child.AutomationId=="RootWebArea":
-                bounding_box=child.BoundingRectangle
-                self.dom_bounding_box=BoundingBox(left=bounding_box.left,top=bounding_box.top,
-                right=bounding_box.right,bottom=bounding_box.bottom,width=bounding_box.width(),
-                height=bounding_box.height())
-                self.dom=child
-                # enter DOM subtree
-                self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=True, is_dialog=is_dialog)
-            # Check if the child is a dialog
-            elif isinstance(child,WindowControl):
-                if not child.IsOffscreen:
-                    if is_dom:
-                        bounding_box=child.BoundingRectangle
-                        if bounding_box.width() > 0.8*self.dom_bounding_box.width:
-                            # Because this window element covers the majority of the screen
-                            dom_interactive_nodes.clear()
-                    else:
-                        if self.is_window_modal(child):
-                            # Because this window element is modal
-                            interactive_nodes.clear()
-                # enter dialog subtree
-                self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=True)
-            else:
-                # normal non-dialog children
-                self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog)
+            # Checks to skip the nodes that are not interactive
+            is_offscreen = CachedPropertyAccessor.get_is_offscreen(node, True)
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+            class_name = CachedPropertyAccessor.get_class_name(node, True)
+            
+            if is_offscreen and (control_type_name not in set(["GroupControl","EditControl","TitleBarControl"])) and class_name not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
+                return None
+            
+            if scrollable_nodes is not None and self.is_element_scrollable(node):
+                scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
+                runtime_id=node.GetRuntimeId()
+                box = CachedPropertyAccessor.get_bounding_rectangle(node, True)
+                # Get the center
+                x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
+                center = Center(x=x,y=y)
+                name = CachedPropertyAccessor.get_name(node, True)
+                automation_id = CachedPropertyAccessor.get_automation_id(node, True)
+                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node, True)
+                has_keyboard_focus = CachedPropertyAccessor.get_has_keyboard_focus(node, True)
+                scrollable_nodes.append(ScrollElementNode(**{
+                    'name':name.strip() or automation_id or localized_control_type.capitalize() or "''",
+                    'runtime_id':tuple(runtime_id),
+                    'control_type':localized_control_type.title(),
+                    'bounding_box':BoundingBox(**{
+                        'left':box.left,
+                        'top':box.top,
+                        'right':box.right,
+                        'bottom':box.bottom,
+                        'width':box.width(),
+                        'height':box.height()
+                    }),
+                    'center':center,
+                    'xpath':'',
+                    'horizontal_scrollable':scroll_pattern.HorizontallyScrollable,
+                    'horizontal_scroll_percent':scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
+                    'vertical_scrollable':scroll_pattern.VerticallyScrollable,
+                    'vertical_scroll_percent':scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
+                    'app_name':app_name,
+                    'is_focused':has_keyboard_focus
+                }))
+                    
+            if interactive_nodes is not None and self.is_element_interactive(node, is_browser):
+                legacy_pattern=node.GetLegacyIAccessiblePattern()
+                value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
+                runtime_id=node.GetRuntimeId()
+                is_focused = CachedPropertyAccessor.get_has_keyboard_focus(node, True)
+                name = CachedPropertyAccessor.get_name(node, True).strip()
+                element_bounding_box = CachedPropertyAccessor.get_bounding_rectangle(node, True)
+                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node, True)
+                accelerator_key = CachedPropertyAccessor.get_accelerator_key(node, True)
+                if is_browser and is_dom:
+                    bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
+                    center = bounding_box.get_center()
+                    tree_node=TreeElementNode(**{
+                        'name':name,
+                        'runtime_id':tuple(runtime_id),
+                        'control_type':localized_control_type.title(),
+                        'value':value,
+                        'shortcut':accelerator_key,
+                        'bounding_box':bounding_box,
+                        'center':center,
+                        'xpath':'',
+                        'app_name':app_name,
+                        'is_focused':is_focused
+                    })
+                    dom_interactive_nodes.append(tree_node)
+                    self._dom_correction(node, dom_interactive_nodes, app_name)
+                else:
+                    bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
+                    center = bounding_box.get_center()
+                    tree_node=TreeElementNode(**{
+                        'name':name,
+                        'runtime_id':tuple(runtime_id),
+                        'control_type':localized_control_type.title(),
+                        'value':value,
+                        'shortcut':accelerator_key,
+                        'bounding_box':bounding_box,
+                        'center':center,
+                        'xpath':'',
+                        'app_name':app_name,
+                        'is_focused':is_focused
+                    })
+                    interactive_nodes.append(tree_node)
+            if dom_informative_nodes is not None and self.is_element_text(node):
+                if is_browser and is_dom:
+                    name = CachedPropertyAccessor.get_name(node, True)
+                    dom_informative_nodes.append(TextElementNode(
+                        text=name.strip(),
+                    ))
+            
+            # Phase 3: Cached Children Retrieval - BIGGEST PERFORMANCE WIN!
+            # Get children with pre-cached properties to eliminate individual property access calls
+            # Phase 3: Cached Children Retrieval - BIGGEST PERFORMANCE WIN!
+            # Get children with pre-cached properties to eliminate individual property access calls
+            # Use reusable children cache request from thread-local storage
+            _, children_req = self._get_thread_cache()
+            children = CachedControlHelper.get_cached_children(node, children_req)
+
+            # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
+            for child in (children if is_dom else children[::-1]):
+                # Incrementally building the xpath
+                
+                # Check if the child is a DOM element
+                if is_browser and child.AutomationId=="RootWebArea":
+                    bounding_box=child.BoundingRectangle
+                    self.dom_bounding_box=BoundingBox(left=bounding_box.left,top=bounding_box.top,
+                    right=bounding_box.right,bottom=bounding_box.bottom,width=bounding_box.width(),
+                    height=bounding_box.height())
+                    self.dom=child
+                    # enter DOM subtree
+                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=True, is_dialog=is_dialog)
+                # Check if the child is a dialog
+                elif isinstance(child,WindowControl):
+                    if not child.IsOffscreen:
+                        if is_dom:
+                            bounding_box=child.BoundingRectangle
+                            if bounding_box.width() > 0.8*self.dom_bounding_box.width:
+                                # Because this window element covers the majority of the screen
+                                dom_interactive_nodes.clear()
+                        else:
+                            if self.is_window_modal(child):
+                                # Because this window element is modal
+                                interactive_nodes.clear()
+                    # enter dialog subtree
+                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=True)
+                else:
+                    # normal non-dialog children
+                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog)
+        except Exception as e:
+            logger.error(f"Error in tree_traversal: {e}", exc_info=True)
+            raise
 
     def app_name_correction(self,app_name:str)->str:
         match app_name:
@@ -465,114 +515,6 @@ class Tree:
 
         try:
             logger.debug(f"[WatchDog] Focus changed to: '{element.Name}' ({element.ControlTypeName})")
-        except Exception:
-            pass
-
-    def _on_structure_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', changeType:int, runtime_id:list[int]):
-        """Handle structure change events."""
-        try:
-            # Debounce duplicate events
-            current_time = time.time()
-            event_key = (changeType, tuple(runtime_id))
-            if hasattr(self, '_last_structure_event') and self._last_structure_event:
-                last_key, last_time = self._last_structure_event
-                if last_key == event_key and (current_time - last_time) < 5.0:
-                    return None
-            self._last_structure_event = (event_key, current_time)
-
-            node = Control.CreateControlFromElement(sender)
-
-            match StructureChangeType(changeType):
-                case StructureChangeType.StructureChangeType_ChildAdded|StructureChangeType.StructureChangeType_ChildrenBulkAdded:
-                    interactive_nodes=[]
-                    app=self.desktop.get_app_from_element(node)
-                    app_name=self.app_name_correction(app.name if app else node.Name.strip())
-                    is_browser=app.is_browser if app else False
-                    if isinstance(node,WindowControl|PaneControl):
-                        #Subtree traversal
-                        window_bounding_box=app.bounding_box if app else node.BoundingRectangle
-                        self.tree_traversal(node,window_bounding_box,app_name,is_browser,interactive_nodes=interactive_nodes)
-                    else:
-                        #If element is interactive take it else skip it
-                        if not self.is_element_interactive(node=node,is_browser=is_browser):
-                            return None
-                        legacy_pattern=node.GetLegacyIAccessiblePattern()
-                        value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
-                        cursor_type=AccessibleRoleNames.get(legacy_pattern.Role, "Default")
-                        runtime_id=node.GetRuntimeId()
-                        is_focused=node.HasKeyboardFocus
-                        name=node.Name.strip()
-                        element_bounding_box = node.BoundingRectangle
-                        bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
-                        center = bounding_box.get_center()
-
-                        interactive_nodes.append(TreeElementNode(
-                            name=name,
-                            control_type=cursor_type,
-                            bounding_box=bounding_box,
-                            center=center,
-                            runtime_id=runtime_id,
-                            app_name=app_name,
-                            value=value,
-                            shortcut="",
-                            xpath="",
-                            is_focused=is_focused
-                        ))
-                    if self.tree_state:    
-                        existing_ids={n.runtime_id for n in self.tree_state.interactive_nodes}
-                        interactive_nodes=[n for n in interactive_nodes if n.runtime_id not in existing_ids]
-                        self.tree_state.interactive_nodes.extend(interactive_nodes)
-                case StructureChangeType.StructureChangeType_ChildrenBulkRemoved | StructureChangeType.StructureChangeType_ChildRemoved:
-                    if changeType == StructureChangeType.StructureChangeType_ChildRemoved and self.tree_state:
-                        if isinstance(node,WindowControl|PaneControl):
-                            parent_bounding_box=BoundingBox.from_bounding_rectangle(node.BoundingRectangle)
-                            # Remove nodes spatially contained in the parent (heuristic for "is descendant")
-                            def is_contained(n:'TreeElementNode'):
-                                cx, cy = n.center.x, n.center.y
-                                return (parent_bounding_box.left <= cx <= parent_bounding_box.right and 
-                                        parent_bounding_box.top <= cy <= parent_bounding_box.bottom)
-                            self.tree_state.interactive_nodes = list(filter(lambda n:not is_contained(n),self.tree_state.interactive_nodes))
-                        else:
-                            target_runtime_id = tuple(runtime_id)
-                            self.tree_state.interactive_nodes = list(filter(lambda n:n.runtime_id != target_runtime_id,self.tree_state.interactive_nodes))
-                case StructureChangeType.StructureChangeType_ChildrenInvalidated:
-                    #Rebuild subtree
-                    parent_bounding_box=BoundingBox.from_bounding_rectangle(node.BoundingRectangle)
-                    app=self.desktop.get_app_from_element(node)
-                    app_name=self.app_name_correction(app.name if app else node.Name.strip())
-                    is_browser=app.is_browser if app else False
-                    window_bounding_box=app.bounding_box if app else parent_bounding_box
-                    interactive_nodes=[]
-                    self.tree_traversal(node,window_bounding_box,app_name,is_browser,interactive_nodes=interactive_nodes)
-
-                    # Remove nodes spatially contained in the parent (heuristic for "is descendant")
-                    def is_contained(n:'TreeElementNode'):
-                        cx, cy = n.center.x, n.center.y
-                        return (parent_bounding_box.left <= cx <= parent_bounding_box.right and 
-                                parent_bounding_box.top <= cy <= parent_bounding_box.bottom)
-                    
-                    if self.tree_state:
-                        self.tree_state.interactive_nodes = list(filter(lambda n:not is_contained(n),self.tree_state.interactive_nodes))
-                        self.tree_state.interactive_nodes.extend(interactive_nodes)
-                case StructureChangeType.StructureChangeType_ChildrenReordered:
-                    app=self.desktop.get_app_from_element(node)
-                    app_name=self.app_name_correction(app.name if app else node.Name.strip())
-                    is_browser=app.is_browser if app else False
-                    window_bounding_box=app.bounding_box if app else node.BoundingRectangle
-                    interactive_nodes=[]
-                    self.tree_traversal(node,window_bounding_box,app_name,is_browser,interactive_nodes=interactive_nodes)
-                    
-                    # Update existing nodes
-                    fresh_nodes_map = {n.runtime_id: n for n in interactive_nodes}
-                    def update_node(existing_node:'TreeElementNode'):
-                        if new_node:=fresh_nodes_map.get(existing_node.runtime_id):
-                            existing_node.update_from_node(new_node)
-                    list(map(update_node,self.tree_state.interactive_nodes))
-        except Exception as e:
-            logger.debug(f"[WatchDog] Structure changed with error: {e}, StructureChangeType={StructureChangeType(changeType).name}")
-        
-        try:
-            logger.debug(f"[WatchDog] Structure changed: Type={StructureChangeType(changeType).name} RuntimeID={tuple(runtime_id)} Sender: '{node.Name}' ({node.ControlTypeName})")
         except Exception:
             pass
 

@@ -23,7 +23,7 @@ def main():
     #     api_version=os.getenv("AOAI_API_VERSION", "2025-01-01-preview"),
     #     temperature=0.7
     # )
-    agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False,use_annotation=True, auto_minimize=True)
+    agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False,use_annotation=False, auto_minimize=False)
     agent.print_response(query=input("Enter a query: "))
 
 if __name__ == "__main__":
