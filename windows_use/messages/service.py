@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,ConfigDict
 from textwrap import shorten
 from typing import Literal
 from PIL.Image import Image
@@ -9,8 +9,7 @@ class BaseMessage(BaseModel):
     role: Literal["system", "human", "ai"]
     content: str
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class SystemMessage(BaseMessage):
     role: Literal["system"] = "system"

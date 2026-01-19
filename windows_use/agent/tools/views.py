@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from typing import Literal, Optional
 
 class SharedBaseModel(BaseModel):
@@ -14,8 +14,8 @@ class SharedBaseModel(BaseModel):
             raise ValueError(f"The following required fields are missing: {field_list}")
         return data
 
-    class Config:
-        extra = 'allow'
+    model_config = ConfigDict(extra='allow')
+    
 
 class App(SharedBaseModel):
     mode: Literal['launch', 'resize', 'switch'] = Field(
