@@ -46,8 +46,8 @@ class Desktop:
         self.desktop_state=None
         
     def get_state(self,use_annotation:bool=True,use_vision:bool=False)->DesktopState:
-        start_time = time()
         sleep(0.1)
+        start_time = time()
         apps=self.get_apps()
         active_app=self.get_active_app()
         if active_app is not None and (active_app in apps):
@@ -66,7 +66,7 @@ class Desktop:
         self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
         # Log the time taken to capture the state
         end_time = time()
-        logger.info(f"State capture took {end_time - start_time:.2f} seconds")
+        logger.info(f"Desktop State capture took {end_time - start_time:.2f} seconds")
         return self.desktop_state
     
     def get_window_element_from_element(self,element:uia.Control)->uia.Control|None:

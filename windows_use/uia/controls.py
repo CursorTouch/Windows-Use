@@ -242,9 +242,10 @@ class Control():
         return self.Element.CachedAutomationId
 
     @property
-    def CachedBoundingRectangle(self) -> Any:
+    def CachedBoundingRectangle(self) -> Rect:
         """Get the cached bounding rectangle."""
-        return self.Element.CachedBoundingRectangle
+        rect = self.Element.CachedBoundingRectangle
+        return Rect(rect.left, rect.top, rect.right, rect.bottom)
 
     @property
     def CachedClassName(self) -> str:
@@ -255,6 +256,14 @@ class Control():
     def CachedControlType(self) -> int:
         """Get the cached control type."""
         return self.Element.CachedControlType
+
+    @property
+    def CachedControlTypeName(self) -> str:
+        """Get the cached control type name."""
+        try:
+            return ControlTypeNames.get(self.CachedControlType, "Unknown")
+        except:
+            return "Unknown"
 
     @property
     def CachedControllerFor(self) -> Any:

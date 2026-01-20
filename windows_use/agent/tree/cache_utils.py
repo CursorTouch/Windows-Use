@@ -126,179 +126,6 @@ class CacheRequestFactory:
         return cache_request
 
 
-class CachedPropertyAccessor:
-    """
-    Helper class to safely access properties with automatic fallback.
-    
-    This class provides a unified interface for accessing both cached
-    and non-cached properties, with automatic fallback to live property
-    access if cached access fails.
-    """
-    
-    @staticmethod
-    def get_property(node: Control, property_name: str) -> Any:
-        """
-        Get a property value, using cache if available.
-        """
-        if hasattr(node, '_is_cached') and node._is_cached:
-            cached_attr = f'Cached{property_name}'
-            
-            # 1. Try Control wrapper property first
-            # Note: Do NOT use hasattr(node, cached_attr) as it triggers the property access
-            # and bubbles up COMError if the property is not in the cache.
-            try:
-                return getattr(node, cached_attr)
-            except Exception:
-                pass
-            
-            # 2. Try underlying Element property directly
-            # This handles properties that are missing from the Control wrapper
-            try:
-                return getattr(node.Element, cached_attr)
-            except Exception:
-                logger.debug(f"Failed to access cached property {property_name} on Element")
-        
-        # Fallback to regular property access (Live)
-        try:
-            val = getattr(node, property_name)
-        except Exception as e:
-            logger.warning(f"Failed to access property {property_name}: {e}")
-            raise
-    
-    # Convenience methods for commonly accessed properties
-    
-    @staticmethod
-    def get_name(node: Control) -> str:
-        """Get the Name property."""
-        return CachedPropertyAccessor.get_property(node, 'Name')
-    
-    @staticmethod
-    def get_class_name(node: Control) -> str:
-        """Get the ClassName property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                val = node.Element.CachedClassName
-                return val
-            except: pass
-        
-        val = node.ClassName
-        return val
-    
-    @staticmethod
-    def get_automation_id(node: Control) -> str:
-        """Get the AutomationId property."""
-        # Wrapper might handle this one, but safe to default
-        return CachedPropertyAccessor.get_property(node, 'AutomationId')
-    
-    @staticmethod
-    def get_control_type_name(node: Control) -> str:
-        """Get the ControlTypeName property."""
-        # Special case: need to convert int to string
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                control_type = node.Element.CachedControlType
-                from windows_use.uia import ControlTypeNames
-                val = ControlTypeNames.get(control_type, "Unknown")
-                return val
-            except: pass
-            
-        val = node.ControlTypeName
-        return val
-    
-    @staticmethod
-    def get_localized_control_type(node: Control) -> str:
-        """Get the LocalizedControlType property."""
-        return CachedPropertyAccessor.get_property(node, 'LocalizedControlType')
-    
-    @staticmethod
-    def get_is_enabled(node: Control) -> bool:
-        """Get the IsEnabled property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                val = bool(node.Element.CachedIsEnabled)
-                return val
-            except: pass
-            
-        val = node.IsEnabled
-        return val
-    
-    @staticmethod
-    def get_is_offscreen(node: Control) -> bool:
-        """Get the IsOffscreen property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                val = bool(node.Element.CachedIsOffscreen)
-                return val
-            except: pass
-            
-        val = node.IsOffscreen
-        return val
-    
-    @staticmethod
-    def get_is_control_element(node: Control) -> bool:
-        """Get the IsControlElement property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                val = bool(node.Element.CachedIsControlElement)
-                return val
-            except: pass
-            
-        val = node.IsControlElement
-        return val
-    
-    @staticmethod
-    def get_has_keyboard_focus(node: Control) -> bool:
-        """Get the HasKeyboardFocus property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                val = bool(node.Element.CachedHasKeyboardFocus)
-                return val
-            except: pass
-            
-        val = node.HasKeyboardFocus
-        return val
-    
-    @staticmethod
-    def get_is_keyboard_focusable(node: Control) -> bool:
-        """Get the IsKeyboardFocusable property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                val = bool(node.Element.CachedIsKeyboardFocusable)
-                return val
-            except: pass
-            
-        val = node.IsKeyboardFocusable
-        return val
-    
-    @staticmethod
-    def get_bounding_rectangle(node: Control):
-        """Get the BoundingRectangle property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-            try:
-                # Raw COM RECT needs wrapping
-                rect = node.Element.CachedBoundingRectangle
-                val = Rect(rect.left, rect.top, rect.right, rect.bottom)
-                return val
-            except Exception as e: 
-                # logger.debug(f"Failed CachedBoundingRectangle: {e}")
-                pass
-            
-        val = node.BoundingRectangle
-        return val
-    
-    @staticmethod
-    def get_accelerator_key(node: Control) -> str:
-        """Get the AcceleratorKey property."""
-        if hasattr(node, '_is_cached') and node._is_cached:
-             try:
-                val = node.Element.CachedAcceleratorKey
-                return val
-             except: pass
-             
-        val = node.AcceleratorKey
-        return val
-
-
 class CachedControlHelper:
     """Helper class for working with cached controls."""
     
@@ -350,19 +177,18 @@ class CachedControlHelper:
         if (cache_request.TreeScope & TreeScope.TreeScope_Children) == 0:
              logger.warning("Cache request passed to get_cached_children does not have Children scope!")
         
+        # Try to use existing cache first if available
         try:
             # Build updated cache that includes children
             cached_node = node.BuildUpdatedCache(cache_request)
-            
-            # Get children - use GetCachedChildren to avoid walking the tree with ViewWalker
             children = cached_node.GetCachedChildren()
             
-            # Mark children as cached
             for child in children:
                 child._is_cached = True
             
-            logger.debug(f"Retrieved {len(children)} cached children")
+            logger.debug(f"Retrieved {len(children)} cached children (newly built)")
             return children
+            
         except Exception as e:
             logger.debug(f"Failed to get cached children, falling back to regular access: {e}")
             return node.GetChildren()
