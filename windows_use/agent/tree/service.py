@@ -155,21 +155,21 @@ class Tree:
         return bounding_box
 
     def is_element_visible(self, node:Control, threshold:int=0):
-        is_control = CachedPropertyAccessor.get_is_control_element(node, True)
-        box = CachedPropertyAccessor.get_bounding_rectangle(node, True)
+        is_control = CachedPropertyAccessor.get_is_control_element(node)
+        box = CachedPropertyAccessor.get_bounding_rectangle(node)
         if box.isempty():
             return False
         width=box.width()
         height=box.height()
         area=width*height
-        is_offscreen = CachedPropertyAccessor.get_is_offscreen(node, True)
-        control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+        is_offscreen = CachedPropertyAccessor.get_is_offscreen(node)
+        control_type_name = CachedPropertyAccessor.get_control_type_name(node)
         is_offscreen_check = (not is_offscreen) or control_type_name in ['EditControl']
         return area > threshold and is_offscreen_check and is_control
     
     def is_element_enabled(self, node: Control):
         try:
-            return CachedPropertyAccessor.get_is_enabled(node, True)
+            return CachedPropertyAccessor.get_is_enabled(node)
         except Exception:
             return False
         
@@ -198,7 +198,7 @@ class Tree:
         
     def is_element_text(self, node:Control):
         try:
-            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node)
             if control_type_name in INFORMATIVE_CONTROL_TYPE_NAMES:
                 if self.is_element_visible(node) and self.is_element_enabled(node) and not self.is_element_image(node):
                     return True
@@ -215,10 +215,10 @@ class Tree:
             
     def is_keyboard_focusable(self, node:Control):
         try:
-            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node)
             if control_type_name in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
                 return True
-            return CachedPropertyAccessor.get_is_keyboard_focusable(node, True)
+            return CachedPropertyAccessor.get_is_keyboard_focusable(node)
         except Exception:
             return False
             
@@ -231,9 +231,9 @@ class Tree:
             
     def group_has_no_name(self, node:Control):
         try:
-            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node)
             if control_type_name=='GroupControl':
-                name = CachedPropertyAccessor.get_name(node, True)
+                name = CachedPropertyAccessor.get_name(node)
                 if not name.strip():
                     return True
             return False
@@ -340,9 +340,9 @@ class Tree:
                 node = CachedControlHelper.build_cached_control(node, element_req)
             
             # Checks to skip the nodes that are not interactive
-            is_offscreen = CachedPropertyAccessor.get_is_offscreen(node, True)
-            control_type_name = CachedPropertyAccessor.get_control_type_name(node, True)
-            class_name = CachedPropertyAccessor.get_class_name(node, True)
+            is_offscreen = CachedPropertyAccessor.get_is_offscreen(node)
+            control_type_name = CachedPropertyAccessor.get_control_type_name(node)
+            class_name = CachedPropertyAccessor.get_class_name(node)
             
             if is_offscreen and (control_type_name not in set(["GroupControl","EditControl","TitleBarControl"])) and class_name not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
                 return None
@@ -350,14 +350,14 @@ class Tree:
             if scrollable_nodes is not None and self.is_element_scrollable(node):
                 scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
                 runtime_id=node.GetRuntimeId()
-                box = CachedPropertyAccessor.get_bounding_rectangle(node, True)
+                box = CachedPropertyAccessor.get_bounding_rectangle(node)
                 # Get the center
                 x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
                 center = Center(x=x,y=y)
-                name = CachedPropertyAccessor.get_name(node, True)
-                automation_id = CachedPropertyAccessor.get_automation_id(node, True)
-                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node, True)
-                has_keyboard_focus = CachedPropertyAccessor.get_has_keyboard_focus(node, True)
+                name = CachedPropertyAccessor.get_name(node)
+                automation_id = CachedPropertyAccessor.get_automation_id(node)
+                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node)
+                has_keyboard_focus = CachedPropertyAccessor.get_has_keyboard_focus(node)
                 scrollable_nodes.append(ScrollElementNode(**{
                     'name':name.strip() or automation_id or localized_control_type.capitalize() or "''",
                     'runtime_id':tuple(runtime_id),
@@ -384,11 +384,11 @@ class Tree:
                 legacy_pattern=node.GetLegacyIAccessiblePattern()
                 value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
                 runtime_id=node.GetRuntimeId()
-                is_focused = CachedPropertyAccessor.get_has_keyboard_focus(node, True)
-                name = CachedPropertyAccessor.get_name(node, True).strip()
-                element_bounding_box = CachedPropertyAccessor.get_bounding_rectangle(node, True)
-                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node, True)
-                accelerator_key = CachedPropertyAccessor.get_accelerator_key(node, True)
+                is_focused = CachedPropertyAccessor.get_has_keyboard_focus(node)
+                name = CachedPropertyAccessor.get_name(node).strip()
+                element_bounding_box = CachedPropertyAccessor.get_bounding_rectangle(node)
+                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node)
+                accelerator_key = CachedPropertyAccessor.get_accelerator_key(node)
                 if is_browser and is_dom:
                     bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
                     center = bounding_box.get_center()
@@ -424,7 +424,7 @@ class Tree:
                     interactive_nodes.append(tree_node)
             if dom_informative_nodes is not None and self.is_element_text(node):
                 if is_browser and is_dom:
-                    name = CachedPropertyAccessor.get_name(node, True)
+                    name = CachedPropertyAccessor.get_name(node)
                     dom_informative_nodes.append(TextElementNode(
                         text=name.strip(),
                     ))
