@@ -55,7 +55,6 @@ class Tree:
         interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
         root_node=TreeElementNode(
             name="Desktop",
-            runtime_id=(),
             control_type="PaneControl",
             bounding_box=self.screen_box,
             center=self.screen_box.get_center(),
@@ -69,7 +68,6 @@ class Tree:
             scroll_pattern:ScrollPattern=self.dom.GetPattern(PatternId.ScrollPattern)
             dom_node=ScrollElementNode(
                 name="DOM",
-                runtime_id=(),
                 control_type="DocumentControl",
                 bounding_box=self.dom_bounding_box,
                 center=self.dom_bounding_box.get_center(),
@@ -115,7 +113,6 @@ class Tree:
                             new_future = executor.submit(self.get_nodes, app, self.desktop.is_app_browser(app))
                             future_to_app[new_future] = app
                         else:
-                            print(e)
                             logger.error(f"Task failed completely for {app.Name} after {THREAD_MAX_RETRIES} retries")
         return interactive_nodes,scrollable_nodes,dom_informative_nodes
     
@@ -154,119 +151,14 @@ class Tree:
             )
         return bounding_box
 
-    def is_element_visible(self, node:Control, threshold:int=0):
-        is_control = CachedPropertyAccessor.get_is_control_element(node)
-        box = CachedPropertyAccessor.get_bounding_rectangle(node)
-        if box.isempty():
-            return False
-        width=box.width()
-        height=box.height()
-        area=width*height
-        is_offscreen = CachedPropertyAccessor.get_is_offscreen(node)
-        control_type_name = CachedPropertyAccessor.get_control_type_name(node)
-        is_offscreen_check = (not is_offscreen) or control_type_name in ['EditControl']
-        return area > threshold and is_offscreen_check and is_control
-    
-    def is_element_enabled(self, node: Control):
-        try:
-            return CachedPropertyAccessor.get_is_enabled(node)
-        except Exception:
-            return False
-        
-    def is_element_role_interactive(self, node: Control):
-        try:
-            legacy_pattern=node.GetLegacyIAccessiblePattern()
-            return AccessibleRoleNames.get(legacy_pattern.Role, "Default") in INTERACTIVE_ROLES
-        except Exception:
-            return False
-            
-    def is_default_action(self, node:Control):
-        try:
-            legacy_pattern=node.GetLegacyIAccessiblePattern()
-            default_action=legacy_pattern.DefaultAction.title()
-            if default_action in DEFAULT_ACTIONS:
-                return True
-        except Exception:
-            pass
-        return False
-        
-    def is_element_image(self, node:Control):
-        if isinstance(node,ImageControl):
-            if node.LocalizedControlType=='graphic' or not node.IsKeyboardFocusable:
-                return True
-        return False
-        
-    def is_element_text(self, node:Control):
-        try:
-            control_type_name = CachedPropertyAccessor.get_control_type_name(node)
-            if control_type_name in INFORMATIVE_CONTROL_TYPE_NAMES:
-                if self.is_element_visible(node) and self.is_element_enabled(node) and not self.is_element_image(node):
-                    return True
-        except Exception:
-            return False
-        return False
-            
-    def is_window_modal(self, node:WindowControl):
-        try:
-            window_pattern=node.GetWindowPattern()
-            return window_pattern.IsModal
-        except Exception:
-            return False
-            
-    def is_keyboard_focusable(self, node:Control):
-        try:
-            control_type_name = CachedPropertyAccessor.get_control_type_name(node)
-            if control_type_name in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
-                return True
-            return CachedPropertyAccessor.get_is_keyboard_focusable(node)
-        except Exception:
-            return False
-            
+
+
     def element_has_child_element(self, node:Control,control_type:str,child_control_type:str):
         if node.LocalizedControlType==control_type:
             first_child=node.GetFirstChildControl()
             if first_child is None:
                 return False
             return first_child.LocalizedControlType==child_control_type
-            
-    def group_has_no_name(self, node:Control):
-        try:
-            control_type_name = CachedPropertyAccessor.get_control_type_name(node)
-            if control_type_name=='GroupControl':
-                name = CachedPropertyAccessor.get_name(node)
-                if not name.strip():
-                    return True
-            return False
-        except Exception:
-            return False
-            
-    def is_element_scrollable(self, node:Control):
-        try:
-            if (node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|INFORMATIVE_CONTROL_TYPE_NAMES) or node.IsOffscreen:
-                return False
-            scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
-            if scroll_pattern is None:
-                return False
-            return scroll_pattern.VerticallyScrollable
-        except Exception:
-            return False
-            
-    def is_element_interactive(self, node:Control, is_browser:bool):
-        try:
-            if is_browser and node.ControlTypeName in set(['DataItemControl','ListItemControl']) and not self.is_keyboard_focusable(node):
-                return False
-            elif not is_browser and node.ControlTypeName=="ImageControl" and self.is_keyboard_focusable(node):
-                return True
-            elif node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES|DOCUMENT_CONTROL_TYPE_NAMES:
-                return self.is_element_visible(node) and self.is_element_enabled(node) and self.is_element_role_interactive(node) and (not self.is_element_image(node) or self.is_keyboard_focusable(node))
-            elif node.ControlTypeName=='GroupControl':
-                if is_browser:
-                    return self.is_element_visible(node) and self.is_element_enabled(node) and self.is_element_role_interactive(node) and (self.is_default_action(node) or self.is_keyboard_focusable(node))
-                    # else:
-                    #     return is_element_visible(node) and is_element_enabled(node) and is_default_action(node)
-        except Exception:
-            return False
-        return False
 
     def _dom_correction(self, node:Control, dom_interactive_nodes:list[TreeElementNode], app_name:str):
         if self.element_has_child_element(node,'list item','link') or self.element_has_child_element(node,'item','link'):
@@ -274,7 +166,15 @@ class Tree:
             return None
         elif node.ControlTypeName=='GroupControl':
             dom_interactive_nodes.pop()
-            if self.is_keyboard_focusable(node):
+            # Inlined is_keyboard_focusable logic for correction
+            control_type_name_check = CachedPropertyAccessor.get_control_type_name(node)
+            is_kb_focusable = False
+            if control_type_name_check in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
+                 is_kb_focusable = True
+            else:
+                 is_kb_focusable = CachedPropertyAccessor.get_is_keyboard_focusable(node)
+
+            if is_kb_focusable:
                 child=node
                 try:
                     while child.GetFirstChildControl() is not None:
@@ -285,7 +185,6 @@ class Tree:
                     return None
                 if child.ControlTypeName!='TextControl':
                     return None
-                runtime_id=node.GetRuntimeId()
                 legacy_pattern=node.GetLegacyIAccessiblePattern()
                 value=legacy_pattern.Value
                 element_bounding_box = node.BoundingRectangle
@@ -294,7 +193,6 @@ class Tree:
                 is_focused=node.HasKeyboardFocus
                 dom_interactive_nodes.append(TreeElementNode(**{
                     'name':child.Name.strip(),
-                    'runtime_id':tuple(runtime_id),
                     'control_type':node.LocalizedControlType,
                     'value':value,
                     'shortcut':node.AcceleratorKey,
@@ -308,7 +206,6 @@ class Tree:
             dom_interactive_nodes.pop()
             node=node.GetFirstChildControl()
             control_type='link'
-            runtime_id=node.GetRuntimeId()
             legacy_pattern=node.GetLegacyIAccessiblePattern()
             value=legacy_pattern.Value
             element_bounding_box = node.BoundingRectangle
@@ -317,7 +214,6 @@ class Tree:
             is_focused=node.HasKeyboardFocus
             dom_interactive_nodes.append(TreeElementNode(**{
                 'name':node.Name.strip(),
-                'runtime_id':tuple(runtime_id),
                 'control_type':control_type,
                 'value':node.Name.strip(),
                 'shortcut':node.AcceleratorKey,
@@ -347,96 +243,180 @@ class Tree:
             if is_offscreen and (control_type_name not in set(["GroupControl","EditControl","TitleBarControl"])) and class_name not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
                 return None
             
-            if scrollable_nodes is not None and self.is_element_scrollable(node):
-                scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
-                runtime_id=node.GetRuntimeId()
-                box = CachedPropertyAccessor.get_bounding_rectangle(node)
-                # Get the center
-                x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
-                center = Center(x=x,y=y)
-                name = CachedPropertyAccessor.get_name(node)
-                automation_id = CachedPropertyAccessor.get_automation_id(node)
-                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node)
-                has_keyboard_focus = CachedPropertyAccessor.get_has_keyboard_focus(node)
-                scrollable_nodes.append(ScrollElementNode(**{
-                    'name':name.strip() or automation_id or localized_control_type.capitalize() or "''",
-                    'runtime_id':tuple(runtime_id),
-                    'control_type':localized_control_type.title(),
-                    'bounding_box':BoundingBox(**{
-                        'left':box.left,
-                        'top':box.top,
-                        'right':box.right,
-                        'bottom':box.bottom,
-                        'width':box.width(),
-                        'height':box.height()
-                    }),
-                    'center':center,
-                    'xpath':'',
-                    'horizontal_scrollable':scroll_pattern.HorizontallyScrollable,
-                    'horizontal_scroll_percent':scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
-                    'vertical_scrollable':scroll_pattern.VerticallyScrollable,
-                    'vertical_scroll_percent':scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
-                    'app_name':app_name,
-                    'is_focused':has_keyboard_focus
-                }))
-                    
-            if interactive_nodes is not None and self.is_element_interactive(node, is_browser):
-                legacy_pattern=node.GetLegacyIAccessiblePattern()
-                value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
-                runtime_id=node.GetRuntimeId()
-                is_focused = CachedPropertyAccessor.get_has_keyboard_focus(node)
-                name = CachedPropertyAccessor.get_name(node).strip()
-                element_bounding_box = CachedPropertyAccessor.get_bounding_rectangle(node)
-                localized_control_type = CachedPropertyAccessor.get_localized_control_type(node)
-                accelerator_key = CachedPropertyAccessor.get_accelerator_key(node)
-                if is_browser and is_dom:
-                    bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
-                    center = bounding_box.get_center()
-                    tree_node=TreeElementNode(**{
-                        'name':name,
-                        'runtime_id':tuple(runtime_id),
-                        'control_type':localized_control_type.title(),
-                        'value':value,
-                        'shortcut':accelerator_key,
-                        'bounding_box':bounding_box,
-                        'center':center,
-                        'xpath':'',
-                        'app_name':app_name,
-                        'is_focused':is_focused
-                    })
-                    dom_interactive_nodes.append(tree_node)
-                    self._dom_correction(node, dom_interactive_nodes, app_name)
-                else:
-                    bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
-                    center = bounding_box.get_center()
-                    tree_node=TreeElementNode(**{
-                        'name':name,
-                        'runtime_id':tuple(runtime_id),
-                        'control_type':localized_control_type.title(),
-                        'value':value,
-                        'shortcut':accelerator_key,
-                        'bounding_box':bounding_box,
-                        'center':center,
-                        'xpath':'',
-                        'app_name':app_name,
-                        'is_focused':is_focused
-                    })
-                    interactive_nodes.append(tree_node)
-            if dom_informative_nodes is not None and self.is_element_text(node):
-                if is_browser and is_dom:
-                    name = CachedPropertyAccessor.get_name(node)
-                    dom_informative_nodes.append(TextElementNode(
-                        text=name.strip(),
-                    ))
+            # Scrollable check
+            if scrollable_nodes is not None:
+                if (control_type_name not in (INTERACTIVE_CONTROL_TYPE_NAMES|INFORMATIVE_CONTROL_TYPE_NAMES)) and not is_offscreen:
+                    try:
+                        scroll_pattern:ScrollPattern=node.GetPattern(PatternId.ScrollPattern)
+                        if scroll_pattern and scroll_pattern.VerticallyScrollable:
+                            box = CachedPropertyAccessor.get_bounding_rectangle(node)
+                            x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
+                            center = Center(x=x,y=y)
+                            name = CachedPropertyAccessor.get_name(node)
+                            automation_id = CachedPropertyAccessor.get_automation_id(node)
+                            localized_control_type = CachedPropertyAccessor.get_localized_control_type(node)
+                            has_keyboard_focus = CachedPropertyAccessor.get_has_keyboard_focus(node)
+                            scrollable_nodes.append(ScrollElementNode(**{
+                                'name':name.strip() or automation_id or localized_control_type.capitalize() or "''",
+                                'control_type':localized_control_type.title(),
+                                'bounding_box':BoundingBox(**{
+                                    'left':box.left,
+                                    'top':box.top,
+                                    'right':box.right,
+                                    'bottom':box.bottom,
+                                    'width':box.width(),
+                                    'height':box.height()
+                                }),
+                                'center':center,
+                                'xpath':'',
+                                'horizontal_scrollable':scroll_pattern.HorizontallyScrollable,
+                                'horizontal_scroll_percent':scroll_pattern.HorizontalScrollPercent if scroll_pattern.HorizontallyScrollable else 0,
+                                'vertical_scrollable':scroll_pattern.VerticallyScrollable,
+                                'vertical_scroll_percent':scroll_pattern.VerticalScrollPercent if scroll_pattern.VerticallyScrollable else 0,
+                                'app_name':app_name,
+                                'is_focused':has_keyboard_focus
+                            }))
+                    except Exception:
+                        pass
+        
+            # Interactive and Informative checks
+            # Pre-calculate common properties
+            is_control_element = CachedPropertyAccessor.get_is_control_element(node)
+            element_bounding_box = CachedPropertyAccessor.get_bounding_rectangle(node)
+            width = element_bounding_box.width()
+            height = element_bounding_box.height()
+            area = width * height
             
-            # Phase 3: Cached Children Retrieval - BIGGEST PERFORMANCE WIN!
-            # Get children with pre-cached properties to eliminate individual property access calls
-            # Phase 3: Cached Children Retrieval - BIGGEST PERFORMANCE WIN!
-            # Get children with pre-cached properties to eliminate individual property access calls
-            # Use reusable children cache request from thread-local storage
+            # Is Visible Check
+            is_visible = (area > 0) and (not is_offscreen or control_type_name == 'EditControl') and is_control_element
+            
+            if is_visible:
+                is_enabled = CachedPropertyAccessor.get_is_enabled(node)
+                if is_enabled:
+                    # Determine is_keyboard_focusable
+                    if control_type_name in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
+                         is_keyboard_focusable = True
+                    else:
+                         is_keyboard_focusable = CachedPropertyAccessor.get_is_keyboard_focusable(node)
+                    
+                    # Interactive Check
+                    if interactive_nodes is not None:
+                        is_interactive = False
+                        if is_browser and control_type_name in set(['DataItemControl','ListItemControl']) and not is_keyboard_focusable:
+                            is_interactive = False
+                        elif not is_browser and control_type_name == "ImageControl" and is_keyboard_focusable:
+                            is_interactive = True
+                        elif control_type_name in (INTERACTIVE_CONTROL_TYPE_NAMES|DOCUMENT_CONTROL_TYPE_NAMES):
+                             # Role check
+                             try:
+                                legacy_pattern = node.GetLegacyIAccessiblePattern()
+                                is_role_interactive = AccessibleRoleNames.get(legacy_pattern.Role, "Default") in INTERACTIVE_ROLES
+                             except Exception:
+                                is_role_interactive = False
+                             
+                             # Image check
+                             is_image = False
+                             if control_type_name == 'ImageControl': # approximated
+                                 localized = CachedPropertyAccessor.get_localized_control_type(node)
+                                 if localized == 'graphic' or not is_keyboard_focusable:
+                                     is_image = True
+                             
+                             if is_role_interactive and (not is_image or is_keyboard_focusable):
+                                 is_interactive = True
+                                 
+                        elif control_type_name == 'GroupControl':
+                             if is_browser:
+                                 try:
+                                    legacy_pattern = node.GetLegacyIAccessiblePattern()
+                                    is_role_interactive = AccessibleRoleNames.get(legacy_pattern.Role, "Default") in INTERACTIVE_ROLES
+                                 except Exception:
+                                    is_role_interactive = False
+                                    
+                                 is_default_action = False
+                                 try:
+                                     legacy_pattern = node.GetLegacyIAccessiblePattern()
+                                     if legacy_pattern.DefaultAction.title() in DEFAULT_ACTIONS:
+                                         is_default_action = True
+                                 except: pass
+                                 
+                                 if is_role_interactive and (is_default_action or is_keyboard_focusable):
+                                     is_interactive = True
+
+                        if is_interactive:
+                            legacy_pattern=node.GetLegacyIAccessiblePattern()
+                            value=legacy_pattern.Value.strip() if legacy_pattern.Value is not None else ""
+                            is_focused = CachedPropertyAccessor.get_has_keyboard_focus(node)
+                            name = CachedPropertyAccessor.get_name(node).strip()
+                            localized_control_type = CachedPropertyAccessor.get_localized_control_type(node)
+                            accelerator_key = CachedPropertyAccessor.get_accelerator_key(node)
+                            
+                            if is_browser and is_dom:
+                                bounding_box=self.iou_bounding_box(self.dom_bounding_box,element_bounding_box)
+                                center = bounding_box.get_center()
+                                tree_node=TreeElementNode(**{
+                                    'name':name,
+                                    'control_type':localized_control_type.title(),
+                                    'value':value,
+                                    'shortcut':accelerator_key,
+                                    'bounding_box':bounding_box,
+                                    'center':center,
+                                    'xpath':'',
+                                    'app_name':app_name,
+                                    'is_focused':is_focused
+                                })
+                                dom_interactive_nodes.append(tree_node)
+                                self._dom_correction(node, dom_interactive_nodes, app_name)
+                            else:
+                                bounding_box=self.iou_bounding_box(window_bounding_box,element_bounding_box)
+                                center = bounding_box.get_center()
+                                tree_node=TreeElementNode(**{
+                                    'name':name,
+                                    'control_type':localized_control_type.title(),
+                                    'value':value,
+                                    'shortcut':accelerator_key,
+                                    'bounding_box':bounding_box,
+                                    'center':center,
+                                    'xpath':'',
+                                    'app_name':app_name,
+                                    'is_focused':is_focused
+                                })
+                                interactive_nodes.append(tree_node)
+
+                    # Informative Check
+                    if dom_informative_nodes is not None:
+                         # is_element_text check
+                         is_text = False
+                         if control_type_name in INFORMATIVE_CONTROL_TYPE_NAMES:
+                              # is_element_image check
+                              is_image_check = False
+                              if control_type_name == 'ImageControl':
+                                   localized = CachedPropertyAccessor.get_localized_control_type(node)
+                                   
+                                   # Check keybord focusable again if not established, but reuse
+                                   if not is_keyboard_focusable:
+                                        # If localized is graphic OR not focusable -> image
+                                        # wait, is_element_image: if localized=='graphic' or not focusable -> True
+                                        if localized == 'graphic':
+                                             is_image_check = True
+                                        else:
+                                             is_image_check = True # not focusable
+                                   elif localized == 'graphic': 
+                                        is_image_check = True
+
+                              if not is_image_check:
+                                  is_text = True
+                         
+                         if is_text:
+                             if is_browser and is_dom:
+                                 name = CachedPropertyAccessor.get_name(node)
+                                 dom_informative_nodes.append(TextElementNode(
+                                     text=name.strip(),
+                                 ))
+            
+            # Phase 3: Cached Children Retrieval
             _, children_req = self._get_thread_cache()
             children = CachedControlHelper.get_cached_children(node, children_req)
-
+            
             # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
             for child in (children if is_dom else children[::-1]):
                 # Incrementally building the xpath
@@ -459,7 +439,15 @@ class Tree:
                                 # Because this window element covers the majority of the screen
                                 dom_interactive_nodes.clear()
                         else:
-                            if self.is_window_modal(child):
+                            # Inline is_window_modal
+                            is_modal = False
+                            try:
+                                window_pattern = child.GetWindowPattern()
+                                is_modal = window_pattern.IsModal
+                            except Exception:
+                                pass
+                                
+                            if is_modal:
                                 # Because this window element is modal
                                 interactive_nodes.clear()
                     # enter dialog subtree

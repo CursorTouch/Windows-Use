@@ -84,7 +84,6 @@ class TreeElementNode:
     bounding_box: BoundingBox
     center: Center
     name: str=''
-    runtime_id:tuple[int, ...]=()
     control_type: str=''
     app_name: str=''
     value:str=''
@@ -94,7 +93,6 @@ class TreeElementNode:
 
     def update_from_node(self,node:'TreeElementNode'):
         self.name=node.name
-        self.runtime_id=node.runtime_id
         self.control_type=node.control_type
         self.app_name=node.app_name
         self.value=node.value
@@ -111,7 +109,6 @@ class TreeElementNode:
 @dataclass
 class ScrollElementNode:
     name: str
-    runtime_id:tuple[int, ...]
     control_type: str
     xpath:str
     app_name: str

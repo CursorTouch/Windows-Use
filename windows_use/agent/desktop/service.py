@@ -378,10 +378,10 @@ class Desktop:
                     if (window_pattern is None):
                         continue
                     if window_pattern.CanMinimize and window_pattern.CanMaximize:
-                        bounding_rect=child.BoundingRectangle
-                        if bounding_rect.isempty():
-                            continue
                         status = self.get_app_status(child)
+                        bounding_rect=child.BoundingRectangle
+                        if bounding_rect.isempty() and status!=Status.MINIMIZED:
+                            continue
                         bounding_box=BoundingBox(
                             left=bounding_rect.left,
                             top=bounding_rect.top,
