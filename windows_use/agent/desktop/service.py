@@ -81,16 +81,6 @@ class Desktop:
         logger.info(f"Desktop State capture took {end_time - start_time:.2f} seconds")
         return self.desktop_state
     
-    def get_window_element_from_element(self,element:uia.Control)->uia.Control|None:
-        '''Give any element of the app and it will return the top level window element.'''
-        while element is not None:
-            # Check if handle is top-level AND the element is structurally a Window or Pane
-            if uia.IsTopLevelWindow(element.NativeWindowHandle):
-                if element.ControlTypeName in ['WindowControl', 'PaneControl']:
-                    return element
-            element = element.GetParentControl()
-        return None
-    
     def get_app_status(self,control:uia.Control)->Status:
         if uia.IsIconic(control.NativeWindowHandle):
             return Status.MINIMIZED

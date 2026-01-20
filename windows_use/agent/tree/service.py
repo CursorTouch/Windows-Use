@@ -4,11 +4,13 @@ from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, Tex
 from windows_use.agent.tree.cache_utils import CacheRequestFactory,CachedControlHelper
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING,Optional
+from typing import TYPE_CHECKING,Optional,Any
 from time import sleep,time
 import threading
 import logging
 import random
+import weakref
+import comtypes
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -18,7 +20,7 @@ if TYPE_CHECKING:
     
 class Tree:
     def __init__(self,desktop:'Desktop'):
-        self.desktop=desktop
+        self.desktop=weakref.proxy(desktop)
         self.screen_size=desktop.get_screen_size()
         self.dom:Optional[Control]=None
         self.dom_bounding_box:BoundingBox=None
@@ -27,29 +29,17 @@ class Tree:
             width=self.screen_size.width, height=self.screen_size.height
         )
         self.tree_state=None
-        # Use thread-local storage for cache requests to prevent threading issues with COM objects
-        self._thread_local = threading.local()
-
-    def _get_thread_cache(self):
-        """Get or create thread-local cache requests."""
-        if not hasattr(self._thread_local, 'element_cache_request'):
-            # Initialize cache requests for this thread
-            self._thread_local.element_cache_request = CacheRequestFactory.create_tree_traversal_cache()
-            self._thread_local.element_cache_request.TreeScope = TreeScope.TreeScope_Element
-            
-            self._thread_local.children_cache_request = CacheRequestFactory.create_tree_traversal_cache()
-            self._thread_local.children_cache_request.TreeScope = TreeScope.TreeScope_Element | TreeScope.TreeScope_Children
-            
-        return self._thread_local.element_cache_request, self._thread_local.children_cache_request
 
 
     def get_state(self,active_app_handle:int|None,other_apps_handles:list[int])->TreeState:
+        # Reset DOM state to prevent leaks and stale data
+        self.dom = None
+        self.dom_bounding_box = None
         start_time = time()
         
         apps_handles=[active_app_handle]+other_apps_handles if active_app_handle else other_apps_handles
-        apps=list(map(ControlFromHandle,apps_handles))
 
-        interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
+        interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps_handles=apps_handles)
         root_node=TreeElementNode(
             name="Desktop",
             control_type="PaneControl",
@@ -83,35 +73,48 @@ class Tree:
         logger.debug(f"Tree State capture took {end_time - start_time:.2f} seconds")
         return self.tree_state
 
-    def get_appwise_nodes(self,apps:list[Control]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
+    def get_appwise_nodes(self,apps_handles:list[int]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
         interactive_nodes, scrollable_nodes, dom_informative_nodes = [], [], []
+        
+        # Pre-calculate browser status in main thread to pass simple types to workers
+        task_inputs = []
+        for handle in apps_handles:
+            is_browser = False
+            try:
+                # Use temporary control for property check in main thread
+                # This is safe as we don't pass this specific COM object to the thread
+                temp_node = ControlFromHandle(handle)
+                is_browser = self.desktop.is_app_browser(temp_node)
+            except Exception:
+                pass
+            task_inputs.append((handle, is_browser))
+
         with ThreadPoolExecutor() as executor:
-            retry_counts = {app: 0 for app in apps}
-            future_to_app = {
-                executor.submit(
-                    self.get_nodes, app, 
-                    self.desktop.is_app_browser(app)
-                ): app
-                for app in apps
+            retry_counts = {handle: 0 for handle in apps_handles}
+            future_to_handle = {
+                executor.submit(self.get_nodes, handle, is_browser): handle
+                for handle, is_browser in task_inputs
             }
-            while future_to_app:  # keep running until no pending futures
-                for future in as_completed(list(future_to_app)):
-                    app = future_to_app.pop(future)  # remove completed future
+            while future_to_handle:  # keep running until no pending futures
+                for future in as_completed(list(future_to_handle)):
+                    handle = future_to_handle.pop(future)  # remove completed future
                     try:
                         result = future.result()
                         if result:
-                            element_nodes, scroll_nodes, dom_informative_nodes = result
+                            element_nodes, scroll_nodes, info_nodes = result
                             interactive_nodes.extend(element_nodes)
                             scrollable_nodes.extend(scroll_nodes)
-                            dom_informative_nodes.extend(dom_informative_nodes)
+                            dom_informative_nodes.extend(info_nodes)
                     except Exception as e:
-                        retry_counts[app] += 1
-                        logger.debug(f"Error in processing node {app.Name}, retry attempt {retry_counts[app]}\nError: {e}")
-                        if retry_counts[app] < THREAD_MAX_RETRIES:
-                            new_future = executor.submit(self.get_nodes, app, self.desktop.is_app_browser(app))
-                            future_to_app[new_future] = app
+                        retry_counts[handle] += 1
+                        logger.debug(f"Error in processing handle {handle}, retry attempt {retry_counts[handle]}\nError: {e}")
+                        if retry_counts[handle] < THREAD_MAX_RETRIES:
+                            # Need to find is_browser again for retry
+                            is_browser = next((ib for h, ib in task_inputs if h == handle), False)
+                            new_future = executor.submit(self.get_nodes, handle, is_browser)
+                            future_to_handle[new_future] = handle
                         else:
-                            logger.error(f"Task failed completely for {app.Name} after {THREAD_MAX_RETRIES} retries")
+                            logger.error(f"Task failed completely for handle {handle} after {THREAD_MAX_RETRIES} retries")
         return interactive_nodes,scrollable_nodes,dom_informative_nodes
     
     def iou_bounding_box(self,window_box: Rect,element_box: Rect,) -> BoundingBox:
@@ -225,13 +228,12 @@ class Tree:
     def tree_traversal(self, node: Control, window_bounding_box:Rect, app_name:str, is_browser:bool, 
                     interactive_nodes:Optional[list[TreeElementNode]]=None, scrollable_nodes:Optional[list[ScrollElementNode]]=None, 
                     dom_interactive_nodes:Optional[list[TreeElementNode]]=None, dom_informative_nodes:Optional[list[TextElementNode]]=None,
-                    is_dom:bool=False, is_dialog:bool=False):
+                    is_dom:bool=False, is_dialog:bool=False,
+                    element_cache_req:Optional[Any]=None, children_cache_req:Optional[Any]=None):
         try:
             # Build cached control if caching is enabled
-            if not hasattr(node, '_is_cached'):
-                # Use reusable element cache request from thread-local storage
-                element_req, _ = self._get_thread_cache()
-                node = CachedControlHelper.build_cached_control(node, element_req)
+            if not hasattr(node, '_is_cached') and element_cache_req:
+                node = CachedControlHelper.build_cached_control(node, element_cache_req)
             
             # Checks to skip the nodes that are not interactive
             is_offscreen = node.CachedIsOffscreen
@@ -409,8 +411,7 @@ class Tree:
                                  ))
             
             # Phase 3: Cached Children Retrieval
-            _, children_req = self._get_thread_cache()
-            children = CachedControlHelper.get_cached_children(node, children_req)
+            children = CachedControlHelper.get_cached_children(node, children_cache_req)
             
             # Recursively traverse the tree the right to left for normal apps and for DOM traverse from left to right
             for child in (children if is_dom else children[::-1]):
@@ -424,7 +425,7 @@ class Tree:
                     height=bounding_box.height())
                     self.dom=child
                     # enter DOM subtree
-                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=True, is_dialog=is_dialog)
+                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=True, is_dialog=is_dialog, element_cache_req=element_cache_req, children_cache_req=children_cache_req)
                 # Check if the child is a dialog
                 elif isinstance(child,WindowControl):
                     if not child.IsOffscreen:
@@ -446,10 +447,10 @@ class Tree:
                                 # Because this window element is modal
                                 interactive_nodes.clear()
                     # enter dialog subtree
-                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=True)
+                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=True, element_cache_req=element_cache_req, children_cache_req=children_cache_req)
                 else:
                     # normal non-dialog children
-                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog)
+                    self.tree_traversal(child, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog, element_cache_req=element_cache_req, children_cache_req=children_cache_req)
         except Exception as e:
             logger.error(f"Error in tree_traversal: {e}", exc_info=True)
             raise
@@ -465,23 +466,42 @@ class Tree:
             case _:
                 return app_name
     
-    def get_nodes(self, node: Control, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
-        window_bounding_box=node.BoundingRectangle
-        
-        interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
-        app_name=node.Name.strip()
-        app_name=self.app_name_correction(app_name)
+    def get_nodes(self, handle: int, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
+        comtypes.CoInitialize()
+        try:
+            # Rehydrate Control from handle within the thread's COM context
+            node = ControlFromHandle(handle)
+            if not node:
+                 raise Exception("Failed to create Control from handle")
 
-        self.tree_traversal(node, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False)
-        logger.debug(f'App name:{app_name}')
-        logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
-        if is_browser:
-            logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
-            logger.debug(f'DOM informative nodes:{len(dom_informative_nodes)}')
-        logger.debug(f'Scrollable nodes:{len(scrollable_nodes)}')
+            # Create fresh cache requests for this traversal session
+            element_cache_req = CacheRequestFactory.create_tree_traversal_cache()
+            element_cache_req.TreeScope = TreeScope.TreeScope_Element
+            
+            children_cache_req = CacheRequestFactory.create_tree_traversal_cache()
+            children_cache_req.TreeScope = TreeScope.TreeScope_Element | TreeScope.TreeScope_Children
 
-        interactive_nodes.extend(dom_interactive_nodes)
-        return (interactive_nodes,scrollable_nodes,dom_informative_nodes)
+            window_bounding_box=node.BoundingRectangle
+            
+            interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
+            app_name=node.Name.strip()
+            app_name=self.app_name_correction(app_name)
+
+            self.tree_traversal(node, window_bounding_box, app_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False, element_cache_req=element_cache_req, children_cache_req=children_cache_req)
+            logger.debug(f'App name:{app_name}')
+            logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
+            if is_browser:
+                logger.debug(f'DOM interactive nodes:{len(dom_interactive_nodes)}')
+                logger.debug(f'DOM informative nodes:{len(dom_informative_nodes)}')
+            logger.debug(f'Scrollable nodes:{len(scrollable_nodes)}')
+
+            interactive_nodes.extend(dom_interactive_nodes)
+            return (interactive_nodes,scrollable_nodes,dom_informative_nodes)
+        except Exception as e:
+            logger.error(f"Error getting nodes for {node.Name}: {e}")
+            raise e
+        finally:
+            comtypes.CoUninitialize()
 
     def _on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
         """Handle focus change events."""
