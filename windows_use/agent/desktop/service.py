@@ -9,8 +9,9 @@ from contextlib import contextmanager
 from typing import Optional,Literal
 from markdownify import markdownify
 from fuzzywuzzy import process
-from psutil import Process
+import windows_use.vdm as vdm
 from time import sleep,time
+from psutil import Process
 import win32process
 import subprocess
 import win32gui
@@ -48,13 +49,23 @@ class Desktop:
     def get_state(self,use_annotation:bool=True,use_vision:bool=False)->DesktopState:
         sleep(0.1)
         start_time = time()
-        apps=self.get_apps()
-        active_app=self.get_active_app()
-        if active_app is not None and (active_app in apps):
+
+        controls_handles=self.get_controls_handles() # Taskbar,Program Manager,Apps, Dialogs
+        apps,apps_handles=self.get_apps() # Apps
+        active_app=self.get_active_app(apps=apps) #Active App
+        active_app_handle=active_app.handle if active_app else None
+
+        if active_app is not None and active_app in apps:
             apps.remove(active_app)
-        logger.debug(f"Active app: {active_app}")
+
+        logger.debug(f"Active app: {active_app or 'No Active App Found'}")
         logger.debug(f"Apps: {apps}")
-        tree_state=self.tree.get_state(active_app,apps)
+        
+        #Preparing handles for Tree
+        other_apps_handles=list(controls_handles-apps_handles)
+
+        tree_state=self.tree.get_state(active_app_handle,other_apps_handles)
+
         if use_vision:
             if use_annotation:
                 nodes=tree_state.interactive_nodes
@@ -63,6 +74,7 @@ class Desktop:
                 screenshot=self.get_screenshot()
         else:
             screenshot=None
+            
         self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
         # Log the time taken to capture the state
         end_time = time()
@@ -77,17 +89,6 @@ class Desktop:
                 if element.ControlTypeName in ['WindowControl', 'PaneControl']:
                     return element
             element = element.GetParentControl()
-        return None
-    
-    def get_active_app(self)->App|None:
-        try:
-            handle=uia.GetForegroundWindow()
-            for app in self.get_apps():
-                if app.handle!=handle:
-                    continue
-                return app
-        except Exception as ex:
-            logger.error(f"Error in get_active_app: {ex}")
         return None
     
     def get_app_status(self,control:uia.Control)->Status:
@@ -366,44 +367,93 @@ class Desktop:
         no_children = len(element.GetChildren()) == 0
         is_name = "Overlay" in element.Name.strip()
         return no_children or is_name
-        
-    def get_apps(self) -> list[App]:
+
+    def get_visible_windows_handles(self):
+        handles = []
+        def callback(hwnd, _):
+            if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
+                handles.append(hwnd)
+        win32gui.EnumWindows(callback, None)
+        return handles
+
+    def get_controls_handles(self) -> set[int]:
+        """
+        Returns ALL visible top-level controls (Apps, Taskbar, Desktop, Dialogs).
+        This is the raw list needed for Tree traversal, without 'App' filtering.
+        """
+        windows_handles = self.get_visible_windows_handles()
+        handles = set()
+        for hwnd in windows_handles:
+            try:
+                ctrl = uia.ControlFromHandle(hwnd)
+                if self.is_overlay_app(ctrl):
+                    continue
+                handles.add(hwnd)
+            except Exception:
+                continue
+        return handles
+
+    def get_active_app(self,apps:list[App]|None=None)->App|None:
         try:
-            desktop = uia.GetRootControl()  # Get the desktop control
-            children = desktop.GetChildren()
+            apps=apps or self.get_apps()
+            handle=uia.GetForegroundWindow()
+            for app in apps:
+                if app.handle!=handle:
+                    continue
+                return app
+        except Exception as ex:
+            logger.error(f"Error in get_active_app: {ex}")
+        return None
+        
+    def get_apps(self) -> tuple[list[App],set[int]]:
+        try:
+            window_handles=self.get_visible_windows_handles()
             apps = []
-            for depth, child in enumerate(children):
+            handles = set()
+            for depth, hwnd in enumerate(window_handles):
+                try:
+                    child = uia.ControlFromHandle(hwnd)
+                except Exception:
+                    continue
+                
+                # Filter out Overlays (e.g. NVIDIA, Steam)
+                if self.is_overlay_app(child):
+                    continue
+
                 if isinstance(child,(uia.WindowControl,uia.PaneControl)):
                     window_pattern=child.GetPattern(uia.PatternId.WindowPattern)
                     if (window_pattern is None):
                         continue
+                        
                     if window_pattern.CanMinimize and window_pattern.CanMaximize:
                         status = self.get_app_status(child)
+                        
                         bounding_rect=child.BoundingRectangle
                         if bounding_rect.isempty() and status!=Status.MINIMIZED:
                             continue
-                        bounding_box=BoundingBox(
-                            left=bounding_rect.left,
-                            top=bounding_rect.top,
-                            right=bounding_rect.right,
-                            bottom=bounding_rect.bottom,
-                            width=bounding_rect.width(),
-                            height=bounding_rect.height()
-                        )
+
                         apps.append(App(**{
                             "name":child.Name,
                             "runtime_id":tuple(child.GetRuntimeId()),
                             "depth":depth,
                             "status":status,
-                            "bounding_box":bounding_box,
+                            "bounding_box":BoundingBox(
+                                left=bounding_rect.left,
+                                top=bounding_rect.top,
+                                right=bounding_rect.right,
+                                bottom=bounding_rect.bottom,
+                                width=bounding_rect.width(),
+                                height=bounding_rect.height()
+                            ),
                             "handle":child.NativeWindowHandle,
                             "process_id":child.ProcessId,
                             "is_browser":self.is_app_browser(child)
                         }))
+                        handles.add(child.NativeWindowHandle)
         except Exception as ex:
             logger.error(f"Error in get_apps: {ex}")
             apps = []
-        return apps
+        return apps,handles
     
     def get_xpath_from_element(self,element:uia.Control):
         current=element

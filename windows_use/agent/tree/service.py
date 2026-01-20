@@ -1,10 +1,9 @@
+from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl,StructureChangeType,TreeScope,ControlFromHandle
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,DOCUMENT_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
-from windows_use.uia import Control,ImageControl,ScrollPattern,WindowControl,Rect,GetRootControl,PatternId,AccessibleRoleNames,PaneControl,GroupControl,StructureChangeType,TreeScope
 from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, TextElementNode, Center, BoundingBox, TreeState
 from windows_use.agent.tree.cache_utils import CacheRequestFactory,CachedControlHelper
 from windows_use.agent.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from windows_use.agent.desktop.views import App
 from typing import TYPE_CHECKING,Optional
 from time import sleep,time
 import threading
@@ -44,14 +43,12 @@ class Tree:
         return self._thread_local.element_cache_request, self._thread_local.children_cache_request
 
 
-    def get_state(self,active_app:App,other_apps:list[App])->TreeState:
+    def get_state(self,active_app_handle:int|None,other_apps_handles:list[int])->TreeState:
         start_time = time()
-        root=GetRootControl()
-        other_apps_handle=set(map(lambda other_app: other_app.handle,other_apps))
-        apps=list(filter(lambda app:(app.NativeWindowHandle not in other_apps_handle) and not self.desktop.is_overlay_app(app),root.GetChildren()))
-        del other_apps_handle
-        if active_app:
-            apps=list(filter(lambda app:app.ClassName!='Progman',apps))
+        
+        apps_handles=[active_app_handle]+other_apps_handles if active_app_handle else other_apps_handles
+        apps=list(map(ControlFromHandle,apps_handles))
+
         interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps=apps)
         root_node=TreeElementNode(
             name="Desktop",
@@ -83,7 +80,7 @@ class Tree:
             dom_node=None
         self.tree_state=TreeState(root_node=root_node,dom_node=dom_node,interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes,dom_informative_nodes=dom_informative_nodes)
         end_time = time()
-        logger.info(f"Tree State capture took {end_time - start_time:.2f} seconds")
+        logger.debug(f"Tree State capture took {end_time - start_time:.2f} seconds")
         return self.tree_state
 
     def get_appwise_nodes(self,apps:list[Control]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
