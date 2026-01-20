@@ -383,14 +383,11 @@ class Desktop:
         Returns ALL visible top-level controls (Apps, Taskbar, Desktop, Dialogs).
         This is the raw list needed for Tree traversal, without 'App' filtering.
         """
-        windows_handles = self.get_visible_windows_handles()
         handles = set()
-        for hwnd in windows_handles:
+        for hwnd in self.get_visible_windows_handles():
             try:
-                ctrl = uia.ControlFromHandle(hwnd)
-                if self.is_overlay_app(ctrl):
-                    continue
-                handles.add(hwnd)
+                if win32gui.GetWindow(hwnd, win32con.GW_CHILD):
+                    handles.add(hwnd)
             except Exception:
                 continue
         return handles
