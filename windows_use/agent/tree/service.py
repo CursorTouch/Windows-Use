@@ -238,9 +238,6 @@ class Tree:
             control_type_name = node.CachedControlTypeName
             class_name = node.CachedClassName
             
-            if is_offscreen and (control_type_name not in set(["GroupControl","EditControl","TitleBarControl"])) and class_name not in set(["Popup","Windows.UI.Core.CoreComponentInputSource"]):
-                return None
-            
             # Scrollable check
             if scrollable_nodes is not None:
                 if (control_type_name not in (INTERACTIVE_CONTROL_TYPE_NAMES|INFORMATIVE_CONTROL_TYPE_NAMES)) and not is_offscreen:

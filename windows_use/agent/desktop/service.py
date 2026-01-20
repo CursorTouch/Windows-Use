@@ -369,28 +369,29 @@ class Desktop:
         return no_children or is_name
 
     def get_visible_windows_handles(self):
-        handles = []
-        def callback(hwnd, _):
-            if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
-                handles.append(hwnd)
-        win32gui.EnumWindows(callback, None)
-        return handles
-        # root=uia.GetRootControl()
-        # return [child.NativeWindowHandle for child in root.GetChildren() if self.is_app_visible(child)]
+        # handles = []
+        # def callback(hwnd, _):
+        #     if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
+        #         handles.append(hwnd)
+        # win32gui.EnumWindows(callback, None)
+        # return handles
+        root=uia.GetRootControl()
+        return [child.NativeWindowHandle for child in root.GetChildren() if self.is_app_visible(child)]
 
     def get_controls_handles(self) -> set[int]:
         """
         Returns ALL visible top-level controls (Apps, Taskbar, Desktop, Dialogs).
         This is the raw list needed for Tree traversal, without 'App' filtering.
         """
-        handles = set()
-        for hwnd in self.get_visible_windows_handles():
-            try:
-                if win32gui.GetWindow(hwnd, win32con.GW_CHILD):
-                    handles.add(hwnd)
-            except Exception:
-                continue
-        return handles
+        # handles = set()
+        # for hwnd in self.get_visible_windows_handles():
+        #     try:
+        #         if win32gui.GetWindow(hwnd, win32con.GW_CHILD):
+        #             handles.add(hwnd)
+        #     except Exception:
+        #         continue
+        # return handles
+        return set(self.get_visible_windows_handles())
 
     def get_active_app(self,apps:list[App]|None=None)->App|None:
         try:
