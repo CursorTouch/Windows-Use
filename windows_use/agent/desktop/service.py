@@ -356,10 +356,10 @@ class Desktop:
                 return app
         return None
     
-    def is_app_visible(self,app)->bool:
+    def is_app_visible(self,app:uia.Control)->bool:
         is_minimized=self.get_app_status(app)!=Status.MINIMIZED
-        size=app.bounding_box
-        area=size.width*size.height
+        size=app.BoundingRectangle
+        area=size.width()*size.height()
         is_overlay=self.is_overlay_app(app)
         return not is_overlay and is_minimized and area>10
     
@@ -375,6 +375,8 @@ class Desktop:
                 handles.append(hwnd)
         win32gui.EnumWindows(callback, None)
         return handles
+        # root=uia.GetRootControl()
+        # return [child.NativeWindowHandle for child in root.GetChildren() if self.is_app_visible(child)]
 
     def get_controls_handles(self) -> set[int]:
         """
