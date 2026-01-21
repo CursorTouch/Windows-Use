@@ -100,9 +100,22 @@ class Desktop:
     
     def get_apps_from_start_menu(self)->dict[str,str]:
         command='Get-StartApps | ConvertTo-Csv -NoTypeInformation'
-        apps_info,_=self.execute_command(command)
-        reader=csv.DictReader(io.StringIO(apps_info))
-        return {row.get('Name').lower():row.get('AppID') for row in reader}
+        apps_info, status = self.execute_command(command)
+        
+        if status != 0 or not apps_info:
+            logger.error(f"Failed to get apps from start menu: {apps_info}")
+            return {}
+
+        try:
+            reader = csv.DictReader(io.StringIO(apps_info.strip()))
+            return {
+                row.get('Name').lower(): row.get('AppID') 
+                for row in reader 
+                if row.get('Name') and row.get('AppID')
+            }
+        except Exception as e:
+            logger.error(f"Error parsing start menu apps: {e}")
+            return {}
     
     def execute_command(self,command:str)->tuple[str,int]:
         try:
@@ -157,23 +170,32 @@ class Desktop:
             return (f'{active_app.name} resized to {width}x{height} at {x},{y}.',0)
     
     def is_app_running(self,name:str)->bool:
-        apps={app.name:app for app in self.get_apps()}
-        return process.extractOne(name,list(apps.keys()),score_cutoff=60) is not None
+        apps, _ = self.get_apps()
+        apps_dict = {app.name: app for app in apps}
+        return process.extractOne(name,list(apps_dict.keys()),score_cutoff=60) is not None
     
     def app(self,mode:Literal['launch','switch','resize'],name:Optional[str]=None,loc:Optional[tuple[int,int]]=None,size:Optional[tuple[int,int]]=None):
         match mode:
             case 'launch':
-                response,status=self.launch_app(name)
-                sleep(1.25)
+                response,status,pid=self.launch_app(name)
                 if status!=0:
                     return response
-                consecutive_waits=3
-                for _ in range(consecutive_waits):
-                    if not self.is_app_running(name):
-                        sleep(1.25)
-                    else:
-                        return f'{name.title()} launched.'
-                return f'Launching {name.title()} wait for it to come load.'
+                
+                # Smart wait using UIA Exists (avoids manual Python loops)
+                launched = False
+                if pid > 0:
+                    if uia.WindowControl(ProcessId=pid).Exists(maxSearchSeconds=10):
+                        launched = True
+                
+                if not launched:
+                    # Fallback: Regex search for the window title
+                    safe_name = re.escape(name)
+                    if uia.WindowControl(RegexName=f'(?i).*{safe_name}.*').Exists(maxSearchSeconds=10):
+                        launched = True
+
+                if launched:
+                    return f'{name.title()} launched.'
+                return f'Launching {name.title()} sent, but window not detected yet.'
             case 'resize':
                 response,status=self.resize_app(size=size,loc=loc)
                 if status!=0:
@@ -187,20 +209,29 @@ class Desktop:
                 else:
                     return response
         
-    def launch_app(self,name:str)->tuple[str,int]:
+    def launch_app(self,name:str)->tuple[str,int,int]:
         apps_map=self.get_apps_from_start_menu()
         matched_app=process.extractOne(name,apps_map.keys(),score_cutoff=70)
         if matched_app is None:
-            return (f'{name.title()} not found in start menu.',1)
+            return (f'{name.title()} not found in start menu.',1,0)
         app_name,_=matched_app
         appid=apps_map.get(app_name)
         if appid is None:
-            return (name,f'{name.title()} not found in start menu.',1)
-        if name.endswith('.exe'):
-            response,status=self.execute_command(f'Start-Process {appid}')
+            return (name,f'{name.title()} not found in start menu.',1,0)
+        
+        pid = 0
+        if os.path.exists(appid) or "\\" in appid:
+            # It's a file path, we can try to get the PID using PassThru
+            command = f'Start-Process "{appid}" -PassThru | Select-Object -ExpandProperty Id'
+            response, status = self.execute_command(command)
+            if status == 0 and response.strip().isdigit():
+                pid = int(response.strip())
         else:
-            response,status=self.execute_command(f'Start-Process shell:AppsFolder\\{appid}')
-        return response,status
+            # It's an AUMID (Store App)
+            command = f'Start-Process "shell:AppsFolder\\{appid}"'
+            response, status = self.execute_command(command)
+            
+        return response, status, pid
     
     def switch_app(self,name:str):
         apps={app.name:app for app in [self.desktop_state.active_app]+self.desktop_state.apps if app is not None}
