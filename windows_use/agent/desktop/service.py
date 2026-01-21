@@ -2,8 +2,8 @@ from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_
 from windows_use.agent.desktop.views import DesktopState, App, Status, Size
 from windows_use.agent.tree.views import BoundingBox, TreeElementNode
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from PIL import ImageGrab, ImageFont, ImageDraw, Image
 from windows_use.agent.tree.service import Tree
-from PIL import Image, ImageFont, ImageDraw
 from locale import getpreferredencoding
 from contextlib import contextmanager
 from typing import Optional,Literal
@@ -19,12 +19,12 @@ import win32con
 import requests
 import logging
 import base64
+import random
 import ctypes
 import csv
 import re
 import os
 import io
-import random
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -46,7 +46,7 @@ class Desktop:
         self.tree=Tree(self)
         self.desktop_state=None
         
-    def get_state(self,use_annotation:bool=True,use_vision:bool=False)->DesktopState:
+    def get_state(self,use_annotation:bool=True,use_vision:bool=False,as_bytes:bool=False)->DesktopState:
         sleep(0.1)
         start_time = time()
 
@@ -72,6 +72,11 @@ class Desktop:
                 screenshot=self.get_annotated_screenshot(nodes=nodes)
             else:
                 screenshot=self.get_screenshot()
+            if as_bytes:
+                buffered = io.BytesIO()
+                screenshot.save(buffered, format="PNG")
+                screenshot = buffered.getvalue()
+                buffered.close()
         else:
             screenshot=None
             
@@ -537,11 +542,15 @@ class Desktop:
         return dpi / 96.0
     
     def get_screen_size(self)->Size:
-        width, height = uia.GetScreenSize()
+        width, height = uia.GetVirtualScreenSize()
         return Size(width=width,height=height)
 
     def get_screenshot(self)->Image.Image:
-        return pg.screenshot()
+        try:
+            return ImageGrab.grab(all_screens=True)
+        except Exception as e:
+            logger.warning(f"Failed to capture virtual screen, using primary screen")
+            return pg.screenshot()
 
     def get_annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
         screenshot = self.get_screenshot()
@@ -563,16 +572,19 @@ class Desktop:
         def get_random_color():
             return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
+        left_offset, top_offset, _, _ = uia.GetVirtualScreenRect()
+
         def draw_annotation(label, node: TreeElementNode):
             box = node.bounding_box
             color = get_random_color()
 
             # Scale and pad the bounding box also clip the bounding box
+            # Adjust for virtual screen offset so coordinates map to the screenshot image
             adjusted_box = (
-                int(box.left) + padding,
-                int(box.top) + padding,
-                int(box.right) + padding,
-                int(box.bottom) + padding
+                int(box.left - left_offset) + padding,
+                int(box.top - top_offset) + padding,
+                int(box.right - left_offset) + padding,
+                int(box.bottom - top_offset) + padding
             )
             # Draw bounding box
             draw.rectangle(adjusted_box, outline=color, width=2)

@@ -524,6 +524,21 @@ def GetVirtualScreenSize() -> Tuple[int, int]:
     return w, h
 
 
+def GetVirtualScreenRect() -> Tuple[int, int, int, int]:
+    """Returns (left, top, width, height) of the virtual screen."""
+    SM_XVIRTUALSCREEN = 76
+    SM_YVIRTUALSCREEN = 77
+    SM_CXVIRTUALSCREEN = 78
+    SM_CYVIRTUALSCREEN = 79
+    return (
+        ctypes.windll.user32.GetSystemMetrics(SM_XVIRTUALSCREEN),
+        ctypes.windll.user32.GetSystemMetrics(SM_YVIRTUALSCREEN),
+        ctypes.windll.user32.GetSystemMetrics(SM_CXVIRTUALSCREEN),
+        ctypes.windll.user32.GetSystemMetrics(SM_CYVIRTUALSCREEN)
+    )
+
+
+
 def GetMonitorsRect() -> List[Rect]:
     """
     Get monitors' rect.
