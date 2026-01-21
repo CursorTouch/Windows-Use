@@ -15,10 +15,10 @@ class TreeState:
             return "No interactive elements"
         # TOON-like format: Pipe-separated values with clear header
         # Using abbreviations in header to save tokens
-        header = "# id|app|type|name|val|keys|coords|focus"
+        header = "# id|app|type|name|coords|focus"
         rows = [header]
         for idx, node in enumerate(self.interactive_nodes):
-            row = f"{idx}|{node.app_name}|{node.control_type}|{node.name}|{node.value}|{node.shortcut}|{node.center.to_string()}|{node.is_focused}"
+            row = f"{idx}|{node.app_name}|{node.control_type}|{node.name}|{node.center.to_string()}|{node.is_focused}"
             rows.append(row)
         return "\n".join(rows)
 
