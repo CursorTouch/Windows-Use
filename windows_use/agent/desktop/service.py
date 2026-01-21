@@ -358,30 +358,23 @@ class Desktop:
         is_name = "Overlay" in element.Name.strip()
         return no_children or is_name
 
-    def get_visible_windows_handles(self):
-        # handles = []
-        # def callback(hwnd, _):
-        #     if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
-        #         handles.append(hwnd)
-        # win32gui.EnumWindows(callback, None)
-        # return handles
-        root=uia.GetRootControl()
-        return [child.NativeWindowHandle for child in root.GetChildren() if self.is_app_visible(child)]
-
-    def get_controls_handles(self) -> set[int]:
-        """
-        Returns ALL visible top-level controls (Apps, Taskbar, Desktop, Dialogs).
-        This is the raw list needed for Tree traversal, without 'App' filtering.
-        """
-        # handles = set()
-        # for hwnd in self.get_visible_windows_handles():
-        #     try:
-        #         if win32gui.GetWindow(hwnd, win32con.GW_CHILD):
-        #             handles.add(hwnd)
-        #     except Exception:
-        #         continue
-        # return handles
-        return set(self.get_visible_windows_handles())
+    def get_controls_handles(self):
+        handles = set()
+        def callback(hwnd, _):
+            if taskbar_hwnd:= win32gui.FindWindow('Shell_TrayWnd',None):
+                handles.add(taskbar_hwnd)
+            if secondary_taskbar_hwnd:= win32gui.FindWindow('Shell_SecondaryTrayWnd',None):
+                handles.add(secondary_taskbar_hwnd)
+            if desktop_hwnd:= win32gui.FindWindow('Progman',None):
+                handles.add(desktop_hwnd)
+            if start_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Start'):
+                handles.add(start_hwnd)
+            if search_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Search'):
+                handles.add(search_hwnd)
+            if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
+                handles.add(hwnd)
+        win32gui.EnumWindows(callback, None)
+        return handles
 
     def get_active_app(self,apps:list[App]|None=None)->App|None:
         try:
@@ -397,10 +390,10 @@ class Desktop:
         
     def get_apps(self) -> tuple[list[App],set[int]]:
         try:
-            window_handles=self.get_visible_windows_handles()
+            controls_handles=self.get_controls_handles()
             apps = []
             handles = set()
-            for depth, hwnd in enumerate(window_handles):
+            for depth, hwnd in enumerate(controls_handles):
                 try:
                     child = uia.ControlFromHandle(hwnd)
                 except Exception:

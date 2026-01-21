@@ -70,7 +70,7 @@ class Tree:
             dom_node=None
         self.tree_state=TreeState(root_node=root_node,dom_node=dom_node,interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes,dom_informative_nodes=dom_informative_nodes)
         end_time = time()
-        logger.debug(f"Tree State capture took {end_time - start_time:.2f} seconds")
+        logger.info(f"Tree State capture took {end_time - start_time:.2f} seconds")
         return self.tree_state
 
     def get_appwise_nodes(self,apps_handles:list[int]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
@@ -467,8 +467,8 @@ class Tree:
                 return app_name
     
     def get_nodes(self, handle: int, is_browser:bool=False) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
-        comtypes.CoInitialize()
         try:
+            comtypes.CoInitialize()
             # Rehydrate Control from handle within the thread's COM context
             node = ControlFromHandle(handle)
             if not node:
