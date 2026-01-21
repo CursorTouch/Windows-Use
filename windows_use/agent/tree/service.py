@@ -36,10 +36,15 @@ class Tree:
         self.dom = None
         self.dom_bounding_box = None
         start_time = time()
-        
-        apps_handles=[active_app_handle]+other_apps_handles if active_app_handle else other_apps_handles
 
-        interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps_handles=apps_handles)
+        active_app_flag=False
+        if active_app_handle:
+            active_app_flag=True
+            apps_handles=[active_app_handle]+other_apps_handles
+        else:
+            apps_handles=other_apps_handles
+        
+        interactive_nodes,scrollable_nodes,dom_informative_nodes=self.get_appwise_nodes(apps_handles=apps_handles,active_app_flag=active_app_flag)
         root_node=TreeElementNode(
             name="Desktop",
             control_type="PaneControl",
@@ -73,7 +78,7 @@ class Tree:
         logger.info(f"Tree State capture took {end_time - start_time:.2f} seconds")
         return self.tree_state
 
-    def get_appwise_nodes(self,apps_handles:list[int]) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
+    def get_appwise_nodes(self,apps_handles:list[int],active_app_flag:bool) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
         interactive_nodes, scrollable_nodes, dom_informative_nodes = [], [], []
         
         # Pre-calculate browser status in main thread to pass simple types to workers
@@ -84,6 +89,8 @@ class Tree:
                 # Use temporary control for property check in main thread
                 # This is safe as we don't pass this specific COM object to the thread
                 temp_node = ControlFromHandle(handle)
+                if active_app_flag and temp_node.ClassName=='Progman':
+                    continue
                 is_browser = self.desktop.is_app_browser(temp_node)
             except Exception:
                 pass

@@ -360,20 +360,22 @@ class Desktop:
 
     def get_controls_handles(self):
         handles = set()
+
         def callback(hwnd, _):
-            if taskbar_hwnd:= win32gui.FindWindow('Shell_TrayWnd',None):
-                handles.add(taskbar_hwnd)
-            if secondary_taskbar_hwnd:= win32gui.FindWindow('Shell_SecondaryTrayWnd',None):
-                handles.add(secondary_taskbar_hwnd)
-            if desktop_hwnd:= win32gui.FindWindow('Progman',None):
-                handles.add(desktop_hwnd)
-            if start_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Start'):
-                handles.add(start_hwnd)
-            if search_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Search'):
-                handles.add(search_hwnd)
             if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
                 handles.add(hwnd)
         win32gui.EnumWindows(callback, None)
+
+        if desktop_hwnd:= win32gui.FindWindow('Progman',None):
+            handles.add(desktop_hwnd)
+        if taskbar_hwnd:= win32gui.FindWindow('Shell_TrayWnd',None):
+            handles.add(taskbar_hwnd)
+        if secondary_taskbar_hwnd:= win32gui.FindWindow('Shell_SecondaryTrayWnd',None):
+            handles.add(secondary_taskbar_hwnd)
+        if start_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Start'):
+            handles.add(start_hwnd)
+        if search_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Search'):
+            handles.add(search_hwnd)
         return handles
 
     def get_active_app(self,apps:list[App]|None=None)->App|None:
