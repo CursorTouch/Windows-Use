@@ -56,75 +56,6 @@ class CacheRequestFactory:
         # We will fetch them live only for the few elements that actually need them.
         
         return cache_request
-    
-    @staticmethod
-    def create_visibility_check_cache() -> CacheRequest:
-        """
-        Creates a lightweight cache request for quick visibility checks.
-        
-        This is optimized for the is_element_visible() method.
-        
-        Returns:
-            CacheRequest configured for visibility checks
-        """
-        cache_request = CacheRequest()
-        cache_request.TreeScope = TreeScope.TreeScope_Element
-        
-        # Only cache properties needed for visibility checks
-        cache_request.AddProperty(PropertyId.IsControlElementProperty)
-        cache_request.AddProperty(PropertyId.BoundingRectangleProperty)
-        cache_request.AddProperty(PropertyId.IsOffscreenProperty)
-        cache_request.AddProperty(PropertyId.ControlTypeProperty)
-        
-        return cache_request
-    
-    @staticmethod
-    def create_interaction_check_cache() -> CacheRequest:
-        """
-        Creates a cache request for interaction checks.
-        
-        This is optimized for the is_element_interactive() method.
-        
-        Returns:
-            CacheRequest configured for interaction checks
-        """
-        cache_request = CacheRequest()
-        cache_request.TreeScope = TreeScope.TreeScope_Element
-        
-        # Properties needed for interaction checks
-        cache_request.AddProperty(PropertyId.ControlTypeProperty)
-        cache_request.AddProperty(PropertyId.IsEnabledProperty)
-        cache_request.AddProperty(PropertyId.IsKeyboardFocusableProperty)
-        cache_request.AddProperty(PropertyId.IsOffscreenProperty)
-        cache_request.AddProperty(PropertyId.BoundingRectangleProperty)
-        cache_request.AddProperty(PropertyId.IsControlElementProperty)
-        
-        # Pattern for role and action checks
-        cache_request.AddPattern(PatternId.LegacyIAccessiblePattern)
-        
-        return cache_request
-    
-    @staticmethod
-    def create_scroll_check_cache() -> CacheRequest:
-        """
-        Creates a cache request for scrollability checks.
-        
-        This is optimized for the is_element_scrollable() method.
-        
-        Returns:
-            CacheRequest configured for scroll checks
-        """
-        cache_request = CacheRequest()
-        cache_request.TreeScope = TreeScope.TreeScope_Element
-        
-        cache_request.AddProperty(PropertyId.ControlTypeProperty)
-        cache_request.AddProperty(PropertyId.IsOffscreenProperty)
-        
-        # Scroll pattern for scrollability checks
-        cache_request.AddPattern(PatternId.ScrollPattern)
-        
-        return cache_request
-
 
 class CachedControlHelper:
     """Helper class for working with cached controls."""
@@ -192,19 +123,3 @@ class CachedControlHelper:
         except Exception as e:
             logger.debug(f"Failed to get cached children, falling back to regular access: {e}")
             return node.GetChildren()
-    
-    @staticmethod
-    def invalidate_cache(node: Control) -> None:
-        """
-        Invalidate the cache marker on a control.
-        
-        This forces subsequent property accesses to use live data.
-        
-        Args:
-            node: The control to invalidate
-        """
-        if hasattr(node, '_is_cached'):
-            delattr(node, '_is_cached')
-
-
-
