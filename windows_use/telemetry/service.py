@@ -6,6 +6,7 @@ from posthog import Posthog
 from pathlib import Path
 import logging
 import os
+import atexit
 
 load_dotenv()
 
@@ -27,6 +28,12 @@ class ProductTelemetry:
                 flush_at=1,
                 flush_interval=0.5
             )
+            # Unregister Posthog's atexit join handler to prevent hanging on exit
+            # We accept that some events might be lost on abrupt exit in favor of responsiveness
+            try:
+                atexit.unregister(self.client.join)
+            except Exception:
+                pass
         else:
             self.client = None
 
