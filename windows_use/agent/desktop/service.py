@@ -51,7 +51,7 @@ class Desktop:
         start_time = time()
 
         controls_handles=self.get_controls_handles() # Taskbar,Program Manager,Apps, Dialogs
-        apps,apps_handles=self.get_apps() # Apps
+        apps,apps_handles=self.get_apps(controls_handles=controls_handles) # Apps
         active_app=self.get_active_app(apps=apps) #Active App
         active_app_handle=active_app.handle if active_app else None
 
@@ -341,7 +341,8 @@ class Desktop:
         if top_window is None:
             return None
         handle=top_window.NativeWindowHandle
-        for app in self.get_apps():
+        apps,_=self.get_apps()
+        for app in apps:
             if app.handle==handle:
                 return app
         return None
@@ -358,29 +359,36 @@ class Desktop:
         is_name = "Overlay" in element.Name.strip()
         return no_children or is_name
 
-    def get_controls_handles(self):
+    def get_controls_handles(self,optimized:bool=False):
         handles = set()
+        if optimized:
+            # For even more faster results (still under development)
+            def callback(hwnd, _):
+                if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
+                    handles.add(hwnd)
+            win32gui.EnumWindows(callback, None)
 
-        def callback(hwnd, _):
-            if win32gui.IsWindowVisible(hwnd) and vdm.is_window_on_current_desktop(hwnd):
-                handles.add(hwnd)
-        win32gui.EnumWindows(callback, None)
-
-        if desktop_hwnd:= win32gui.FindWindow('Progman',None):
-            handles.add(desktop_hwnd)
-        if taskbar_hwnd:= win32gui.FindWindow('Shell_TrayWnd',None):
-            handles.add(taskbar_hwnd)
-        if secondary_taskbar_hwnd:= win32gui.FindWindow('Shell_SecondaryTrayWnd',None):
-            handles.add(secondary_taskbar_hwnd)
-        if start_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Start'):
-            handles.add(start_hwnd)
-        if search_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Search'):
-            handles.add(search_hwnd)
+            if desktop_hwnd:= win32gui.FindWindow('Progman',None):
+                handles.add(desktop_hwnd)
+            if taskbar_hwnd:= win32gui.FindWindow('Shell_TrayWnd',None):
+                handles.add(taskbar_hwnd)
+            if secondary_taskbar_hwnd:= win32gui.FindWindow('Shell_SecondaryTrayWnd',None):
+                handles.add(secondary_taskbar_hwnd)
+            if start_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Start'):
+                handles.add(start_hwnd)
+            if search_hwnd:= win32gui.FindWindow('Windows.UI.Core.CoreWindow','Search'):
+                handles.add(search_hwnd)
+        else:
+            root=uia.GetRootControl()
+            children=root.GetChildren()
+            for child in children:
+                handles.add(child.NativeWindowHandle)
         return handles
 
     def get_active_app(self,apps:list[App]|None=None)->App|None:
         try:
-            apps=apps or self.get_apps()
+            if apps is None:
+                apps,_=self.get_apps()
             handle=uia.GetForegroundWindow()
             for app in apps:
                 if app.handle!=handle:
@@ -390,11 +398,11 @@ class Desktop:
             logger.error(f"Error in get_active_app: {ex}")
         return None
         
-    def get_apps(self) -> tuple[list[App],set[int]]:
+    def get_apps(self,controls_handles:set[int]|None=None) -> tuple[list[App],set[int]]:
         try:
-            controls_handles=self.get_controls_handles()
             apps = []
             handles = set()
+            controls_handles=controls_handles or self.get_controls_handles()
             for depth, hwnd in enumerate(controls_handles):
                 try:
                     child = uia.ControlFromHandle(hwnd)

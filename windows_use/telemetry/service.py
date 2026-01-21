@@ -23,7 +23,9 @@ class ProductTelemetry:
                 project_api_key=self.PROJECT_API_KEY,
                 host=self.HOST,
                 disable_geoip=False,
-                enable_exception_autocapture=True
+                enable_exception_autocapture=True,
+                flush_at=1,
+                flush_interval=0.5
             )
         else:
             self.client = None

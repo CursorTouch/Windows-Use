@@ -513,7 +513,7 @@ class Tree:
     def _on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
         """Handle focus change events."""
         # Debounce duplicate events
-        current_time = time.time()
+        current_time = time()
         element = Control.CreateControlFromElement(sender)
         runtime_id=element.GetRuntimeId()
         event_key = tuple(runtime_id)
