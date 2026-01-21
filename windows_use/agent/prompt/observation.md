@@ -6,6 +6,8 @@
         Action Response: {observation}
     <agent_state>
     <desktop_state>
+        [Begin of Desktop]
+        Active Desktop: {active_desktop}
         Cursor Location: {cursor_location}
         [Begin of App Info]
         Foreground App: {active_app}
@@ -21,6 +23,12 @@
         List of Scrollable Elements:
         {scrollable_elements}
         [End of Screen]
+        [End of Desktop]
+        
+        [Begin of Virtual Desktops]
+        Virtual Desktops:
+        {desktops}
+        [End of Virtual Desktops]
     <desktop_state>
     <user_query>
         {query}

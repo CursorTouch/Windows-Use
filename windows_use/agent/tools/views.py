@@ -176,18 +176,16 @@ class Scroll(SharedBaseModel):
         examples=[1, 3, 5, 10]
     )
 
-class Drag(SharedBaseModel):
-    loc: tuple[int, int] = Field(
-        ...,
-        description="(x, y) pixel coordinates of drag operation destination",
-        examples=[(500, 500), (800, 600)]
-    )
-
 class Move(SharedBaseModel):
     loc: tuple[int, int] = Field(
         ...,
-        description="(x, y) pixel coordinates to move mouse cursor to without clicking. Used for hovering or positioning",
+        description="(x, y) pixel coordinates to move mouse cursor to. Used for hovering or drag-and-drop operations.",
         examples=[(640, 360), (100, 100)]
+    )
+    drag: bool = Field(
+        description="If True, performs a drag-and-drop operation from the current cursor position to the destination. If False, moves the cursor without clicking.",
+        default=False,
+        examples=[True, False]
     )
 
 class Shortcut(SharedBaseModel):
@@ -209,4 +207,21 @@ class Scrape(SharedBaseModel):
         ...,
         description="Full webpage URL including protocol (http:// or https://) to fetch and convert to markdown format",
         examples=['https://google.com', 'https://example.com/page', 'http://localhost:8080']
+    )
+
+class Desktop(SharedBaseModel):
+    action: Literal['create', 'remove', 'rename', 'switch'] = Field(
+        ...,
+        description="Action to perform on virtual desktop",
+        examples=['create', 'remove', 'rename', 'switch']
+    )
+    desktop_id: Optional[str] = Field(
+        description="ID of the desktop to perform action on (not required for create)",
+        default=None,
+        examples=["a1b2c3d4"]
+    )
+    name: Optional[str] = Field(
+        description="Name to set for the desktop (used with create or rename)",
+        default=None,
+        examples=["My Workspace"]
     )

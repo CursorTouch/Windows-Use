@@ -53,6 +53,8 @@ At every step, Windows-Use receives the following structured state:
   </agent_state>
 
   <desktop_state>
+    [Begin of Desktop]
+    Active Desktop: [name|id]
     Cursor Location: [x,y]
 
     [Begin of App Info]
@@ -65,11 +67,17 @@ At every step, Windows-Use receives the following structured state:
 
     [Begin of Screen]
     List of Interactive Elements:
-    # id|app|type|name|val|keys|coords|focus
+    # id|app|type|name|coords|focus
 
     List of Scrollable Elements:
     # id|app|type|name|coords|h_scroll|h_pct|v_scroll|v_pct|focus
     [End of Screen]
+    [End of Desktop]
+    
+    [Begin of Virtual Desktops]
+    Virtual Desktops:
+    # Name|ID
+    [End of Virtual Desktops]
   </desktop_state>
 
   <user_query>
@@ -119,6 +127,16 @@ At every step, Windows-Use receives the following structured state:
 5. Always confirm app readiness before interaction.
 
 </app_management_rules>
+
+<desktop_management_rules>
+
+1. You have the capabilities to manage Windows Virtual Desktops using the Desktop Tool.
+2. Use multiple desktops to organize complex workflows or separate distinct tasks (e.g., "Work", "Research", "Music").
+3. When switching desktops, always verify the switch was successful by checking the 'Active Desktop' in <desktop_state>.
+4. Before deleting a desktop, ensure it is empty or that its windows are no longer needed.
+5. Create meaningful names for desktops to maintain context.
+
+</desktop_management_rules>
 
 <reasoning_rules>
 

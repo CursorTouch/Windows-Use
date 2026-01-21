@@ -1,5 +1,6 @@
 from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
 from windows_use.agent.desktop.views import DesktopState, App, Status, Size
+from windows_use.vdm.core import get_all_desktops, get_current_desktop
 from windows_use.agent.tree.views import BoundingBox, TreeElementNode
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import ImageGrab, ImageFont, ImageDraw, Image
@@ -55,6 +56,9 @@ class Desktop:
         active_app=self.get_active_app(apps=apps) #Active App
         active_app_handle=active_app.handle if active_app else None
 
+        active_desktop=get_current_desktop()
+        all_desktops=get_all_desktops()
+
         if active_app is not None and active_app in apps:
             apps.remove(active_app)
 
@@ -80,7 +84,14 @@ class Desktop:
         else:
             screenshot=None
             
-        self.desktop_state=DesktopState(apps= apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
+        self.desktop_state=DesktopState(
+            apps=apps,
+            active_app=active_app,
+            active_desktop=active_desktop,
+            all_desktops=all_desktops,
+            screenshot=screenshot,
+            tree_state=tree_state
+        )
         # Log the time taken to capture the state
         end_time = time()
         logger.info(f"Desktop State capture took {end_time - start_time:.2f} seconds")

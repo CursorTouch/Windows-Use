@@ -1,5 +1,5 @@
-from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool, multi_select_tool,memory_tool,
-shortcut_tool, scroll_tool, drag_tool, move_tool, wait_tool, app_tool, scrape_tool, multi_edit_tool)
+from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool,
+shortcut_tool, scroll_tool, move_tool, wait_tool, app_tool, scrape_tool, desktop_tool)
 from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage
 from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.telemetry.service import ProductTelemetry
@@ -7,7 +7,6 @@ from windows_use.agent.views import AgentResult,AgentStep
 from windows_use.agent.registry.service import Registry
 from windows_use.agent.watchdog.service import WatchDog
 from windows_use.agent.registry.views import ToolResult
-from windows_use.uia.enums import StructureChangeType
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
 from windows_use.agent.prompt.service import Prompt
@@ -49,8 +48,8 @@ class Agent:
         self.description='An agent that can interact with GUI elements on Windows OS' 
         self.registry = Registry([
             click_tool,type_tool, app_tool, shell_tool, done_tool, 
-            shortcut_tool, scroll_tool, drag_tool, move_tool,memory_tool,
-            wait_tool, scrape_tool, multi_select_tool, multi_edit_tool
+            shortcut_tool, scroll_tool, move_tool,wait_tool,
+            scrape_tool, desktop_tool
         ])
         self.instructions=instructions
         self.browser=browser

@@ -41,13 +41,26 @@ class Size:
 
 @dataclass
 class DesktopState:
+    active_desktop:dict
+    all_desktops:list[dict]
     apps:list[App]
     active_app:Optional[App]
     screenshot:Optional[Image]=None
     tree_state:Optional[TreeState]=None
 
+    def active_desktop_to_string(self):
+        desktop_name=self.active_desktop.get('name')
+        desktop_id=self.active_desktop.get('id')
+        headers=["Name", "ID"]
+        return tabulate([[desktop_name,desktop_id]], headers=headers, tablefmt="simple")
+
+    def desktops_to_string(self):
+        headers=["Name", "ID"]
+        rows=[[desktop.get("name"),desktop.get("id")] for desktop in self.all_desktops]
+        return tabulate(rows, headers=headers, tablefmt="simple")
+
     def active_app_to_string(self):
-        if self.active_app is None:
+        if not self.active_app:
             return 'No active app found'
         headers = ["Name", "Depth", "Status", "Width", "Height", "Handle"]
         return tabulate([self.active_app.to_row()], headers=headers, tablefmt="simple")

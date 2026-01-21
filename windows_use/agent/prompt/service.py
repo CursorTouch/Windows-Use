@@ -55,15 +55,18 @@ class Prompt:
         steps = agent_step.steps
         max_steps = agent_step.max_steps
         template = Path(files('windows_use.agent.prompt').joinpath('observation.md')).read_text(encoding='utf-8')
+
         return template.format(**{
             'steps': steps,
             'max_steps': max_steps,
             'observation': tool_result.content if tool_result.is_success else tool_result.error,
             'active_app': desktop_state.active_app_to_string(),
-            'cursor_location': f'({cursor_location.x},{cursor_location.y})',
             'apps': desktop_state.apps_to_string(),
+            'cursor_location': f'({cursor_location.x},{cursor_location.y})',
             'interactive_elements': tree_state.interactive_elements_to_string() or 'No interactive elements found',
             'scrollable_elements': tree_state.scrollable_elements_to_string() or 'No scrollable elements found',
+            'active_desktop': desktop_state.active_desktop_to_string(),
+            'desktops': desktop_state.desktops_to_string(),
             'query':query
         })
     

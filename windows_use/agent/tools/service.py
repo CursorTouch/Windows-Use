@@ -1,5 +1,6 @@
-from windows_use.agent.tools.views import Click, Type, Scroll, Drag, Move, Shortcut, Wait, Scrape, Done, Shell, Memory, App, MultiSelect, MultiEdit
-from windows_use.agent.desktop.service import Desktop
+from windows_use.agent.tools.views import Click, Type, Scroll, Move, Shortcut, Wait, Scrape, Done, Shell, Memory, App, MultiSelect, MultiEdit, Desktop
+from windows_use.vdm.core import create_desktop as vdm_create, remove_desktop as vdm_remove, rename_desktop as vdm_rename, switch_desktop as vdm_switch
+from windows_use.agent.desktop.service import Desktop as _Desktop
 from typing import Literal,Optional
 from windows_use.tool import Tool
 from pathlib import Path
@@ -30,7 +31,7 @@ def app_tool(mode:Literal['launch','resize','switch'],name:Optional[str]=None,lo
     
     Use this tool to control application lifecycle and window management during task execution.
     '''
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     return desktop.app(mode,name,loc,size)
 
 @Tool('Memory Tool',args_schema=Memory)
@@ -157,7 +158,7 @@ def shell_tool(command: str,**kwargs) -> str:
     The working directory is set to the user's HOME directory by default. 
     Returns both command output and exit status code for error handling.
     '''
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     response,status=desktop.execute_command(command)
     return f'Response: {response}\nStatus Code: {status}'
 
@@ -176,7 +177,7 @@ def click_tool(loc:Optional[tuple[int,int]]=None,button:Literal['left','right','
     for reliable interaction. Essential for all point-and-click UI operations.
     '''
     x,y=loc
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     desktop.click(loc,button,clicks)
     num_clicks={1:'Single',2:'Double',3:'Triple'}
     return f'{num_clicks.get(clicks)} {button} clicked at ({x},{y}).'
@@ -196,7 +197,7 @@ def type_tool(loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true'
     The tool automatically clicks the target element coordinates to ensure focus before typing.
     '''
     x,y=loc
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     desktop.type(loc,text,clear,caret_position,press_enter)
     return f'Typed {text} at ({x},{y}).'
 
@@ -217,48 +218,33 @@ def scroll_tool(loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','ver
     
     Essential tool for accessing content beyond the visible viewport.
     '''
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     response=desktop.scroll(loc,type,direction,wheel_times)
     if response:
         return response
     return f'Scrolled {type} {direction} by {wheel_times} wheel times.'
 
-@Tool('Drag Tool',args_schema=Drag)
-def drag_tool(loc:tuple[int,int],**kwargs)->str:
-    '''
-    Performs drag-and-drop operations from current location of cursor to destination coordinates.
-    
-    Common use cases:
-        - Move files and folders between locations
-        - Resize windows by dragging edges or corners
-        - Rearrange UI elements that support drag-and-drop
-        - Select text or multiple items by dragging
-    
-    Simulates holding down the mouse button at the current location of the cursor and releasing 
-    at the destination, enabling drag-based interactions.
-    '''
-    x,y=loc
-    desktop:Desktop=kwargs['desktop']
-    desktop.drag(loc)
-    return f'Dragged the selected element to ({x},{y}).'
-
 @Tool('Move Tool',args_schema=Move)
-def move_tool(loc:tuple[int,int],**kwargs)->str:
+def move_tool(loc:tuple[int,int],drag:bool=False,**kwargs)->str:
     '''
-    Moves mouse cursor to specific coordinates without performing any click action.
+    Moves mouse cursor to specific coordinates, optionally performing a drag operation.
     
     Use cases:
-        - Hover over elements to reveal tooltips or hidden menus
-        - Position cursor before executing other mouse actions
-        - Trigger hover-based UI effects and interactions
-        - Navigate cursor to prepare for subsequent operations
+        - Hover over elements to reveal tooltips (drag=False)
+        - Reposition cursor without clicking (drag=False)
+        - Drag and drop items from current position (drag=True)
+        - Move files/windows by dragging (drag=True)
     
-    Non-invasive cursor positioning for setup and hover-based interactions.
+    If drag is True, simulates holding the mouse button from start to end.
     '''
     x,y=loc
-    desktop:Desktop=kwargs['desktop']
-    desktop.move(loc)
-    return f'Moved the mouse pointer to ({x},{y}).'
+    desktop:_Desktop=kwargs['desktop']
+    if drag:
+        desktop.drag(loc)
+        return f'Dragged the selected element to ({x},{y}).'
+    else:
+        desktop.move(loc)
+        return f'Moved the mouse pointer to ({x},{y}).'
 
 @Tool('Shortcut Tool',args_schema=Shortcut)
 def shortcut_tool(shortcut:str,**kwargs)->str:
@@ -274,7 +260,7 @@ def shortcut_tool(shortcut:str,**kwargs)->str:
     and application-specific shortcuts. More efficient than mouse-based navigation 
     for many operations.
     '''
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     desktop.shortcut(shortcut)
     return f'Pressed {shortcut}.'
 
@@ -290,7 +276,7 @@ def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[tu
     
     Use for common operations like selecting multiple items or repeated clicks.
     '''
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     desktop.multi_select(press_ctrl,elements)
     return f'Multi-selected elements at {'\n'.join([f'({x},{y})' for x,y in elements])}.'
 
@@ -306,7 +292,7 @@ def multi_edit_tool(elements:list[tuple[int,int,str]],**kwargs)->str:
     
     Typing text into multiple input fields, text areas.
     '''
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     desktop.multi_edit(elements)
     return f'Multi-edited elements at {','.join([f'({x},{y}) text={text}' for x,y,text in elements])}.'
 
@@ -343,7 +329,7 @@ def scrape_tool(url:str,**kwargs)->str:
     not the raw HTML source code. It captures visible text content accurately.
     Returns structured text suitable for parsing, analysis, and information extraction.
     '''
-    desktop:Desktop=kwargs['desktop']
+    desktop:_Desktop=kwargs['desktop']
     desktop_state=desktop.desktop_state
     tree_state=desktop_state.tree_state
     if not tree_state.dom_node:
@@ -354,3 +340,42 @@ def scrape_tool(url:str,**kwargs)->str:
     header_status = "Reached top" if vertical_scroll_percent <= 0 else "Scroll up to see more"
     footer_status = "Reached bottom" if vertical_scroll_percent >= 100 else "Scroll down to see more"
     return f'URL:{url}\nContent:\n{header_status}\n{content}\n{footer_status}'
+
+@Tool('Desktop Tool', args_schema=Desktop)
+def desktop_tool(action: Literal['create', 'remove', 'rename', 'switch', 'get_all'], desktop_id: Optional[str] = None, name: Optional[str] = None, **kwargs) -> str:
+    '''
+    Manages Windows virtual desktops.
+    
+    Actions:
+        - create: Create a new virtual desktop (optional: provide name)
+        - remove: Remove a virtual desktop by ID
+        - rename: Rename a virtual desktop by ID
+        - switch: Switch to a virtual desktop by ID
+        - get_all: List all virtual desktops with their IDs and names
+        
+    Use this tool to organize workspaces and manage virtual desktops programmatically.
+    '''
+    try:
+        match action:
+            case 'create':
+                new_id = vdm_create(name)
+                return f"Created desktop with ID: {new_id}" + (f" and name '{name}'" if name else "")
+            case 'remove':
+                if not desktop_id:
+                    return "Error: desktop_id is required for removal."
+                vdm_remove(desktop_id)
+                return f"Removed desktop {desktop_id}"
+            case 'rename':
+                if not desktop_id or not name:
+                    return "Error: desktop_id and name are required for rename."
+                vdm_rename(desktop_id, name)
+                return f"Renamed desktop {desktop_id} to '{name}'"
+            case 'switch':
+                if not desktop_id:
+                    return "Error: desktop_id is required for switching."
+                vdm_switch(desktop_id)
+                return f"Switched to desktop {desktop_id}"
+            case _:
+                return f"Unknown action: {action}"
+    except Exception as e:
+        return f"Error executing desktop action '{action}': {str(e)}"
