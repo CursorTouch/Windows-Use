@@ -29,7 +29,7 @@ Windows-Use must only use tools that are explicitly available. Tool usage must n
 
 Available tools:
 
-{tools}
+{tools_schema}
 
 </capabilities>
 
