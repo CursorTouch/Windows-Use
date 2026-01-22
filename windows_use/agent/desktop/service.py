@@ -133,23 +133,27 @@ class Desktop:
             logger.error(f"Error parsing start menu apps: {e}")
             return {}
     
-    def execute_command(self,command:str)->tuple[str,int]:
+    def execute_command(self, command: str) -> tuple[str, int]:
         try:
             encoded = base64.b64encode(command.encode("utf-16le")).decode("ascii")
             result = subprocess.run(
                 ['powershell', '-NoProfile', '-EncodedCommand', encoded], 
-                capture_output=True, 
-                errors='ignore',
+                capture_output=True,  # No errors='ignore' - let subprocess return bytes
                 timeout=25,
                 cwd=os.path.expanduser(path='~')
             )
-            stdout=result.stdout
-            stderr=result.stderr
-            return (stdout or stderr,result.returncode)
+            # Handle both bytes and str output (subprocess behavior varies by environment)
+            stdout = result.stdout
+            stderr = result.stderr
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode(self.encoding, errors='ignore')
+            if isinstance(stderr, bytes):
+                stderr = stderr.decode(self.encoding, errors='ignore')
+            return (stdout or stderr, result.returncode)
         except subprocess.TimeoutExpired:
             return ('Command execution timed out', 1)
         except Exception as e:
-            return ('Command execution failed', 1)
+            return (f'Command execution failed: {type(e).__name__}: {e}', 1)
         
     def is_app_browser(self,node:uia.Control):
         '''Give any node of the app and it will return True if the app is a browser, False otherwise.'''
