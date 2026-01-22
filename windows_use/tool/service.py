@@ -12,7 +12,7 @@ class Tool:
     def to_schema(self)->str:
         json_schema=self.model.model_json_schema(mode='serialization')
         return json.dumps({
-            "type":"fucntion",
+            "type":"function",
             "function":{
                 "name":self.name,
                 "description":self.description,
