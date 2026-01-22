@@ -1,5 +1,5 @@
-from windows_use.agent.desktop.config import BROWSER_NAMES, PROCESS_PER_MONITOR_DPI_AWARE
-from windows_use.agent.desktop.views import DesktopState, App, Status, Size
+from windows_use.agent.desktop.views import DesktopState, App, Browser, Status, Size
+from windows_use.agent.desktop.config import PROCESS_PER_MONITOR_DPI_AWARE
 from windows_use.vdm.core import get_all_desktops, get_current_desktop
 from windows_use.agent.tree.views import BoundingBox, TreeElementNode
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -154,7 +154,7 @@ class Desktop:
     def is_app_browser(self,node:uia.Control):
         '''Give any node of the app and it will return True if the app is a browser, False otherwise.'''
         process=Process(node.ProcessId)
-        return process.name() in BROWSER_NAMES
+        return Browser.has_process(process.name())
     
     def get_default_language(self)->str:
         command="Get-Culture | Select-Object Name,DisplayName | ConvertTo-Csv -NoTypeInformation"

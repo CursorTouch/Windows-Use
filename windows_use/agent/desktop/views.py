@@ -6,9 +6,15 @@ from PIL.Image import Image
 from enum import Enum
 
 class Browser(Enum):
-    CHROME='Chrome'
-    EDGE='Edge'
-    FIREFOX='Firefox'
+    CHROME='chrome'
+    EDGE='msedge'
+    FIREFOX='firefox'
+
+    @classmethod
+    def has_process(cls, process_name: str) -> bool:
+        if not hasattr(cls, '_process_names'):
+            cls._process_names = {f'{b.value}.exe' for b in cls}
+        return process_name.lower() in cls._process_names
 
 class Status(Enum):
     MAXIMIZED='Maximized'
