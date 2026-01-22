@@ -342,39 +342,41 @@ def scrape_tool(url:str,**kwargs)->str:
     return f'URL:{url}\nContent:\n{header_status}\n{content}\n{footer_status}'
 
 @Tool('Desktop Tool', args_schema=Desktop)
-def desktop_tool(action: Literal['create', 'remove', 'rename', 'switch', 'get_all'], desktop_id: Optional[str] = None, name: Optional[str] = None, **kwargs) -> str:
+def desktop_tool(action: Literal['create', 'remove', 'rename', 'switch'], desktop_name: Optional[str] = None, new_name: Optional[str] = None, **kwargs) -> str:
     '''
     Manages Windows virtual desktops.
     
     Actions:
-        - create: Create a new virtual desktop (optional: provide name)
-        - remove: Remove a virtual desktop by ID
-        - rename: Rename a virtual desktop by ID
-        - switch: Switch to a virtual desktop by ID
-        - get_all: List all virtual desktops with their IDs and names
-        
+        - create: Create a new virtual desktop (optional: provide desktop_name)
+        - remove: Remove a virtual desktop by name
+        - rename: Rename a virtual desktop (desktop_name -> new_name)
+        - switch: Switch to a virtual desktop by name
+    
     Use this tool to organize workspaces and manage virtual desktops programmatically.
     '''
     try:
+        from windows_use.vdm.core import get_all_desktops
+        
         match action:
             case 'create':
-                new_id = vdm_create(name)
-                return f"Created desktop with ID: {new_id}" + (f" and name '{name}'" if name else "")
+                # create_desktop(name) returns the name
+                created_name = vdm_create(desktop_name)
+                return f"Created desktop: '{created_name}'"
             case 'remove':
-                if not desktop_id:
-                    return "Error: desktop_id is required for removal."
-                vdm_remove(desktop_id)
-                return f"Removed desktop {desktop_id}"
+                if not desktop_name:
+                    return "Error: desktop_name is required for removal."
+                vdm_remove(desktop_name)
+                return f"Removed desktop '{desktop_name}'"
             case 'rename':
-                if not desktop_id or not name:
-                    return "Error: desktop_id and name are required for rename."
-                vdm_rename(desktop_id, name)
-                return f"Renamed desktop {desktop_id} to '{name}'"
+                if not desktop_name or not new_name:
+                    return "Error: desktop_name and new_name are required for rename."
+                vdm_rename(desktop_name, new_name)
+                return f"Renamed desktop '{desktop_name}' to '{new_name}'"
             case 'switch':
-                if not desktop_id:
-                    return "Error: desktop_id is required for switching."
-                vdm_switch(desktop_id)
-                return f"Switched to desktop {desktop_id}"
+                if not desktop_name:
+                    return "Error: desktop_name is required for switching."
+                vdm_switch(desktop_name)
+                return f"Switched to desktop '{desktop_name}'"
             case _:
                 return f"Unknown action: {action}"
     except Exception as e:

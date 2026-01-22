@@ -54,7 +54,7 @@ At every step, Windows-Use receives the following structured state:
 
   <desktop_state>
     [Begin of Desktop]
-    Active Desktop: [name|id]
+    Active Desktop: [name]
     Cursor Location: [x,y]
 
     [Begin of App Info]
@@ -76,7 +76,7 @@ At every step, Windows-Use receives the following structured state:
     
     [Begin of Virtual Desktops]
     Virtual Desktops:
-    # Name|ID
+    # Desktop Name
     [End of Virtual Desktops]
   </desktop_state>
 

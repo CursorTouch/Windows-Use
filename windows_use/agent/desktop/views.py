@@ -50,13 +50,12 @@ class DesktopState:
 
     def active_desktop_to_string(self):
         desktop_name=self.active_desktop.get('name')
-        desktop_id=self.active_desktop.get('id')
-        headers=["Name", "ID"]
-        return tabulate([[desktop_name,desktop_id]], headers=headers, tablefmt="simple")
+        headers=["Name"]
+        return tabulate([[desktop_name]], headers=headers, tablefmt="simple")
 
     def desktops_to_string(self):
-        headers=["Name", "ID"]
-        rows=[[desktop.get("name"),desktop.get("id")] for desktop in self.all_desktops]
+        headers=["Name"]
+        rows=[[desktop.get("name")] for desktop in self.all_desktops]
         return tabulate(rows, headers=headers, tablefmt="simple")
 
     def active_app_to_string(self):

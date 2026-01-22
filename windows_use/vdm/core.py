@@ -12,42 +12,7 @@ from comtypes import GUID, IUnknown, COMMETHOD, STDMETHOD
 
 logger = logging.getLogger(__name__)
 
-import secrets
-import string
-
 _thread_local = threading.local()
-
-# Global mapping for Simple ID (Short) <-> GUID (Long)
-_SIMPLE_TO_GUID = {}
-_GUID_TO_SIMPLE = {}
-_MAP_LOCK = threading.Lock()
-
-def _get_simple_id(guid_str: str) -> str:
-    """Gets or creates a simple 8-char ID for a given GUID string."""
-    guid_str = guid_str.upper() # Normalize GUIDs
-    with _MAP_LOCK:
-        if guid_str in _GUID_TO_SIMPLE:
-            return _GUID_TO_SIMPLE[guid_str]
-        
-        # Generate unique short ID
-        while True:
-            # 8 char random hex-like string (easy to read)
-            alphabet = string.ascii_lowercase + string.digits
-            short_id = ''.join(secrets.choice(alphabet) for _ in range(8))
-            if short_id not in _SIMPLE_TO_GUID:
-                break
-        
-        _SIMPLE_TO_GUID[short_id] = guid_str
-        _GUID_TO_SIMPLE[guid_str] = short_id
-        return short_id
-
-def _resolve_guid(simple_id: str) -> str:
-    """Resolves a simple ID to its GUID string."""
-    with _MAP_LOCK:
-        if simple_id in _SIMPLE_TO_GUID:
-            return _SIMPLE_TO_GUID[simple_id]
-        # Fallback: maybe the user passed a real GUID?
-        return simple_id
 
 def _get_manager():
     if not hasattr(_thread_local, "manager"):
@@ -267,18 +232,73 @@ class VirtualDesktopManager:
             return ""
         try:
             guid = self._manager.GetWindowDesktopId(hwnd)
-            return _get_simple_id(str(guid))
+            return str(guid)
         except Exception:
             return ""
 
-    def move_window_to_desktop(self, hwnd: int, desktop_id: str):
+    def _get_name_from_registry(self, guid_str: str) -> str:
         """
-        Moves a window to the specified virtual desktop (by GUID string).
+        Retrieves the user-friendly name of a desktop from the Registry.
+        Returns None if no custom name is set.
+        """
+        try:
+            import winreg
+            path = f"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VirtualDesktops\\Desktops\\{guid_str}"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, path) as key:
+                name, _ = winreg.QueryValueEx(key, "Name")
+                return name
+        except Exception:
+            return None
+
+    def _resolve_to_guid(self, name: str) -> str:
+        """
+        Resolves a desktop Name to a GUID string.
+        Also supports passing the GUID string directly if needed, but prioritizes Name.
+        """
+        # 1. Get current state (Names and GUIDs)
+        # We need to map Names to GUIDs.
+        desktops_map = {} # Name -> GUID
+        
+        try:
+            desktops_array = self._internal_manager.GetDesktops()
+            count = desktops_array.GetCount()
+            
+            for i in range(count):
+                unk = desktops_array.GetAt(i, IVirtualDesktop._iid_)
+                desktop = unk.QueryInterface(IVirtualDesktop)
+                guid = getattr(desktop, "GetID", lambda: None)()
+                if not guid: continue
+                guid_str = str(guid)
+                
+                # Determine Name
+                reg_name = self._get_name_from_registry(guid_str)
+                display_name = reg_name if reg_name else f"Desktop {i+1}"
+                
+                desktops_map[display_name.lower()] = guid_str
+                # Also verify if the input IS the GUID (fallback support)
+                if name.lower() == guid_str.lower():
+                    return guid_str
+                    
+        except Exception as e:
+            logger.error(f"Error scanning desktops for resolution: {e}")
+            return None
+
+        if name.lower() in desktops_map:
+            return desktops_map[name.lower()]
+
+        return None
+
+    def move_window_to_desktop(self, hwnd: int, desktop_name: str):
+        """
+        Moves a window to the specified virtual desktop (by Name).
         """
         if not self._manager:
             return
         try:
-            target_guid_str = _resolve_guid(desktop_id)
+            target_guid_str = self._resolve_to_guid(desktop_name)
+            if not target_guid_str:
+                logger.error(f"Desktop '{desktop_name}' not found.")
+                return
             guid = GUID(target_guid_str)
             self._manager.MoveWindowToDesktop(hwnd, guid)
         except Exception as e:
@@ -286,8 +306,7 @@ class VirtualDesktopManager:
 
     def create_desktop(self, name: str = None) -> str:
         """
-        Creates a new virtual desktop and returns its ID.
-        Optionally sets the name of the new desktop.
+        Creates a new virtual desktop and returns its Name.
         """
         if not self._internal_manager:
             raise RuntimeError("Internal VDM not initialized")
@@ -296,30 +315,37 @@ class VirtualDesktopManager:
         guid = desktop.GetID()
         guid_str = str(guid)
         
-        # Get simple ID
-        simple_id = _get_simple_id(guid_str)
-
+        # If name is provided, set it immediately
         if name:
-            self.rename_desktop(simple_id, name) # Use simple ID internally too now
-            
-        return simple_id
+            # We need to use the GUID to rename because we just created it
+            # But the external API returns the Name.
+            # We can try to rename using our helper
+            self.rename_desktop_by_guid(guid_str, name)
+            return name
+        else:
+            # If no name provided, determine what its default name is
+            # We can calculate it by checking total count
+            desktops = self.get_all_desktops()
+            return desktops[-1]['name'] # Assume it's the last one
 
-    def remove_desktop(self, desktop_id: str):
+    def remove_desktop(self, desktop_name: str):
         """
-        Removes a virtual desktop by ID. 
-        Will try to fallback to the first available desktop that is not the one being deleted.
+        Removes a virtual desktop by Name. 
         """
         if not self._internal_manager:
             raise RuntimeError("Internal VDM not initialized")
         
-        target_guid_str = _resolve_guid(desktop_id)
+        target_guid_str = self._resolve_to_guid(desktop_name)
+        if not target_guid_str:
+            logger.error(f"Desktop '{desktop_name}' not found.")
+            return
+
         target_guid = GUID(target_guid_str)
         
-        # We need the IVirtualDesktop object for the target
         try:
              target_desktop = self._internal_manager.FindDesktop(target_guid)
         except Exception:
-             logger.error(f"Could not find desktop with ID {desktop_id}")
+             logger.error(f"Could not find desktop with GUID {target_guid_str}")
              return
 
         # Find a fallback desktop
@@ -336,31 +362,37 @@ class VirtualDesktopManager:
                 break
         
         if not fallback_desktop:
-            # If no other desktop, we can't delete the only one? Or create one?
-            # Windows usually prevents deleting the last one.
             logger.error("No fallback desktop found (cannot delete the only desktop)")
             return
 
         self._internal_manager.RemoveDesktop(target_desktop, fallback_desktop)
 
-    def rename_desktop(self, desktop_id: str, new_name: str):
+    def rename_desktop(self, desktop_name: str, new_name: str):
         """
-        Renames a virtual desktop.
+        Renames a virtual desktop (identified by current Name).
+        """
+        target_guid_str = self._resolve_to_guid(desktop_name)
+        if not target_guid_str:
+            logger.error(f"Desktop '{desktop_name}' not found.")
+            return
+        
+        self.rename_desktop_by_guid(target_guid_str, new_name)
+
+    def rename_desktop_by_guid(self, guid_str: str, new_name: str):
+        """
+        Internal helper to rename by GUID.
         """
         if not self._internal_manager:
-            raise RuntimeError("Internal VDM not initialized")
-        
-        target_guid_str = _resolve_guid(desktop_id)
-        target_guid = GUID(target_guid_str)
+            return
+
+        target_guid = GUID(guid_str)
         try:
              target_desktop = self._internal_manager.FindDesktop(target_guid)
         except Exception:
-             logger.error(f"Could not find desktop with ID {desktop_id}")
              return
 
         hs_name = create_hstring(new_name)
         try:
-            # Check if SetName method exists (it might not on Windows 10)
             if hasattr(self._internal_manager, "SetName"):
                 self._internal_manager.SetName(target_desktop, hs_name)
             else:
@@ -370,27 +402,30 @@ class VirtualDesktopManager:
         finally:
             delete_hstring(hs_name)
 
-    def switch_desktop(self, desktop_id: str):
+    def switch_desktop(self, desktop_name: str):
         """
-        Switches to the specified virtual desktop.
+        Switches to the specified virtual desktop (by Name).
         """
         if not self._internal_manager:
             raise RuntimeError("Internal VDM not initialized")
         
-        target_guid_str = _resolve_guid(desktop_id)
+        target_guid_str = self._resolve_to_guid(desktop_name)
+        if not target_guid_str:
+             logger.error(f"Desktop '{desktop_name}' not found")
+             return
+
         target_guid = GUID(target_guid_str)
         try:
              target_desktop = self._internal_manager.FindDesktop(target_guid)
-        except Exception:
-             logger.error(f"Could not find desktop with ID {desktop_id}")
-             return
-
-        self._internal_manager.SwitchDesktop(target_desktop)
+             self._internal_manager.SwitchDesktop(target_desktop)
+        except Exception as e:
+             logger.error(f"Failed to switch desktop: {e}")
 
     def get_all_desktops(self) -> list[dict]:
         """
         Returns a list of all virtual desktops.
-        Each entry is a dict: {'id': str, 'name': str}
+        Returns [{'name': 'Desktop 1', 'id': '...'}, ...] 
+        Note: ID is kept for internal robustness but name is preferred.
         """
         if not self._internal_manager:
             raise RuntimeError("Internal VDM not initialized")
@@ -403,23 +438,20 @@ class VirtualDesktopManager:
             try:
                 unk = desktops_array.GetAt(i, IVirtualDesktop._iid_)
                 desktop = unk.QueryInterface(IVirtualDesktop)
-                guid = desktop.GetID()
-                simple_id = _get_simple_id(str(guid))
+                guid = getattr(desktop, "GetID", lambda: None)()
+                if not guid: continue
+
+                guid_str = str(guid)
+                # simple_id = _get_simple_id(guid_str) 
                 
-                name = ""
-                try:
-                    # Windows 10 interface might not support GetName commonly or it might fail
-                    if hasattr(desktop, "GetName"):
-                        hname = desktop.GetName()
-                        name = ctypes.wstring_at(hname)
-                        delete_hstring(hname)
-                except Exception:
-                    pass # Name retrieval failed, ignore
-                
-                if not name:
+                # Get Name from Registry or Fallback
+                reg_name = self._get_name_from_registry(guid_str)
+                if reg_name:
+                    name = reg_name
+                else:
                     name = f"Desktop {i+1}"
 
-                result.append({'id': simple_id, 'name': name})
+                result.append({'id': guid_str, 'name': name})
             except Exception as e:
                 logger.error(f"Error retrieving desktop at index {i}: {e}")
                 continue
@@ -430,57 +462,36 @@ class VirtualDesktopManager:
     def get_current_desktop(self) -> dict:
         """
         Returns info about the current virtual desktop.
-        Returns: {'id': str, 'name': str}
+        Returns: {'name': str, 'id': str}
         """
         if not self._internal_manager:
             raise RuntimeError("Internal VDM not initialized")
         
         current_desktop = self._internal_manager.GetCurrentDesktop()
         guid = current_desktop.GetID()
-        simple_id = _get_simple_id(str(guid))
+        guid_str = str(guid)
+        # simple_id = _get_simple_id(guid_str)
         
-        name = ""
-        try:
-             # Windows 10 interface might not support GetName commonly or it might fail
-            if hasattr(current_desktop, "GetName"):
-                hname = current_desktop.GetName()
-                name = ctypes.wstring_at(hname)
-                delete_hstring(hname)
-        except Exception:
-            pass 
+        # We need the index to determine fallback name if registry is empty
+        # But scanning all is easier to reuse logic
+        all_desktops = self.get_all_desktops()
+        for d in all_desktops:
+            if d['id'] == guid_str:
+                return d
         
-        if not name:
-            # Fallback logic
-            desktops_array = self._internal_manager.GetDesktops()
-            count = desktops_array.GetCount()
-            current_guid_str = str(guid)
-            
-            found_name = "Current Desktop"
-            for i in range(count):
-                try:
-                    unk = desktops_array.GetAt(i, IVirtualDesktop._iid_)
-                    candidate = unk.QueryInterface(IVirtualDesktop)
-                    candidate_guid_str = str(candidate.GetID())
-                    if candidate_guid_str == current_guid_str:
-                        found_name = f"Desktop {i+1}"
-                        break
-                except Exception:
-                    continue
-            name = found_name
-
-        return {'id': simple_id, 'name': name}
+        return {'id': guid_str, 'name': "Unknown"}
 
 def create_desktop(name: str = None) -> str:
     return _get_manager().create_desktop(name)
 
-def remove_desktop(desktop_id: str):
-    _get_manager().remove_desktop(desktop_id)
+def remove_desktop(desktop_name: str):
+    _get_manager().remove_desktop(desktop_name)
 
-def rename_desktop(desktop_id: str, new_name: str):
-    _get_manager().rename_desktop(desktop_id, new_name)
+def rename_desktop(desktop_name: str, new_name: str):
+    _get_manager().rename_desktop(desktop_name, new_name)
 
-def switch_desktop(desktop_id: str):
-    _get_manager().switch_desktop(desktop_id)
+def switch_desktop(desktop_name: str):
+    _get_manager().switch_desktop(desktop_name)
 
 def get_all_desktops() -> list[dict]:
     return _get_manager().get_all_desktops()

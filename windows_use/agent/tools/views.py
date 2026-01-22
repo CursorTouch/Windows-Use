@@ -215,13 +215,13 @@ class Desktop(SharedBaseModel):
         description="Action to perform on virtual desktop",
         examples=['create', 'remove', 'rename', 'switch']
     )
-    desktop_id: Optional[str] = Field(
-        description="ID of the desktop to perform action on (not required for create)",
+    desktop_name: Optional[str] = Field(
+        description="Name of the desktop to perform action on (e.g. 'Desktop 1', 'My Workspace'). Required for remove, rename, switch.",
         default=None,
-        examples=["a1b2c3d4"]
+        examples=["My Workspace", "Desktop 2"]
     )
-    name: Optional[str] = Field(
-        description="Name to set for the desktop (used with create or rename)",
+    new_name: Optional[str] = Field(
+        description="New name to set for the desktop (used with rename). For create, use desktop_name argument.",
         default=None,
-        examples=["My Workspace"]
+        examples=["Work Project"]
     )
