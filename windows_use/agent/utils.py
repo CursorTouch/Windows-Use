@@ -1,11 +1,16 @@
 from windows_use.llms.base import ChatLLMResponse
 from windows_use.agent.views import AgentData
+from windows_use.messages import AIMessage
 import json
 import ast
 import re
 
 def xml_parser(message: ChatLLMResponse) -> AgentData:
-    text = message.content
+    if isinstance(message.content, AIMessage):
+        text = message.content.content
+    else:
+        text = str(message.content)
+
     # Dictionary to store extracted values
     result = {}
     # Extract Evaluate

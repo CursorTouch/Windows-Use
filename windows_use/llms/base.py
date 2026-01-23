@@ -1,7 +1,8 @@
 from typing import Protocol,runtime_checkable,overload
-from windows_use.llms.views import ChatLLMResponse
+from windows_use.llms.views import ChatLLMResponse, ModelMetadata
 from windows_use.messages import BaseMessage
 from pydantic import BaseModel
+from windows_use.tool import Tool
 
 @runtime_checkable
 class BaseChatLLM(Protocol):
@@ -15,9 +16,23 @@ class BaseChatLLM(Protocol):
         ...
 
     @overload
-    def invoke(self, messages: list[BaseMessage],structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    def invoke(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
         ...
 
+    @overload
+    async def ainvoke(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+        ...
 
+    @overload
+    def stream(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+        ...
+
+    @overload
+    async def astream(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+        ...
+
+    @overload
+    def get_model_specification(self) -> ModelMetadata:
+        ...
 
     

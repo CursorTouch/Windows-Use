@@ -84,6 +84,7 @@ class Agent:
         """
         if query.strip()=='':
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
+        self.console.clear()
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
                 self.watchdog.set_focus_callback(self.desktop.tree._on_focus_change)
@@ -123,7 +124,7 @@ class Agent:
                                 break
                             except ValueError as e:
                                 error_messages.clear()
-                                error_messages.append(llm_response)
+                                error_messages.append(llm_response.content)
                                 error_messages.append(HumanMessage(content=f"Response rejected, invalid response format\nError: {e}\nAdhere to the format specified in <output_contract>"))
                                 logger.warning(f"[LLM]: Invalid response format, Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...")
                                 if consecutive_failures == self.max_consecutive_failures:

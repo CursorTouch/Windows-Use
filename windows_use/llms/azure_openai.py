@@ -1,13 +1,17 @@
-from openai import OpenAI
+from openai import AzureOpenAI, AsyncAzureOpenAI
 from openai.types.chat import ChatCompletionAssistantMessageParam, ChatCompletionUserMessageParam, ChatCompletionContentPartTextParam, ChatCompletionContentPartImageParam, ChatCompletionSystemMessageParam
 from openai.types.shared_params.response_format_json_schema import JSONSchema, ResponseFormatJSONSchema
 from openai.types.chat.chat_completion_content_part_image_param import ImageURL
-from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage
-from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage
+from windows_use.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage, ImageMessage, ToolMessage
+from windows_use.llms.views import ChatLLMResponse, ChatLLMUsage, ModelMetadata
 from windows_use.llms.base import BaseChatLLM
+from windows_use.tool.service import Tool
+from typing import Iterator, AsyncIterator
 from dataclasses import dataclass
 from pydantic import BaseModel
 from httpx import Client
+import json
+import os
 
 @dataclass
 class ChatAzureOpenAI(BaseChatLLM):
@@ -15,7 +19,7 @@ class ChatAzureOpenAI(BaseChatLLM):
         self,
         endpoint: str,
         deployment_name: str,
-        api_key: str,
+        api_key: str|None=None,
         model: str | None = None,
         api_version: str = "2024-10-21",
         temperature: float = 0.7,
@@ -24,10 +28,11 @@ class ChatAzureOpenAI(BaseChatLLM):
         default_headers: dict[str, str] | None = None,
         default_query: dict[str, object] | None = None,
         http_client: Client | None = None,
+        strict_response_validation: bool = False
     ):
         self.endpoint = endpoint.rstrip('/')
         self.deployment_name = deployment_name
-        self.api_key = api_key
+        self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
         self.model = model
         self.api_version = api_version
         self.temperature = temperature
@@ -36,34 +41,37 @@ class ChatAzureOpenAI(BaseChatLLM):
         self.default_headers = default_headers
         self.default_query = default_query
         self.http_client = http_client
-        self._client = None
+        self.strict_response_validation = strict_response_validation
 
     @property
-    def client(self) -> OpenAI:
-        if self._client is None:
-            # Build the base URL with deployment
-            base_url = f"{self.endpoint}/openai/deployments/{self.deployment_name}"
+    def client(self) -> AzureOpenAI:
+        return AzureOpenAI(
+            api_key=self.api_key,
+            azure_endpoint=self.endpoint,
+            api_version=self.api_version,
+            azure_deployment=self.deployment_name,
+            max_retries=self.max_retries,
+            timeout=self.timeout,
+            default_headers=self.default_headers,
+            default_query=self.default_query,
+            http_client=self.http_client,
+            _strict_response_validation=self.strict_response_validation
+        )
 
-            # Azure requires 'api-key' header for authentication (not Authorization: Bearer)
-            headers = {"api-key": self.api_key}
-            if self.default_headers:
-                headers.update(self.default_headers)
-
-            # Add api-version as default query parameter
-            query = {"api-version": self.api_version}
-            if self.default_query:
-                query.update(self.default_query)
-
-            self._client = OpenAI(
-                api_key=self.api_key,
-                base_url=base_url,
-                max_retries=self.max_retries,
-                timeout=self.timeout,
-                default_headers=headers,
-                default_query=query,
-                http_client=self.http_client,
-            )
-        return self._client
+    @property
+    def async_client(self) -> AsyncAzureOpenAI:
+        return AsyncAzureOpenAI(
+            api_key=self.api_key,
+            azure_endpoint=self.endpoint,
+            api_version=self.api_version,
+            azure_deployment=self.deployment_name,
+            max_retries=self.max_retries,
+            timeout=self.timeout,
+            default_headers=self.default_headers,
+            default_query=self.default_query,
+            http_client=self.http_client,
+            _strict_response_validation=self.strict_response_validation
+        )
 
     @property
     def provider(self) -> str:
@@ -85,23 +93,44 @@ class ChatAzureOpenAI(BaseChatLLM):
             elif isinstance(message, AIMessage):
                 content = [ChatCompletionContentPartTextParam(type="text", text=message.content)]
                 serialized.append(ChatCompletionAssistantMessageParam(role="assistant", content=content))
+            elif isinstance(message, ToolMessage):
+                # Assistant Tool Call
+                serialized.append(ChatCompletionAssistantMessageParam(
+                    role="assistant",
+                    tool_calls=[{
+                        "id": message.id,
+                        "type": "function",
+                        "function": {
+                            "name": message.name,
+                            "arguments": json.dumps(message.params)
+                        }
+                    }]
+                ))
+                # Tool Result
+                if message.content:
+                     serialized.append({
+                        "role": "tool",
+                        "tool_call_id": message.id,
+                        "content": str(message.content)
+                    })
             elif isinstance(message, ImageMessage):
-                message.scale_image(scale=0.7)
-                image = f"data:{message.mime_type};base64,{message.image_to_base64()}"
-                content = [
+                message.scale_images(scale=0.7)
+                images=[f"data:{message.mime_type};base64,{image}" for image in message.convert_images("base64")]
+                content=[
                     ChatCompletionContentPartTextParam(type="text", text=message.content),
-                    ChatCompletionContentPartImageParam(type="image_url", image_url=ImageURL(url=image, detail="auto"))
+                    *[ChatCompletionContentPartImageParam(type="image_url", image_url=ImageURL(url=image, detail="auto")) for image in images]
                 ]
                 serialized.append(ChatCompletionUserMessageParam(role="user", content=content))
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return serialized
 
-    def invoke(self, messages: list[BaseMessage], structured_output: BaseModel | None = None) -> ChatLLMResponse:
+    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None) -> ChatLLMResponse:
         completion = self.client.chat.completions.create(
             model=self.deployment_name,
             messages=self.serialize_messages(messages),
             temperature=self.temperature,
+            tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
             response_format=ResponseFormatJSONSchema(
                 type="json_schema",
                 json_schema=JSONSchema(
@@ -111,16 +140,119 @@ class ChatAzureOpenAI(BaseChatLLM):
                 )
             ) if structured_output else None
         )
-        content = completion.choices[0].message.content
-
-        if structured_output:
-            content = structured_output.model_validate_json(content)
+        message = completion.choices[0].message
+        if message.tool_calls:
+            tool_call = message.tool_calls[0]
+            content = ToolMessage(
+                id=tool_call.id,
+                name=tool_call.function.name,
+                params=json.loads(tool_call.function.arguments),
+                content=None
+            )
+            thinking = getattr(message, 'reasoning_content', None)
+        else:
+            content=AIMessage(content=message.content)
+            thinking = getattr(message, 'reasoning_content', None)
 
         return ChatLLMResponse(
             content=content,
+            thinking=thinking,
             usage=ChatLLMUsage(
                 prompt_tokens=completion.usage.prompt_tokens,
                 completion_tokens=completion.usage.completion_tokens,
                 total_tokens=completion.usage.total_tokens
             )
         )
+
+    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None) -> ChatLLMResponse:
+        completion = await self.async_client.chat.completions.create(
+            model=self.deployment_name,
+            messages=self.serialize_messages(messages),
+            temperature=self.temperature,
+            tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
+            response_format=ResponseFormatJSONSchema(
+                type="json_schema",
+                json_schema=JSONSchema(
+                    name=structured_output.__class__.__name__,
+                    description="Model output structured as JSON schema",
+                    schema=structured_output.model_json_schema()
+                )
+            ) if structured_output else None
+        )
+        message = completion.choices[0].message
+        if message.tool_calls:
+            tool_call = message.tool_calls[0]
+            content = ToolMessage(
+                id=tool_call.id,
+                name=tool_call.function.name,
+                params=json.loads(tool_call.function.arguments),
+                content=None
+            )
+            thinking = getattr(message, 'reasoning_content', None)
+        else:
+            content=AIMessage(content=message.content)
+            thinking = getattr(message, 'reasoning_content', None)
+
+        return ChatLLMResponse(
+            content=content,
+            thinking=thinking,
+            usage=ChatLLMUsage(
+                prompt_tokens=completion.usage.prompt_tokens,
+                completion_tokens=completion.usage.completion_tokens,
+                total_tokens=completion.usage.total_tokens
+            )
+        )
+
+    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None) -> Iterator[ChatLLMResponse]:
+        stream = self.client.chat.completions.create(
+            model=self.deployment_name,
+            messages=self.serialize_messages(messages),
+            temperature=self.temperature,
+            stream=True,
+            tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
+            response_format=ResponseFormatJSONSchema(
+                type="json_schema",
+                json_schema=JSONSchema(
+                    name=structured_output.__class__.__name__,
+                    description="Model output structured as JSON schema",
+                    schema=structured_output.model_json_schema()
+                )
+            ) if structured_output else None
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta.content:
+                yield ChatLLMResponse(content=AIMessage(content=delta.content))
+            if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
+                yield ChatLLMResponse(thinking=delta.reasoning_content)
+
+    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None) -> AsyncIterator[ChatLLMResponse]:
+        stream = await self.async_client.chat.completions.create(
+            model=self.deployment_name,
+            messages=self.serialize_messages(messages),
+            temperature=self.temperature,
+            stream=True,
+            tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
+            response_format=ResponseFormatJSONSchema(
+                type="json_schema",
+                json_schema=JSONSchema(
+                    name=structured_output.__class__.__name__,
+                    description="Model output structured as JSON schema",
+                    schema=structured_output.model_json_schema()
+                )
+            ) if structured_output else None
+        )
+        async for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta.content:
+                yield ChatLLMResponse(content=AIMessage(content=delta.content))
+            if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
+                yield ChatLLMResponse(thinking=delta.reasoning_content)
+
+    def get_model_specification(self):
+        return ModelMetadata(
+            name=self.model or self.deployment_name,
+            context_window=128000, # Default for most Azure deployments
+            owned_by="microsoft"
+        )
+

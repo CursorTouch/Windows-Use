@@ -1,3 +1,4 @@
+from windows_use.messages import AIMessage,ToolMessage
 from pydantic import BaseModel
 
 class ChatLLMUsage(BaseModel):
@@ -7,6 +8,11 @@ class ChatLLMUsage(BaseModel):
     image_tokens: int|None = None
 
 class ChatLLMResponse(BaseModel):
-    content: str|BaseModel| None=None
+    content: AIMessage|ToolMessage|BaseModel
     thinking: str|None = None
     usage: ChatLLMUsage|None = None
+
+class ModelMetadata(BaseModel):
+    name: str
+    context_window: int
+    owned_by: str
