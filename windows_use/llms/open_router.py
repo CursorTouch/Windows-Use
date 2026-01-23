@@ -18,7 +18,9 @@ import os
 class ChatOpenRouter(BaseChatLLM):
     def __init__(self, model: str, base_url: str|None=None, api_key: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
-        self.api_key = api_key
+        if not api_key and not os.getenv("OPENROUTER_API_KEY"):
+            raise ValueError("OPENROUTER_API_KEY is not set")
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         self.temperature = temperature
         self.max_retries = max_retries
         self.base_url = base_url or 'https://openrouter.ai/api/v1'

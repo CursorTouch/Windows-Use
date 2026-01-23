@@ -32,6 +32,8 @@ class ChatAzureOpenAI(BaseChatLLM):
     ):
         self.endpoint = endpoint.rstrip('/')
         self.deployment_name = deployment_name
+        if not api_key and not os.getenv("AZURE_OPENAI_API_KEY"):
+            raise ValueError("AZURE_OPENAI_API_KEY is not set")
         self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
         self.model = model
         self.api_version = api_version

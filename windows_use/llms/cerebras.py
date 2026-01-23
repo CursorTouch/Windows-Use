@@ -1,5 +1,4 @@
 from cerebras.cloud.sdk.types.chat.completion_create_params import (
-import os
     MessageSystemMessageRequestTyped, MessageUserMessageRequestTyped, MessageAssistantMessageRequestTyped,
     MessageSystemMessageRequestContentUnionMember1Typed, MessageAssistantMessageRequestContentUnionMember1Typed,
     MessageUserMessageRequestContentUnionMember1Typed
@@ -15,11 +14,14 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 from httpx import Client
 import json
+import os
 
 @dataclass
 class ChatCerebras(BaseChatLLM):
     def __init__(self, model: str, api_key: str|None=None, temperature: float = 0.7, base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False, warm_tcp_connection: bool = True):
         self.model = model
+        if not api_key and not os.getenv("CEREBRAS_API_KEY"):
+            raise ValueError("CEREBRAS_API_KEY is not set")
         self.api_key = api_key or os.getenv("CEREBRAS_API_KEY")
         self.temperature = temperature
         self.base_url = base_url

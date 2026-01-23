@@ -36,6 +36,8 @@ def run_async(coro):
 class ChatGoogle(BaseChatLLM):
     def __init__(self, model: str, thinking_budget: int=-1, api_key: str|None=None, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.7):
         self.model = model
+        if not api_key and not os.getenv("GOOGLE_API_KEY"):
+            raise ValueError("GOOGLE_API_KEY is not set")
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         self.vertexai = vertexai
         self.temperature = temperature

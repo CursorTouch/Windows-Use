@@ -15,6 +15,8 @@ import os
 class ChatMistral(BaseChatLLM):
     def __init__(self, model: str, api_key: str|None=None, max_tokens: int|None=None, temperature: float = 0.7, server: Union[str, None] = None, server_url: Union[str, None] = None, url_params: Dict[str, str] = None, client: Type[HttpClient] = None, async_client: Type[AsyncHttpClient] = None,retry_config: OptionalNullable[RetryConfig] = None,timeout_ms: Union[int, None] = None,debug_logger: Union[logging.Logger, None] = None):
         self.model = model
+        if not api_key and not os.getenv("MISTRAL_API_KEY"):
+            raise ValueError("MISTRAL_API_KEY is not set")
         self.api_key = api_key or os.getenv("MISTRAL_API_KEY")
         self.temperature = temperature
         self.server = server

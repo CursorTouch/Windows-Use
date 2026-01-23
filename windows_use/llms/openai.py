@@ -17,6 +17,8 @@ import os
 class ChatOpenAI(BaseChatLLM):
     def __init__(self, model: str, api_key: str|None=None, organization: str|None=None, project: str|None=None, base_url: str|None=None, websocket_base_url: str|None=None, temperature: float = 0.7,max_retries: int = 3,timeout: int|None=None, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
+        if not api_key and not os.getenv("OPENAI_API_KEY"):
+            raise ValueError("OPENAI_API_KEY is not set")
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.temperature = temperature
         self.max_retries = max_retries

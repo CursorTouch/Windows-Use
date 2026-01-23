@@ -15,6 +15,8 @@ import os
 class ChatAnthropic(BaseChatLLM):
     def __init__(self, model: str, api_key: str|None=None, thinking_budget:int=-1, temperature: float = 0.7, max_tokens: int = 8192, auth_token: str | None = None, base_url: str | None = None, timeout: float | None = None, max_retries: int = 3, default_headers: dict[str, str] | None = None, default_query: dict[str, object] | None = None, http_client: Client | None = None, strict_response_validation: bool = False):
         self.model = model
+        if not api_key and not os.getenv("ANTHROPIC_API_KEY"):
+            raise ValueError("ANTHROPIC_API_KEY is not set")
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self.auth_token = auth_token
         self.max_tokens = max_tokens
