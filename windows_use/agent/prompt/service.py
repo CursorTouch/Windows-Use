@@ -1,5 +1,5 @@
 from windows_use.agent.desktop.views import DesktopState, Browser
-from windows_use.agent.views import AgentData,AgentStep
+from windows_use.agent.views import AgentData
 from windows_use.agent.registry.views import ToolResult
 from windows_use.agent.desktop.service import Desktop
 from importlib.resources import files
@@ -38,27 +38,23 @@ class Prompt:
         })
     
     @staticmethod
-    def previous_observation_prompt(query:str,agent_step:AgentStep,observation: str)-> str:
+    def previous_observation_prompt(query:str,step:int,max_steps:int,observation: str)-> str:
         template=Path(files('windows_use.agent.prompt').joinpath('previous_observation.md')).read_text(encoding='utf-8')
-        steps = agent_step.steps
-        max_steps = agent_step.max_steps
         return template.format(**{
-            'steps': steps,
+            'steps': step,
             'max_steps': max_steps,
             'observation': observation,
             'query': query
         })
          
     @staticmethod
-    def observation_prompt(query:str,agent_step:AgentStep, tool_result:ToolResult,desktop_state: DesktopState) -> str:
+    def observation_prompt(query:str,step:int,max_steps:int, tool_result:ToolResult,desktop_state: DesktopState) -> str:
         cursor_location = pg.position()
         tree_state = desktop_state.tree_state
-        steps = agent_step.steps
-        max_steps = agent_step.max_steps
         template = Path(files('windows_use.agent.prompt').joinpath('observation.md')).read_text(encoding='utf-8')
 
         return template.format(**{
-            'steps': steps,
+            'steps': step,
             'max_steps': max_steps,
             'observation': tool_result.content if tool_result.is_success else tool_result.error,
             'active_app': desktop_state.active_app_to_string(),

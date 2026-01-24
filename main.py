@@ -17,7 +17,7 @@ def main():
     # llm=ChatOpenRouter(model="xiaomi/mimo-v2-flash:free",temperature=0.2)
     # llm=ChatAnthropic(model="claude-sonnet-4-5", temperature=0.7,max_tokens=1000)
     # llm=ChatOllama(model="qwen3-vl:235b-cloud",temperature=0.2)
-    # llm=ChatGroq(model="llama-3.3-70b-versatile",temperature=0.7)
+    # llm=ChatGroq(model="meta-llama/llama-4-maverick-17b-128e-instruct",temperature=0.7, json_mode=True)
     agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False,use_annotation=False, auto_minimize=False)
     agent.print_response(query=input("Enter a query: "))
 

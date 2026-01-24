@@ -114,7 +114,7 @@ class ChatAnthropic(BaseChatLLM):
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return system_instruction,serialized
     
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None):
+    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None, json_mode: bool = False):
         system_instruction, messages = self.serialize_messages(messages)
         
         anthropic_tools = []
@@ -169,7 +169,7 @@ class ChatAnthropic(BaseChatLLM):
             )
         )
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None):
+    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None, json_mode: bool = False):
         system_instruction, messages = self.serialize_messages(messages)
 
         anthropic_tools = []
@@ -224,7 +224,7 @@ class ChatAnthropic(BaseChatLLM):
             )
         )
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None) -> Iterator[ChatLLMResponse]:
+    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None, json_mode: bool = False) -> Iterator[ChatLLMResponse]:
         system_instruction, messages = self.serialize_messages(messages)
         anthropic_tools = []
         if tools:
@@ -249,7 +249,7 @@ class ChatAnthropic(BaseChatLLM):
                  # Add thinking support if Anthropic adds it in future or if using a specific beta
                  # Currently standard Anthropic stream doesn't separate thinking.
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None) -> AsyncIterator[ChatLLMResponse]:
+    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None = None, json_mode: bool = False) -> AsyncIterator[ChatLLMResponse]:
         system_instruction, messages = self.serialize_messages(messages)
         anthropic_tools = []
         if tools:

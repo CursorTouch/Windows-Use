@@ -93,7 +93,7 @@ class ChatMistral(BaseChatLLM):
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return serialized
     
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> ChatLLMResponse:
         completion=self.client.chat.complete(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -107,8 +107,9 @@ class ChatMistral(BaseChatLLM):
                     description="Model output structured as JSON schema",
                     schema_definition=structured_output.model_json_schema()
                 ),
+
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else (ResponseFormat(type="json_object") if json_mode else None)
         )
         if structured_output:
             content=structured_output.model_validate_json(completion.choices[0].message.content)
@@ -159,7 +160,7 @@ class ChatMistral(BaseChatLLM):
             )
         )
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> ChatLLMResponse:
         completion=await self.client.chat.complete_async(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -174,7 +175,7 @@ class ChatMistral(BaseChatLLM):
                     schema_definition=structured_output.model_json_schema()
                 ),
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else (ResponseFormat(type="json_object") if json_mode else None)
         )
         if structured_output:
             content=structured_output.model_validate_json(completion.choices[0].message.content)
@@ -225,7 +226,7 @@ class ChatMistral(BaseChatLLM):
             )
         )
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> Iterator[ChatLLMResponse]:
+    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> Iterator[ChatLLMResponse]:
         stream = self.client.chat.stream(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -239,7 +240,7 @@ class ChatMistral(BaseChatLLM):
                     schema_definition=structured_output.model_json_schema()
                 ),
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else (ResponseFormat(type="json_object") if json_mode else None)
         )
         for chunk in stream:
             delta = chunk.data.choices[0].delta
@@ -255,7 +256,7 @@ class ChatMistral(BaseChatLLM):
                              if isinstance(part.thinking, str):
                                 yield ChatLLMResponse(thinking=part.thinking)
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> AsyncIterator[ChatLLMResponse]:
+    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> AsyncIterator[ChatLLMResponse]:
         stream = await self.client.chat.stream_async(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -269,7 +270,7 @@ class ChatMistral(BaseChatLLM):
                     schema_definition=structured_output.model_json_schema()
                 ),
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else (ResponseFormat(type="json_object") if json_mode else None)
         )
         async for chunk in stream:
             delta = chunk.data.choices[0].delta

@@ -1,55 +1,80 @@
 from windows_use.llms.base import ChatLLMResponse
-from windows_use.agent.views import AgentData
+from windows_use.agent.views import AgentData, Action
 from windows_use.messages import AIMessage
 import json
-import ast
 import re
 
-def xml_parser(message: ChatLLMResponse) -> AgentData:
+def json_parser(message: ChatLLMResponse) -> AgentData:
+    """
+    Parse LLM response content into AgentData object.
+    Handles JSON with or without markdown code blocks.
+    
+    Args:
+        message: ChatLLMResponse object containing the raw text from LLM
+        
+    Returns:
+        AgentData object
+        
+    Raises:
+        ValueError: If JSON is invalid or missing required fields
+    """
     if isinstance(message.content, AIMessage):
-        text = message.content.content
+        content = message.content.content
     else:
-        text = str(message.content)
+        content = str(message.content)
 
-    # Dictionary to store extracted values
-    result = {}
-    # Extract Evaluate
-    evaluate_match = re.search(r"<evaluate>(.*?)<\/evaluate>", text, re.DOTALL)
-    if evaluate_match:
-        result['evaluate'] = evaluate_match.group(1).strip()
-    # Extract Thought
-    thought_match = re.search(r"<thought>(.*?)<\/thought>", text, re.DOTALL)
-    if thought_match:
-        result['thought'] = thought_match.group(1).strip()
-    # Extract Action
-    action_name_match = re.search(r"<name>(.*?)<\/name>", text, re.DOTALL)
-    if action_name_match:
-        action = {}
-        action['name'] = action_name_match.group(1).strip()
+    # Extract JSON if it's wrapped in markdown code blocks
+    if "```json" in content:
+        json_start = content.find("```json") + 7
+        json_end = content.find("```", json_start)
+        content = content[json_start:json_end].strip()
+    elif "```" in content:
+        json_start = content.find("```") + 3
+        json_end = content.find("```", json_start)
+        content = content[json_start:json_end].strip()
+    
+    # Clean up the text to find JSON content if no code blocks
+    content = content.strip()
+    
+    # Fallback: Try to find the first opening brace and last closing brace if parsing fails or no blocks
+    if not (content.startswith('{') and content.endswith('}')):
+        start = content.find('{')
+        end = content.rfind('}')
+        if start != -1 and end != -1:
+            content = content[start:end+1]
 
-        # Extract and convert Action-Input to a dictionary
-        action_input_match = re.search(r"<input>(.*?)<\/input>", text, re.DOTALL)
-        if action_input_match:
-            action_input_str = action_input_match.group(1).strip()
-            try:
-                # First try to evaluate as a Python literal (handles Python dicts)
-                action['params'] = ast.literal_eval(action_input_str)
-            except (ValueError, SyntaxError):
-                try:
-                    # Fallback to JSON parsing
-                    action['params'] = json.loads(action_input_str)
-                except json.JSONDecodeError:
-                    # If both fail, we can't parse params as a dict.
-                    # Depending on strictness, we might want to error or leave params empty.
-                    # Here we will raise to inform the caller/system of invalid format.
-                    raise ValueError(f"Failed to parse action params: {action_input_str}")
-
-        result['action'] = action
-
+    # Parse JSON
     try:
-        return AgentData.model_validate(result)
-    except Exception as e:
-        raise ValueError(f"Validation failed: {e}")
+        data = json.loads(content)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format: {str(e)}\nContent: {content}")
+    
+    # Validate required fields
+    required_fields = ["thought", "evaluate", "action"]
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        raise ValueError(f"Missing required fields: {missing_fields}")
+    
+    # Validate action structure
+    if not isinstance(data["action"], dict):
+        raise ValueError("'action' must be a dictionary")
+    
+    if "name" not in data["action"]:
+        raise ValueError("'action' must contain 'name'")
+    
+    if "params" not in data["action"]:
+        # Allow missing params, default to empty dict
+        data["action"]["params"] = {}
+    
+    # Create AgentData
+    return AgentData(
+        thought=data["thought"],
+        evaluate=data["evaluate"],
+        action=Action(
+            name=data["action"]["name"],
+            params=data["action"]["params"]
+        )
+    )
 
 def read_file(file_path: str) -> str:
     with open(file_path, 'r') as file:

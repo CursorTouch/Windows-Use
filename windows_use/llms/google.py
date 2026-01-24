@@ -34,7 +34,7 @@ def run_async(coro):
 
 @dataclass
 class ChatGoogle(BaseChatLLM):
-    def __init__(self, model: str, thinking_budget: int=-1, api_key: str|None=None, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.7):
+    def __init__(self, model: str, thinking_budget: int=-1, api_key: str|None=None, vertexai: bool|None=None, project: str|None=None, location: str|None=None, credentials: Credentials|None=None,http_options: types.HttpOptions | types.HttpOptionsDict | None = None, debug_config: DebugConfig | None = None, temperature: float = 0.7, json_mode: bool = False):
         self.model = model
         if not api_key and not os.getenv("GOOGLE_API_KEY"):
             raise ValueError("GOOGLE_API_KEY is not set")
@@ -113,23 +113,35 @@ class ChatGoogle(BaseChatLLM):
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return system_instruction, serialized
         
-    def invoke(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None) -> ChatLLMResponse:
+    def invoke(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None, json_mode: bool = False) -> ChatLLMResponse:
         system_instruction, contents = self.serialize_messages(messages)
         config=GenerateContentConfigDict({
             "temperature": self.temperature,
             "system_instruction":system_instruction,    
-            "response_mime_type": "application/json" if structured_output else "text/plain",
+            "response_mime_type": "application/json" if structured_output or json_mode else "text/plain",
             "response_modalities": [Modality.TEXT],
             "response_json_schema":structured_output.model_json_schema(mode="serialization") if structured_output else None
         })
         if tools:
             config["tools"]= [ToolDict(function_declarations=[FunctionDeclarationDict(name=tool.name,description=tool.description,parameters_json_schema=tool.json_schema['parameters']) for tool in tools])]
 
-        completion =run_async(self.client.aio.models.generate_content(
+        # Create a fresh client to avoid 'Event loop is closed' error when using asyncio.run()
+        # because the cached client might be bound to a previous, now closed, event loop.
+        client = Client(
+            api_key=self.api_key,
+            vertexai=self.vertexai,
+            project=self.project,
+            location=self.location,
+            credentials=self.credentials,
+            http_options=self.http_options,
+            debug_config=self.debug_config
+        )
+
+        completion = run_async(client.aio.models.generate_content(
             model=self.model,
             config=config,
             contents=contents
-            ))
+        ))
         if structured_output:
             content=structured_output.model_validate(completion.parsed)
         elif getattr(completion, 'function_calls',None):
@@ -158,12 +170,12 @@ class ChatGoogle(BaseChatLLM):
             )
         )
     
-    async def ainvoke(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None) -> ChatLLMResponse:
+    async def ainvoke(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None, json_mode: bool = False) -> ChatLLMResponse:
         system_instruction, contents = self.serialize_messages(messages)
         config: GenerateContentConfigDict = {
             "temperature": self.temperature,
             "system_instruction":system_instruction,
-            "response_mime_type": "application/json" if structured_output else "text/plain",
+            "response_mime_type": "application/json" if structured_output or json_mode else "text/plain",
             "response_modalities": [Modality.TEXT],
             "response_json_schema":structured_output.model_json_schema() if structured_output else None
         }
@@ -230,12 +242,12 @@ class ChatGoogle(BaseChatLLM):
             )
         )
 
-    def stream(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None) -> Iterator[ChatLLMResponse]:
+    def stream(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[ChatLLMResponse]:
         system_instruction, contents = self.serialize_messages(messages)
         config: GenerateContentConfigDict = {
             "temperature": self.temperature,
             "system_instruction":system_instruction,
-            "response_mime_type": "application/json" if structured_output else "text/plain",
+            "response_mime_type": "application/json" if structured_output or json_mode else "text/plain",
             "response_modalities": [Modality.TEXT],
             "response_json_schema":structured_output.model_json_schema(mode="serialization") if structured_output else None
         }
@@ -257,12 +269,12 @@ class ChatGoogle(BaseChatLLM):
                     if thought:
                         yield ChatLLMResponse(thinking=str(thought))
 
-    async def astream(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None) -> AsyncIterator[ChatLLMResponse]:
+    async def astream(self, messages: list[BaseMessage]=[], tools:list[Tool]=[], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[ChatLLMResponse]:
         system_instruction, contents = self.serialize_messages(messages)
         config: GenerateContentConfigDict = {
             "temperature": self.temperature,
             "system_instruction":system_instruction,
-            "response_mime_type": "application/json" if structured_output else "text/plain",
+            "response_mime_type": "application/json" if structured_output or json_mode else "text/plain",
             "response_modalities": [Modality.TEXT],
             "response_json_schema":structured_output.model_json_schema(mode="serialization") if structured_output else None
         }
@@ -285,7 +297,16 @@ class ChatGoogle(BaseChatLLM):
                         yield ChatLLMResponse(thinking=str(thought))
     
     def get_model_specification(self):
-        response = run_async(self.client.aio.models.get(model=self.model))
+        client = Client(
+            api_key=self.api_key,
+            vertexai=self.vertexai,
+            project=self.project,
+            location=self.location,
+            credentials=self.credentials,
+            http_options=self.http_options,
+            debug_config=self.debug_config
+        )
+        response = run_async(client.aio.models.get(model=self.model))
         return ModelMetadata(name=self.model,context_window=response.input_token_limit,owned_by="google")
         
 

@@ -105,7 +105,7 @@ class ChatGroq(BaseChatLLM):
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return serialized
     
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode:bool=False) -> ChatLLMResponse:
         completion=self.client.chat.completions.create(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -118,7 +118,7 @@ class ChatGroq(BaseChatLLM):
                     schema=structured_output.model_json_schema()
                 ),
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else ({"type": "json_object"} if json_mode else None)
         )
         if structured_output:
             content=structured_output.model_validate_json(completion.choices[0].message.content)
@@ -146,7 +146,7 @@ class ChatGroq(BaseChatLLM):
             )
         )
     
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None) -> ChatLLMResponse:
+    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> ChatLLMResponse:
         completion = await self.async_client.chat.completions.create(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -159,7 +159,7 @@ class ChatGroq(BaseChatLLM):
                     schema=structured_output.model_json_schema()
                 ),
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else ({"type": "json_object"} if json_mode else None)
         )
         message = completion.choices[0].message
         if message.tool_calls:
@@ -185,7 +185,7 @@ class ChatGroq(BaseChatLLM):
             )
         )
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> Iterator[ChatLLMResponse]:
+    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> Iterator[ChatLLMResponse]:
         stream = self.client.chat.completions.create(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -199,7 +199,7 @@ class ChatGroq(BaseChatLLM):
                     schema=structured_output.model_json_schema()
                 ),
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else ({"type": "json_object"} if json_mode else None)
         )
         for chunk in stream:
             delta = chunk.choices[0].delta
@@ -208,7 +208,7 @@ class ChatGroq(BaseChatLLM):
             if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
                 yield ChatLLMResponse(thinking=delta.reasoning_content)
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> AsyncIterator[ChatLLMResponse]:
+    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> AsyncIterator[ChatLLMResponse]:
         stream = await self.async_client.chat.completions.create(
             model=self.model,
             messages=self.serialize_messages(messages),
@@ -222,7 +222,7 @@ class ChatGroq(BaseChatLLM):
                     schema=structured_output.model_json_schema()
                 ),
                 type="json_schema"
-            ) if structured_output else None
+            ) if structured_output else ({"type": "json_object"} if json_mode else None)
         )
         async for chunk in stream:
             delta = chunk.choices[0].delta

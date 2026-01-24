@@ -16,19 +16,19 @@ class BaseChatLLM(Protocol):
         ...
 
     @overload
-    def invoke(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    def invoke(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None, json_mode:bool=False) -> ChatLLMResponse:
         ...
 
     @overload
-    async def ainvoke(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    async def ainvoke(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None, json_mode:bool=False) -> ChatLLMResponse:
         ...
 
     @overload
-    def stream(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    def stream(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None, json_mode:bool=False) -> ChatLLMResponse:
         ...
 
     @overload
-    async def astream(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    async def astream(self, messages: list[BaseMessage], tools:list[Tool]=[], structured_output:BaseModel|None=None, json_mode:bool=False) -> ChatLLMResponse:
         ...
 
     @overload

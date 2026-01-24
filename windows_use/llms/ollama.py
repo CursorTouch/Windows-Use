@@ -68,13 +68,13 @@ class ChatOllama(BaseChatLLM):
                 raise ValueError(f"Unsupported message type: {type(message)}")
         return serialized
     
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> ChatLLMResponse:
         completion=self.client.chat(
             model=self.model,
             stream=False,
             messages=self.serialize_messages(messages),
             tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
-            format=structured_output.model_json_schema() if structured_output else "",
+            format=structured_output.model_json_schema() if structured_output else ("json" if json_mode else ""),
         )
         if structured_output:
             content=structured_output.model_validate_json(completion.message.content)
@@ -100,13 +100,13 @@ class ChatOllama(BaseChatLLM):
                 total_tokens=completion.get("eval_count")+completion.get("prompt_eval_count"),
             )
         )
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> ChatLLMResponse:
+    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> ChatLLMResponse:
         completion=await self.async_client.chat(
             model=self.model,
             stream=False,
             messages=self.serialize_messages(messages),
             tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
-            format=structured_output.model_json_schema() if structured_output else "",
+            format=structured_output.model_json_schema() if structured_output else ("json" if json_mode else ""),
         )
         if structured_output:
             content=structured_output.model_validate_json(completion.message.content)
@@ -133,13 +133,13 @@ class ChatOllama(BaseChatLLM):
             )
         )
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> Iterator[ChatLLMResponse]:
+    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> Iterator[ChatLLMResponse]:
         stream = self.client.chat(
             model=self.model,
             stream=True,
             messages=self.serialize_messages(messages),
             tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
-            format=structured_output.model_json_schema() if structured_output else "",
+            format=structured_output.model_json_schema() if structured_output else ("json" if json_mode else ""),
         )
         for chunk in stream:
             if 'message' in chunk:
@@ -148,13 +148,13 @@ class ChatOllama(BaseChatLLM):
                  if 'reasoning_content' in chunk['message']:
                      yield ChatLLMResponse(thinking=chunk['message']['reasoning_content'])
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None) -> AsyncIterator[ChatLLMResponse]:
+    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output:BaseModel|None=None, json_mode: bool = False) -> AsyncIterator[ChatLLMResponse]:
         stream = await self.async_client.chat(
             model=self.model,
             stream=True,
             messages=self.serialize_messages(messages),
             tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
-            format=structured_output.model_json_schema() if structured_output else "",
+            format=structured_output.model_json_schema() if structured_output else ("json" if json_mode else ""),
         )
         async for chunk in stream:
              if 'message' in chunk:
