@@ -17,6 +17,7 @@ from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
 import logging
+import time
 
 logger = logging.getLogger("windows_use")
 logger.setLevel(logging.INFO)
@@ -86,6 +87,7 @@ class Agent:
             return AgentResult(is_done=False, error="Query is empty. Please provide a valid query.")
         self.console.clear()
         try:
+            task_start_time = time.time()
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
                 self.watchdog.set_focus_callback(self.desktop.tree.on_focus_change)
                 with self.watchdog:
@@ -109,6 +111,7 @@ class Agent:
                         HumanMessage(content=human_prompt)
                     ]
                     while step < self.max_steps:
+                        step_start_time = time.time()
                         step += 1
                         
                         logger.info(f"[Agent] 🎯 Step: {step}/{self.max_steps}")
@@ -175,6 +178,14 @@ class Agent:
                             answer = action_response.content
                             logger.info(f"[Agent] 📜 Final-Answer: {answer}\n")
                             agent_data.observation = answer
+
+                            step_end_time = time.time()
+                            step_duration = step_end_time - step_start_time
+                            logger.info(f"[Agent] ⌛ Step {step} took {step_duration:.2f} seconds")
+
+                            task_duration = time.time() - task_start_time
+                            logger.info(f"[Agent] 🏁 Task completed in {task_duration:.2f} seconds")
+                            
                             human_prompt = Prompt.answer_prompt(agent_data=agent_data, tool_result=action_response)
                             break  # Exit the while loop successfully
                         else:
@@ -184,12 +195,17 @@ class Agent:
                             logger.info(f"[Tool] 📝 Observation: {observation}\n")
                             agent_data.observation = observation
 
+                            step_end_time = time.time()
+                            step_duration = step_end_time - step_start_time
+                            logger.info(f"[Agent] ⌛ Step {step} took {step_duration:.2f} seconds")
+
                             desktop_state = self.desktop.get_state(use_annotation=self.use_annotation,use_vision=self.use_vision)
                             human_prompt = Prompt.observation_prompt(query=query, step=step, max_steps=self.max_steps,
                                 tool_result=action_response, desktop_state=desktop_state
                             )
                             human_message = ImageMessage(content=human_prompt, image=desktop_state.screenshot, mime_type="image/png") if self.use_vision and desktop_state.screenshot else HumanMessage(content=human_prompt)
                             messages.append(human_message)
+
                 
                 # Check if max steps reached (loop exited without Done action)
                 if step >= self.max_steps:
@@ -203,6 +219,8 @@ class Agent:
                         provider=self.llm.provider,
                         is_success=False
                     ))
+                    task_duration = time.time() - task_start_time
+                    logger.info(f"[Agent] 🛑 Task failed (max steps) in {task_duration:.2f} seconds")
                     return AgentResult(is_done=False, error="Max steps reached")
                 
                 self.telemetry.capture(AgentTelemetryEvent(
