@@ -72,14 +72,14 @@ At every step, Windows-Use receives the following structured state:
     List of Scrollable Elements:
     # id|app|type|name|coords|h_scroll|h_pct|v_scroll|v_pct|focus
     [End of Screen]
-    [End of Desktop]
     
     [Begin of Virtual Desktops]
     Virtual Desktops:
     # Desktop Name
     [End of Virtual Desktops]
+    [End of Desktop]
   </desktop_state>
-
+  
   <user_query>
     The ultimate goal provided by the user.
   </user_query>

@@ -87,9 +87,7 @@ class Agent:
         self.console.clear()
         try:
             with (self.desktop.auto_minimize() if self.auto_minimize else nullcontext()):
-                self.watchdog.set_focus_callback(self.desktop.tree._on_focus_change)
-                # self.watchdog.set_structure_callback(self.desktop.tree._on_structure_change) 
-                self.watchdog.set_property_callback(self.desktop.tree._on_property_change)
+                self.watchdog.set_focus_callback(self.desktop.tree.on_focus_change)
                 with self.watchdog:
                     desktop_state = self.desktop.get_state(use_annotation=self.use_annotation,use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
@@ -159,7 +157,7 @@ class Agent:
 
                         # Remove previous Desktop State Human Message
                         messages.pop()
-                        human_prompt = Prompt.previous_observation_prompt(agent_step=self.agent_step, observation=observation)
+                        human_prompt = Prompt.previous_observation_prompt(query=query,agent_step=self.agent_step, observation=observation)
                         human_message = HumanMessage(content=human_prompt)
                         messages.append(human_message)
 

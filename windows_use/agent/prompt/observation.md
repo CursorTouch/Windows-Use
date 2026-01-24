@@ -3,8 +3,9 @@
     <agent_state>
         Steps: {steps}/{max_steps}
 
-        Action Response: {observation}
+        Observation: {observation}
     <agent_state>
+    
     <desktop_state>
         [Begin of Desktop]
         Active Desktop: {active_desktop}
@@ -23,17 +24,16 @@
         List of Scrollable Elements:
         {scrollable_elements}
         [End of Screen]
-        [End of Desktop]
-        
+
         [Begin of Virtual Desktops]
         Virtual Desktops:
         {desktops}
         [End of Virtual Desktops]
+        [End of Desktop]
     <desktop_state>
+
     <user_query>
         {query}
     </user_query>
-
-Note: Use the `Done Tool` if the task is completely over else continue solving with full potential.
 </input>
 ```

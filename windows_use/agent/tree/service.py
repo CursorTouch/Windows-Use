@@ -510,7 +510,7 @@ class Tree:
         finally:
             comtypes.CoUninitialize()
 
-    def _on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
+    def on_focus_change(self, sender:'ctypes.POINTER(IUIAutomationElement)'):
         """Handle focus change events."""
         # Debounce duplicate events
         current_time = time()
@@ -525,13 +525,5 @@ class Tree:
 
         try:
             logger.debug(f"[WatchDog] Focus changed to: '{element.Name}' ({element.ControlTypeName})")
-        except Exception:
-            pass
-
-    def _on_property_change(self, sender:'ctypes.POINTER(IUIAutomationElement)', propertyId:int, newValue):
-        """Handle property change events."""
-        try:
-            element = Control.CreateControlFromElement(sender)
-            logger.debug(f"[WatchDog] Property changed: ID={propertyId} Value={newValue} Element: '{element.Name}' ({element.ControlTypeName})")
         except Exception:
             pass

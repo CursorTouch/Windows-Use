@@ -38,14 +38,15 @@ class Prompt:
         })
     
     @staticmethod
-    def previous_observation_prompt(agent_step:AgentStep,observation: str)-> str:
+    def previous_observation_prompt(query:str,agent_step:AgentStep,observation: str)-> str:
         template=Path(files('windows_use.agent.prompt').joinpath('previous_observation.md')).read_text(encoding='utf-8')
         steps = agent_step.steps
         max_steps = agent_step.max_steps
         return template.format(**{
             'steps': steps,
             'max_steps': max_steps,
-            'observation': observation
+            'observation': observation,
+            'query': query
         })
          
     @staticmethod
