@@ -10,13 +10,12 @@ import pyautogui as pg
 
 class Prompt:
     @staticmethod
-    def system_prompt(desktop:Desktop,browser: Browser,language: str,tools_schema:str,max_steps:int,instructions: list[str]=[]) -> str:
+    def system_prompt(desktop:Desktop,browser: Browser,language: str,max_steps:int,instructions: list[str]=[]) -> str:
         width, height = pg.size()
         template =Path(files('windows_use.agent.prompt').joinpath('system.md')).read_text(encoding='utf-8')
         return template.format(**{
             'datetime': datetime.now().strftime('%A, %B %d, %Y'),
             'instructions': '\n'.join(instructions),
-            'tools_schema': tools_schema,
             'download_directory': Path.home().joinpath('Downloads').as_posix(),
             'os':desktop.get_windows_version(),
             'language':language,

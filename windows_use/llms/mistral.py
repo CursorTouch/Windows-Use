@@ -78,6 +78,7 @@ class ChatMistral(BaseChatLLM):
                 # Tool Result (if content exists)
                 if message.content:
                      serialized.append(MistralToolMessage(
+                        tool_name=message.name,
                         tool_call_id=message.id,
                         content=str(message.content)
                     ))

@@ -34,6 +34,42 @@ class ChatOllama(BaseChatLLM):
     def model_name(self) -> str:
         return self.model
     
+    def sanitize_schema(self,tool_schema: dict) -> dict:
+        """
+        Convert full JSON schema into Ollama-compatible minimal function schema.
+        Keeps only:
+        - name
+        - description
+        - parameters: { type, properties: { name: { type } }, required }
+        """
+        params = tool_schema.get("parameters", {})
+        properties = params.get("properties", {})
+        required = params.get("required", [])
+
+        clean_props = {}
+
+        for name, prop in properties.items():
+            if isinstance(prop, dict):
+                t = prop.get("type", "string")
+            else:
+                t = "string"
+
+            # Normalize weird schema outputs
+            if t not in {"string", "integer", "number", "boolean", "array", "object"}:
+                t = "string"
+
+            clean_props[name] = {"type": t}
+
+        return {
+            "name": tool_schema.get("name"),
+            "description": tool_schema.get("description"),
+            "parameters": {
+                "type": "object",
+                "properties": clean_props,
+                "required": required
+            }
+        }
+    
     def serialize_messages(self, messages: list[BaseMessage]) -> list[dict]:
         serialized = []
         for message in messages:
@@ -58,6 +94,7 @@ class ChatOllama(BaseChatLLM):
                 if message.content:
                      serialized.append(Message(
                         role="tool",
+                        name=message.name,
                         content=str(message.content)
                     ))
             elif isinstance(message, ImageMessage):
@@ -73,7 +110,12 @@ class ChatOllama(BaseChatLLM):
             model=self.model,
             stream=False,
             messages=self.serialize_messages(messages),
-            tools=[{'type': 'function', 'function': tool.json_schema} for tool in tools] if tools else None,
+            tools=[
+                {
+                    'type': 'function', 
+                    'function': self.sanitize_schema(tool.json_schema)
+                } for tool in tools
+            ] if tools else None,
             format=structured_output.model_json_schema() if structured_output else ("json" if json_mode else ""),
         )
         if structured_output:

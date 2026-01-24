@@ -93,17 +93,17 @@ class Agent:
                 with self.watchdog:
                     desktop_state = self.desktop.get_state(use_annotation=self.use_annotation,use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
-                    tools_schema = self.registry.get_tools_schema()
                     observation="The desktop is ready to operate."
                     system_prompt=Prompt.system_prompt(desktop=self.desktop,
                         browser=self.browser,language=language,instructions=self.instructions,
-                        tools_schema=tools_schema,max_steps=self.max_steps
+                        max_steps=self.max_steps
                     )
                     
                     step = 0
                     human_prompt=Prompt.observation_prompt(query=query,step=step, max_steps=self.max_steps,
                         tool_result=ToolResult(is_success=True, content=observation), desktop_state=desktop_state
                     )
+                    tools=self.registry.get_tools()
                     messages=[
                         SystemMessage(content=system_prompt),
                         ImageMessage(content=human_prompt,image=desktop_state.screenshot,mime_type="image/png") 
@@ -121,7 +121,7 @@ class Agent:
                         # Retry logic for LLM failures
                         for consecutive_failures in range(1, self.max_consecutive_failures + 1):
                             try:
-                                llm_response = self.llm.invoke(messages+error_messages, json_mode=True)
+                                llm_response = self.llm.invoke(messages+error_messages,tools=tools, json_mode=False)
                                 agent_data = json_parser(llm_response)
                                 break
                             except ValueError as e:
@@ -173,7 +173,7 @@ class Agent:
                         action_name = action.name
                         params = action.params
 
-                        if action_name.startswith('Done'):
+                        if action_name.lower().startswith('done_tool'):
                             action_response = self.registry.execute(tool_name=action_name, desktop=None, **params)
                             answer = action_response.content
                             logger.info(f"[Agent] 📜 Final-Answer: {answer}\n")

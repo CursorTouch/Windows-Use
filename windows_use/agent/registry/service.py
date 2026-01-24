@@ -9,13 +9,16 @@ class Registry:
 
     def registry(self)->dict[str,Tool]:
         return {tool.name: tool for tool in self.tools}
+    
+    def get_tools(self)->list[Tool]:
+        return self.tools
 
     def get_tool(self,tool_name:str)->Tool|None:
         return self.tools_registry.get(tool_name,None)
     
-    def get_tools_schema(self) -> str:
-        tools_prompt = [tool.to_schema() for tool in self.tools]
-        return '\n\n'.join(tools_prompt)
+    def get_tools_schema(self) -> list[dict]:
+        tools = [tool.json_schema for tool in self.tools]
+        return tools
     
     def execute(self, tool_name: str, desktop: Desktop|None=None, **kwargs) -> ToolResult:
         tool = self.get_tool(tool_name)

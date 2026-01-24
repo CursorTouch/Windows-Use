@@ -9,20 +9,20 @@ class Tool:
         self.model=args_schema
         self.function = None
         
-    def to_schema(self)->str:
-        json_schema=self.model.model_json_schema(mode='serialization')
-        return json.dumps({
-            "type":"function",
-            "function":{
+    @property
+    def json_schema(self)->dict:
+        schema=self.model.model_json_schema(mode="serialization")
+        properties=schema.get("properties",{})
+        required=schema.get("required",[])
+        return {
                 "name":self.name,
                 "description":self.description,
                 "parameters":{
-                    "type": "object",
-                    "properties": json_schema.get('properties',{}),
-                    "required": json_schema.get('required',[])
+                    "type":"object",
+                    "properties":properties,
+                    "required":required
                 }
-            }
-        })
+            } 
 
     def validate(self,args:dict):
         errors:list[str]=[]

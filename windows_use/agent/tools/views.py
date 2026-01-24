@@ -20,7 +20,7 @@ class SharedBaseModel(BaseModel):
 class App(SharedBaseModel):
     mode: Literal['launch', 'resize', 'switch'] = Field(
         ...,
-        description="Operation mode: 'launch' opens app from Start Menu, 'resize' adjusts active window size/position, 'switch' brings specific window into focus",
+        description="Operation mode: 'launch' opens the prescibed application, 'resize' adjusts active window size/position, 'switch' brings specific window into focus",
         examples=['launch']
     )
     name: Optional[str] = Field(

@@ -8,7 +8,7 @@ from time import sleep
 
 memory_path=Path.cwd()/'.memories'
 
-@Tool('Done Tool',args_schema=Done)
+@Tool('done_tool',args_schema=Done)
 def done_tool(answer:str,**kwargs):
     '''
     Signals task completion and provides the final answer to the user.
@@ -19,7 +19,7 @@ def done_tool(answer:str,**kwargs):
     '''
     return answer
 
-@Tool('App Tool',args_schema=App)
+@Tool('app_tool',args_schema=App)
 def app_tool(mode:Literal['launch','resize','switch'],name:Optional[str]=None,loc:Optional[tuple[int,int]]=None,size:Optional[tuple[int,int]]=None,**kwargs)->str:
     '''
     Manages Windows applications through launch, resize, and window switching operations.
@@ -34,7 +34,7 @@ def app_tool(mode:Literal['launch','resize','switch'],name:Optional[str]=None,lo
     desktop:_Desktop=kwargs['desktop']
     return desktop.app(mode,name,loc,size)
 
-@Tool('Memory Tool',args_schema=Memory)
+@Tool('memory_tool',args_schema=Memory)
 def memory_tool(mode: Literal['view','read','write','delete','update'],path: Optional[str] = None,
     content: Optional[str] = None,operation: Optional[Literal['replace', 'insert']] = 'replace',
     old_str: Optional[str] = None,new_str: Optional[str] = None,line_number: Optional[int] = None,
@@ -144,7 +144,7 @@ def memory_tool(mode: Literal['view','read','write','delete','update'],path: Opt
         
     return "Invalid mode. Use 'view', 'write', 'read', 'update', or 'delete'."
 
-@Tool('Shell Tool',args_schema=Shell)
+@Tool('shell_tool',args_schema=Shell)
 def shell_tool(command: str,**kwargs) -> str:
     '''
     Executes PowerShell commands and returns output with status codes.
@@ -162,7 +162,7 @@ def shell_tool(command: str,**kwargs) -> str:
     response,status=desktop.execute_command(command)
     return f'Response: {response}\nStatus Code: {status}'
 
-@Tool('Click Tool',args_schema=Click)
+@Tool('click_tool',args_schema=Click)
 def click_tool(loc:Optional[tuple[int,int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
     '''
     Performs mouse click operations on UI elements at specified coordinates.
@@ -182,7 +182,7 @@ def click_tool(loc:Optional[tuple[int,int]]=None,button:Literal['left','right','
     num_clicks={1:'Single',2:'Double',3:'Triple'}
     return f'{num_clicks.get(clicks)} {button} clicked at ({x},{y}).'
 
-@Tool('Type Tool',args_schema=Type)
+@Tool('type_tool',args_schema=Type)
 def type_tool(loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
     '''
     Types text into input fields, text areas, and focused UI elements.
@@ -201,7 +201,7 @@ def type_tool(loc:Optional[tuple[int,int]]=None,text:str='',clear:Literal['true'
     desktop.type(loc,text,clear,caret_position,press_enter)
     return f'Typed {text} at ({x},{y}).'
 
-@Tool('Scroll Tool',args_schema=Scroll)
+@Tool('scroll_tool',args_schema=Scroll)
 def scroll_tool(loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
     '''
     Scrolls content vertically or horizontally at specified or current cursor location.
@@ -224,7 +224,7 @@ def scroll_tool(loc:Optional[tuple[int,int]]=None,type:Literal['horizontal','ver
         return response
     return f'Scrolled {type} {direction} by {wheel_times} wheel times.'
 
-@Tool('Move Tool',args_schema=Move)
+@Tool('move_tool',args_schema=Move)
 def move_tool(loc:tuple[int,int],drag:bool=False,**kwargs)->str:
     '''
     Moves mouse cursor to specific coordinates, optionally performing a drag operation.
@@ -246,7 +246,7 @@ def move_tool(loc:tuple[int,int],drag:bool=False,**kwargs)->str:
         desktop.move(loc)
         return f'Moved the mouse pointer to ({x},{y}).'
 
-@Tool('Shortcut Tool',args_schema=Shortcut)
+@Tool('shortcut_tool',args_schema=Shortcut)
 def shortcut_tool(shortcut:str,**kwargs)->str:
     '''
     Executes keyboard shortcuts for rapid command execution and navigation.
@@ -264,7 +264,7 @@ def shortcut_tool(shortcut:str,**kwargs)->str:
     desktop.shortcut(shortcut)
     return f'Pressed {shortcut}.'
 
-@Tool('Multi Select Tool',args_schema=MultiSelect)
+@Tool('multi_select_tool',args_schema=MultiSelect)
 def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[tuple[int,int]]=[],**kwargs)->str:
     '''
     Selects mutiple items such as files, folders, or checkboxes if press_ctrl is true and perform redundant clicks if press_ctrl is false.
@@ -280,7 +280,7 @@ def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[tu
     desktop.multi_select(press_ctrl,elements)
     return f'Multi-selected elements at {'\n'.join([f'({x},{y})' for x,y in elements])}.'
 
-@Tool('Multi Edit Tool',args_schema=MultiEdit)
+@Tool('multi_edit_tool',args_schema=MultiEdit)
 def multi_edit_tool(elements:list[tuple[int,int,str]],**kwargs)->str:
     '''
     Typing text into multiple input fields.
@@ -296,7 +296,7 @@ def multi_edit_tool(elements:list[tuple[int,int,str]],**kwargs)->str:
     desktop.multi_edit(elements)
     return f'Multi-edited elements at {','.join([f'({x},{y}) text={text}' for x,y,text in elements])}.'
 
-@Tool('Wait Tool',args_schema=Wait)
+@Tool('wait_tool',args_schema=Wait)
 def wait_tool(duration:int,**kwargs)->str:
     '''
     Pauses execution for a specified duration to allow processes to complete.
@@ -313,7 +313,7 @@ def wait_tool(duration:int,**kwargs)->str:
     sleep(duration)
     return f'Waited for {duration} seconds.'
 
-@Tool('Scrape Tool',args_schema=Scrape)
+@Tool('scrape_tool',args_schema=Scrape)
 def scrape_tool(url:str,**kwargs)->str:
     '''
     Fetches webpage content and converts it to clean markdown format for analysis.
@@ -341,7 +341,7 @@ def scrape_tool(url:str,**kwargs)->str:
     footer_status = "Reached bottom" if vertical_scroll_percent >= 100 else "Scroll down to see more"
     return f'URL:{url}\nContent:\n{header_status}\n{content}\n{footer_status}'
 
-@Tool('Desktop Tool', args_schema=Desktop)
+@Tool('desktop_tool', args_schema=Desktop)
 def desktop_tool(action: Literal['create', 'remove', 'rename', 'switch'], desktop_name: Optional[str] = None, new_name: Optional[str] = None, **kwargs) -> str:
     '''
     Manages Windows virtual desktops.
