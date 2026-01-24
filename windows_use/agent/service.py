@@ -16,6 +16,7 @@ from windows_use.uia import Control
 from contextlib import nullcontext
 from rich.markdown import Markdown
 from rich.console import Console
+from typing import Literal
 import logging
 import time
 
@@ -27,7 +28,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 class Agent:
-    def __init__(self,instructions:list[str]=[],browser:Browser=Browser.EDGE, use_annotation:bool=False, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
+    def __init__(self,mode:Literal["flash","full"]="full",instructions:list[str]=[],browser:Browser=Browser.EDGE, use_annotation:bool=False, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
         '''
         Initialize the Windows Use Agent.
 
@@ -46,7 +47,8 @@ class Agent:
             auto_minimize (bool): Whether to automatically minimize the current window before agent proceeds. Defaults to False.
         '''
         self.name='Windows Use'
-        self.description='An agent that can interact with GUI elements on Windows OS' 
+        self.description='An agent that can interact with GUI elements on Windows OS'
+        self.mode=mode
         self.registry = Registry([
             click_tool,type_tool, app_tool, shell_tool, done_tool, 
             shortcut_tool, scroll_tool, move_tool,wait_tool,
@@ -94,7 +96,7 @@ class Agent:
                     desktop_state = self.desktop.get_state(use_annotation=self.use_annotation,use_vision=self.use_vision)
                     language=self.desktop.get_default_language()
                     observation="The desktop is ready to operate."
-                    system_prompt=Prompt.system_prompt(desktop=self.desktop,
+                    system_prompt=Prompt.system_prompt(mode=self.mode,desktop=self.desktop,
                         browser=self.browser,language=language,instructions=self.instructions,
                         max_steps=self.max_steps
                     )
