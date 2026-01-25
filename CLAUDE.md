@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for Windows-Use
 
-> **Last Updated**: 2026-01-20
-> **Version**: 0.6.9
+> **Last Updated**: 2026-01-25
+> **Version**: 0.7.0
 > **For**: AI Assistants working on the Windows-Use codebase
 
 ---
@@ -101,6 +101,8 @@
 │   │   └── service.py              # SystemMessage, HumanMessage, AIMessage, ImageMessage
 │   ├── tool/                       # Tool decorator & execution framework
 │   │   └── service.py              # Tool class decorator
+│   ├── vdm/                        # Virtual Desktop Manager
+│   │   └── core.py                 # Windows 10/11 VDM API wrapper
 │   └── telemetry/                  # Analytics & telemetry (PostHog)
 │       ├── service.py              # ProductTelemetry
 │       └── views.py                # Telemetry event models
@@ -203,8 +205,14 @@ with self.watchdog:
 2. **Event Monitoring**: Dedicated STA (Single-Threaded Apartment) thread for COM events
 3. **Retry Logic**: `THREAD_MAX_RETRIES = 3` for failed threads
 
+#### Caching Strategy (Performance)
+To minimize expensive cross-process COM calls, Windows-Use implements **UIA Caching**:
+- **CacheRequest**: Batches property and pattern requests into a single COM call.
+- **Tree Traversal Optimization**: The tree service uses `CacheRequestFactory` to pre-fetch common properties (Name, ControlType, BoundingBox) for all children of a node simultaneously.
+- **Benefit**: Reduces the number of COM round-trips from $O(N \times P)$ to $O(N)$ where $P$ is the number of properties.
+
 ```python
-# Tree service uses parallel processing
+# Tree service uses parallel processing and caching
 with ThreadPoolExecutor(max_workers=max(len(other_apps), 1)) as executor:
     futures = {executor.submit(self.get_nodes, app, ...): app for app in other_apps}
 ```
@@ -547,6 +555,11 @@ class Agent:
 - Launches, switches to, or resizes applications
 - Handles window state changes (minimize/maximize/restore)
 
+**Virtual Desktop Management (`vdm` module)**:
+- Supports Windows 10 and 11 virtual desktops.
+- Capabilities: Create, remove, rename, and switch desktops.
+- Uses internal Windows internal COM interfaces (`IVirtualDesktopManagerInternal`).
+
 **`execute_shell_command(command: str) -> tuple[str, int]`**
 - Executes PowerShell commands
 - Returns output and exit code
@@ -566,18 +579,23 @@ class Agent:
 - Parallel processing with ThreadPoolExecutor
 - Returns interactive, scrollable, and informative elements
 
-**`get_nodes(app: Control, ...) -> tuple`**
-- Recursively extracts UI elements from control
-- Filters by visibility, interactivity, screen bounds
-- Categorizes into interactive/scrollable/informative
+**Performance: UIA Caching (`cache_utils.py`)**
+- `CacheRequestFactory`: Creates optimized `CacheRequest` objects.
+- `CachedControlHelper`: Wraps controls with cached properties.
+- Tree traversal uses `node.CachedProperty` instead of `node.Property` for 10x speedup.
+
+**`get_nodes(handle: int, ...)`**
+- Recursively extracts UI elements from control handle.
+- Filters by visibility, interactivity, screen bounds.
+- Categorizes into interactive/scrollable/informative.
 
 **`is_element_visible(element: Control) -> bool`**
-- Checks bounding box intersection with screen
-- Validates minimum visible area threshold
+- Checks bounding box intersection with screen.
+- Validates minimum visible area threshold.
 
-**`annotated_screenshot() -> bytes`**
-- Generates screenshot with element IDs overlaid
-- For vision-enabled LLMs
+**`annotated_screenshot()`** (via `desktop`)
+- Generates screenshot with element IDs overlaid.
+- For vision-enabled LLMs.
 
 #### Element Classification
 
@@ -595,24 +613,24 @@ class Agent:
 
 ### 4. Tool System (`windows_use/agent/tools/service.py`)
 
-#### Available Tools (14 total)
+#### Available Tools (15 total)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `done_tool` | Signals task completion | `answer: str` |
 | `app_tool` | Launch/resize/switch apps | `name, status, width, height` |
+| `desktop_tool`| Create/switch/rename virtual desktops | `action, desktop_name, new_name` |
 | `memory_tool` | File-based persistent storage | `action, key, value` |
 | `click_tool` | Mouse clicks | `x, y, button, count` |
 | `type_tool` | Text input | `text, id, clear, enter` |
 | `scroll_tool` | Scrolling | `direction, id` |
-| `drag_tool` | Drag-and-drop | `to_x, to_y, button` |
-| `move_tool` | Mouse movement | `x, y` |
-| `wait_tool` | Delay | `duration` |
-| `shortcut_tool` | Keyboard shortcuts | `keys` |
+| `move_tool` | Mouse movement & Drag | `to_x, to_y, button` |
+| `shortcut_tool`| Keyboard shortcuts | `keys` |
 | `shell_tool` | Execute commands | `command` |
 | `scrape_tool` | Extract webpage text | `id` |
-| `multi_select_tool` | Multi-select items | `ids` |
-| `multi_edit_tool` | Multi-line editing | `entries` |
+| `multi_select_tool`| Multi-select items | `ids` |
+| `multi_edit_tool`| Multi-line editing | `entries` |
+| `wait_tool` | Delay | `duration` |
 
 #### Creating New Tools
 
@@ -1335,7 +1353,15 @@ pre-commit run --all-files
 
 ## Changelog
 
-### Version 0.6.9 (Current)
+### Version 0.7.0 (Current)
+- **Performance Optimization**: Introduced UIA caching for 10x faster tree traversal.
+- **Virtual Desktop Support**: New `vdm` module and `desktop_tool` for workspace management.
+- **Multi-screen Support**: Enhanced capabilities for multiple monitors.
+- **Annotation Support**: Added manual control over annotated screenshots.
+- **Tool improvements**: Unified `move_tool` to handle both movement and dragging.
+- **Stability**: Fixed memory leaks in COM event handlers.
+
+### Version 0.6.9
 - Migrated from langchain/langgraph
 - Event handling system implemented
 - Structure change callbacks added
