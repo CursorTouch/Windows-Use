@@ -54,8 +54,8 @@ class IServiceProvider(IUnknown):
     _iid_ = IID_IServiceProvider
     _methods_ = [
         COMMETHOD([], HRESULT, "QueryService",
-                  (['in'], GUID, "guidService"),
-                  (['in'], GUID, "riid"),
+                  (['in'], POINTER(GUID), "guidService"),
+                  (['in'], POINTER(GUID), "riid"),
                   (['out'], POINTER(POINTER(IUnknown)), "ppvObject")),
     ]
 
@@ -204,7 +204,7 @@ class VirtualDesktopManager:
             # Initialize Internal Manager
             try:
                 service_provider = comtypes.client.CreateObject(CLSID_ImmersiveShell, interface=IServiceProvider)
-                unk = service_provider.QueryService(CLSID_VirtualDesktopManagerInternal, IVirtualDesktopManagerInternal._iid_)
+                unk = service_provider.QueryService(byref(CLSID_VirtualDesktopManagerInternal), byref(IVirtualDesktopManagerInternal._iid_))
                 self._internal_manager = unk.QueryInterface(IVirtualDesktopManagerInternal)
             except Exception as e:
                 logger.warning(f"Failed to initialize VirtualDesktopManagerInternal: {e}")
