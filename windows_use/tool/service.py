@@ -3,10 +3,10 @@ from typing import Any
 import json
 
 class Tool:
-    def __init__(self, name: str|None=None, description: str|None=None, args_schema:BaseModel|None=None):
+    def __init__(self, name: str|None=None, description: str|None=None, model:BaseModel|None=None):
         self.name = name
         self.description = description
-        self.model=args_schema
+        self.model=model
         self.function = None
         
     @property

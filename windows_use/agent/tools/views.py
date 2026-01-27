@@ -28,14 +28,14 @@ class App(SharedBaseModel):
         examples=['notepad', 'chrome', 'New tab - Personal - Microsoft Edge'],
         default=None
     )
-    loc: Optional[tuple[int, int]] = Field(
+    loc: Optional[list[int]] = Field(
         description="Target (x, y) coordinates for window top-left corner position (required for resize mode)",
-        examples=[(0, 0)],
+        examples=[[0, 0]],
         default=None
     )
-    size: Optional[tuple[int, int]] = Field(
+    size: Optional[list[int]] = Field(
         description="Target (width, height) dimensions in pixels for window size (required for resize mode)",
-        examples=[(1920, 1080)],
+        examples=[[1920, 1080]],
         default=None
     )
 
@@ -74,16 +74,16 @@ class Memory(SharedBaseModel):
         None,
         description="Line number for insertion (0-indexed). Required when operation='insert'."
     )
-    read_range: Optional[tuple[int, int]] = Field(
+    read_range: Optional[list[int]] = Field(
         None,
-        description="Range of lines to read (start, end) - both 0-indexed, end is exclusive. Example: (0, 10) reads lines 0-9. Optional for read mode."
+        description="Range of lines to read (start, end) - both 0-indexed, end is exclusive. Example: [0, 10] reads lines 0-9. Optional for read mode."
     )
 
 class Click(SharedBaseModel):
-    loc: tuple[int, int] = Field(
+    loc: list[int] = Field(
         ...,
         description="(x, y) pixel coordinates within the target element's bounding box to perform click action",
-        examples=[(640, 360), (100, 200)]
+        examples=[[640, 360], [100, 200]]
     )
     button: Literal['left', 'right', 'middle'] = Field(
         description="Mouse button to use: 'left' for selection/activation, 'right' for context menus, 'middle' for browser-specific actions",
@@ -109,10 +109,10 @@ class Shell(SharedBaseModel):
     )
 
 class Type(SharedBaseModel):
-    loc: tuple[int, int] = Field(
+    loc: list[int] = Field(
         ...,
         description="(x, y) pixel coordinates within the target input element's bounding box where text will be entered",
-        examples=[(640, 360), (200, 150)]
+        examples=[[640, 360], [200, 150]]
     )
     text: str = Field(
         ...,
@@ -141,24 +141,24 @@ class MultiSelect(SharedBaseModel):
         default='false',
         examples=['true', 'false']
     )
-    elements: list[tuple[int, int]] = Field(
+    elements: list[list[int]] = Field(
         ...,
         description="List of (x, y) pixel coordinates within the target element's bounding box for multiple selection",
-        examples=[[(640, 360), (800, 400)], [(100, 200), (200, 300)]]
+        examples=[[[640, 360], [800, 400]], [[100, 200], [200, 300]]]
     )
 
 class MultiEdit(SharedBaseModel):
-    elements: list[tuple[int, int, str]] = Field(
+    elements: list[list] = Field(
         ...,
-        description="List of (x, y, text) pixel coordinates within the target element's bounding box for multiple editing",
-        examples=[[(640, 360, 'hello'), (800, 400, 'world')], [(100, 200, 'foo'), (200, 300, 'bar')]]
+        description="List of [x, y, text] pixel coordinates within the target element's bounding box for multiple editing",
+        examples=[[[640, 360, 'hello'], [800, 400, 'world']], [[100, 200, 'foo'], [200, 300, 'bar']]]
     )
 
 class Scroll(SharedBaseModel):
-    loc: tuple[int, int] | None = Field(
+    loc: list[int] | None = Field(
         description="(x, y) pixel coordinates where scroll action occurs. If None, scrolls at current cursor position",
         default=None,
-        examples=[(640, 360), (800, 400), None]
+        examples=[[640, 360], [800, 400], None]
     )
     type: Literal['horizontal', 'vertical'] = Field(
         description="Scroll direction type: 'vertical' for up/down scrolling, 'horizontal' for left/right scrolling",
@@ -177,10 +177,10 @@ class Scroll(SharedBaseModel):
     )
 
 class Move(SharedBaseModel):
-    loc: tuple[int, int] = Field(
+    loc: list[int] = Field(
         ...,
         description="(x, y) pixel coordinates to move mouse cursor to. Used for hovering or drag-and-drop operations.",
-        examples=[(640, 360), (100, 100)]
+        examples=[[640, 360], [100, 100]]
     )
     drag: bool = Field(
         description="If True, performs a drag-and-drop operation from the current cursor position to the destination. If False, moves the cursor without clicking.",

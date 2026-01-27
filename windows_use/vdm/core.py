@@ -42,7 +42,7 @@ class IVirtualDesktopManager(IUnknown):
                   (['out', 'retval'], POINTER(GUID), "desktopId")),
         COMMETHOD([], HRESULT, "MoveWindowToDesktop",
                   (['in'], HWND, "topLevelWindow"),
-                  (['in'], GUID, "desktopId")),
+                  (['in'], POINTER(GUID), "desktopId")),
     ]
 
 # Internal COM Interfaces for Windows 11
@@ -67,7 +67,7 @@ class IObjectArray(IUnknown):
                   (['out'], POINTER(UINT), "pcObjects")),
         COMMETHOD([], HRESULT, "GetAt",
                   (['in'], UINT, "uiIndex"),
-                  (['in'], GUID, "riid"),
+                  (['in'], POINTER(GUID), "riid"),
                   (['out'], POINTER(POINTER(IUnknown)), "ppv")),
     ]
 
@@ -264,7 +264,7 @@ class VirtualDesktopManager:
             count = desktops_array.GetCount()
             
             for i in range(count):
-                unk = desktops_array.GetAt(i, IVirtualDesktop._iid_)
+                unk = desktops_array.GetAt(i, byref(IVirtualDesktop._iid_))
                 desktop = unk.QueryInterface(IVirtualDesktop)
                 guid = getattr(desktop, "GetID", lambda: None)()
                 if not guid: continue
@@ -300,7 +300,7 @@ class VirtualDesktopManager:
                 logger.error(f"Desktop '{desktop_name}' not found.")
                 return
             guid = GUID(target_guid_str)
-            self._manager.MoveWindowToDesktop(hwnd, guid)
+            self._manager.MoveWindowToDesktop(hwnd, byref(guid))
         except Exception as e:
             logger.error(f"Failed to move window to desktop: {e}")
 
@@ -354,7 +354,7 @@ class VirtualDesktopManager:
         fallback_desktop = None
         
         for i in range(count):
-            unk = desktops_array.GetAt(i, IVirtualDesktop._iid_)
+            unk = desktops_array.GetAt(i, byref(IVirtualDesktop._iid_))
             candidate = unk.QueryInterface(IVirtualDesktop)
             candidate_id = candidate.GetID()
             if str(candidate_id) != str(target_guid):
@@ -436,7 +436,7 @@ class VirtualDesktopManager:
         result = []
         for i in range(count):
             try:
-                unk = desktops_array.GetAt(i, IVirtualDesktop._iid_)
+                unk = desktops_array.GetAt(i, byref(IVirtualDesktop._iid_))
                 desktop = unk.QueryInterface(IVirtualDesktop)
                 guid = getattr(desktop, "GetID", lambda: None)()
                 if not guid: continue
