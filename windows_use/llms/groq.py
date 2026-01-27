@@ -98,7 +98,7 @@ class ChatGroq(BaseChatLLM):
                 images=[f"data:{message.mime_type};base64,{image}" for image in message.convert_images("base64")]
                 content=[
                     ChatCompletionContentPartTextParam(type="text",text=message.content),
-                    *[ChatCompletionContentPartImageParam(type="image_url",url=ImageURL(url=image,detail="auto")) for image in images]
+                    *[ChatCompletionContentPartImageParam(type="image_url",image_url=ImageURL(url=image,detail="auto")) for image in images]
                 ]
                 serialized.append(ChatCompletionUserMessageParam(role="user",content=content))
             else:

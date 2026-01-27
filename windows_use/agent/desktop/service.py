@@ -94,7 +94,7 @@ class Desktop:
         )
         # Log the time taken to capture the state
         end_time = time()
-        logger.info(f"Desktop State capture took {end_time - start_time:.2f} seconds")
+        logger.info(f"[Desktop] Desktop State capture took {end_time - start_time:.2f} seconds")
         return self.desktop_state
     
     def get_app_status(self,control:uia.Control)->Status:

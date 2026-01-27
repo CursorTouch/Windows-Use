@@ -87,7 +87,7 @@ class ChatMistral(BaseChatLLM):
                 images=[f"data:{message.mime_type};base64,{image}" for image in message.convert_images("base64")]
                 content=[
                     TextChunk(text=message.content),
-                    *[ImageURLChunk(type="image_url",url=ImageURL(url=image,detail="auto")) for image in images]
+                    *[ImageURLChunk(type="image_url",image_url=ImageURL(url=image,detail="auto")) for image in images]
                 ]
                 serialized.append(UserMessage(role="user",content=content))
             else:

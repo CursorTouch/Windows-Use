@@ -124,13 +124,8 @@ class Agent:
                         for consecutive_failures in range(1, self.max_consecutive_failures + 1):
                             try:
                                 llm_response = self.llm.invoke(messages+error_messages,tools=tools, json_mode=False)
-                                agent_data = json_parser(llm_response)
-                                break
-                            except ValueError as e:
-                                error_messages.clear()
-                                error_messages.append(llm_response.content)
-                                error_messages.append(HumanMessage(content=f"Response rejected, invalid response format\nError: {e}\nAdhere to the format specified in <output_contract>"))
-                                logger.warning(f"[LLM]: Invalid response format, Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...\nResponse: {llm_response.content}")
+                            except Exception as e:
+                                logger.error(f"[LLM]: Failed to generate response. Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...\nError: {e}")
                                 if consecutive_failures == self.max_consecutive_failures:
                                     self.telemetry.capture(AgentTelemetryEvent(
                                         query=query,
@@ -143,8 +138,17 @@ class Agent:
                                         is_success=False
                                     ))
                                     return AgentResult(is_done=False, error=str(e))
-                            except Exception as e:
-                                logger.error(f"[LLM]: Failed to generate response. Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...\nError: {e}")
+                                time.sleep(2)
+                                continue
+
+                            try:
+                                agent_data = json_parser(llm_response)
+                                break
+                            except ValueError as e:
+                                error_messages.clear()
+                                error_messages.append(llm_response.content)
+                                error_messages.append(HumanMessage(content=f"Response rejected, invalid response format\nError: {e}\nAdhere to the format specified in <output_contract>"))
+                                logger.warning(f"[LLM]: Invalid response format, Retrying attempt {consecutive_failures}/{self.max_consecutive_failures}...\nResponse: {llm_response.content}")
                                 if consecutive_failures == self.max_consecutive_failures:
                                     self.telemetry.capture(AgentTelemetryEvent(
                                         query=query,

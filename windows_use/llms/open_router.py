@@ -33,7 +33,7 @@ class ChatOpenRouter(BaseChatLLM):
     @property
     def client(self):
         return OpenAI(**{
-            "api_key": self.api_key or os.getenv("OPENROUTER_API_KEY"),
+            "api_key": self.api_key,
             "base_url": self.base_url,
             "max_retries": self.max_retries,
             "timeout": self.timeout,
@@ -47,7 +47,7 @@ class ChatOpenRouter(BaseChatLLM):
     def async_client(self):
         return AsyncOpenAI(**{
             "api_key": self.api_key,
-            "base_url": self.base_url or 'https://openrouter.ai/api/v1',
+            "base_url": self.base_url,
             "max_retries": self.max_retries,
             "timeout": self.timeout,
             "default_headers": self.default_headers,
@@ -97,10 +97,9 @@ class ChatOpenRouter(BaseChatLLM):
             elif isinstance(message, ImageMessage):
                 message.scale_images(scale=0.7)
                 images=[f"data:{message.mime_type};base64,{image}" for image in message.convert_images("base64")]
-                content=[
-                    ChatCompletionContentPartTextParam(type="text",text=message.content),
-                    *[ChatCompletionContentPartImageParam(type="image_url",url=ImageURL(url=image,detail="auto")) for image in images]
-                ]
+                text_content=[ChatCompletionContentPartTextParam(type="text",text=message.content)]
+                image_content=[ChatCompletionContentPartImageParam(type="image_url",image_url=ImageURL(url=image,detail="auto")) for image in images]
+                content=text_content+image_content
                 serialized.append(ChatCompletionUserMessageParam(role="user",content=content))
             else:
                 raise ValueError(f"Unsupported message type: {type(message)}")

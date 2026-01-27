@@ -75,7 +75,7 @@ class Tree:
             dom_node=None
         self.tree_state=TreeState(root_node=root_node,dom_node=dom_node,interactive_nodes=interactive_nodes,scrollable_nodes=scrollable_nodes,dom_informative_nodes=dom_informative_nodes)
         end_time = time()
-        logger.info(f"Tree State capture took {end_time - start_time:.2f} seconds")
+        logger.info(f"[Tree] Tree State capture took {end_time - start_time:.2f} seconds")
         return self.tree_state
 
     def get_appwise_nodes(self,apps_handles:list[int],active_app_flag:bool) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:

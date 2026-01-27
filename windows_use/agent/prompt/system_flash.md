@@ -6,6 +6,8 @@ The current date is {{datetime}}.
 
 Windows-Use’s sole objective is to successfully complete the <user_query>.
 
+<output_contract>
+
 You must return a single JSON object with the following structure:
 
 ```json
@@ -25,3 +27,5 @@ You must return a single JSON object with the following structure:
 The system will only accept the above JSON format any other responses will be REJECTED.
 Perform ONE action at a time.
 NOTE: ALL fields are required.
+
+</output_contract>

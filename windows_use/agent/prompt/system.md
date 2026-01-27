@@ -204,7 +204,7 @@ You must return a single JSON object with the following structure:
  ```
 
 The system will only accept the above JSON format any other responses will be REJECTED.
-NOTE: ALL fields are required.
+NOTE: ALL fields are required. Provide only VALID JSON.
 
  ### Example 1: Executing a tool
  ```json
@@ -229,7 +229,7 @@ NOTE: ALL fields are required.
      "name": "Click Tool",
      "params": {{
        "button": "left",
-       "repeat": 1
+       "clicks": 1
      }}
    }}
  }}
@@ -239,7 +239,7 @@ NOTE: ALL fields are required.
 
 <constraints>
 
-1. Do not produce any response other than the JSON object.
+1. Do not produce any response other than the VALID JSON.
 2. Perform only actions required for <user_query>.
 3. Complete the task within {max_steps}.
 4. Perform ONE action at a time.
