@@ -1,8 +1,11 @@
 from pydantic import BaseModel, ValidationError
 from typing import Any
+import logging
 import json
 
 EXCLUDED_PROPERTIES=["title"]
+
+logger = logging.getLogger(__name__)
 
 class Tool:
     def __init__(self, name: str|None=None, description: str|None=None, model:BaseModel|None=None):
@@ -49,6 +52,7 @@ class Tool:
                 field="".join([str(loc) for loc in error['loc']])
                 msg=error['msg']
                 errors.append(f"{field}:{msg}")
+            logger.warning(f"Validation errors for tool {self.name}: {errors}")
         return errors
 
     def __call__(self, function):
@@ -60,4 +64,8 @@ class Tool:
         return self
     
     def invoke(self, *args, **kwargs):
-        return self.function(*args, **kwargs)
+        try:
+            return self.function(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error invoking tool {self.name}: {e}")
+            return str(e)

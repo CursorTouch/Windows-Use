@@ -9,7 +9,7 @@ from time import sleep
 memory_path=Path.cwd()/'.memories'
 
 @Tool('done_tool',model=Done)
-def done_tool(response:str,**kwargs):
+def done_tool(answer:str,**kwargs):
     '''
     Signals task completion and provides the final answer to the user.
     
@@ -17,7 +17,7 @@ def done_tool(response:str,**kwargs):
     a comprehensive answer ready. The answer should be well-formatted in markdown 
     and include all relevant information the user requested.
     '''
-    return response
+    return answer
 
 @Tool('app_tool',model=App)
 def app_tool(mode:Literal['launch','resize','switch'],name:Optional[str]=None,loc:Optional[list[int]]=None,size:Optional[list[int]]=None,**kwargs)->str:

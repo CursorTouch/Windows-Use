@@ -175,7 +175,7 @@ class Agent:
                         action_name = action.name
                         params = action.params
 
-                        if action_name.lower().startswith('done_tool'):
+                        if action_name.lower().startswith('done'):
                             action_response = self.registry.execute(tool_name=action_name, desktop=None, **params)
                             answer = action_response.content
                             logger.info(f"[Agent] 📜 Final-Answer: {answer}\n")

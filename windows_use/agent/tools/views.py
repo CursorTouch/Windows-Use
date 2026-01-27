@@ -40,10 +40,10 @@ class App(SharedBaseModel):
     )
 
 class Done(SharedBaseModel):
-    response: str = Field(
+    answer: str = Field(
         ...,
-        description="Comprehensive final answer in markdown format containing all requested information and task results",
-        examples=["## Task Completed\n\nThe task has been completed successfully. Here are the results:\n- Item 1\n- Item 2"]
+        description="Comprehensive answer in markdown format containing all requested information and task results",
+        examples=["## Task Completed\n\nThe task has been completed successfully. Here is the answer:\n- Item 1\n- Item 2"]
     )
 
 class Memory(SharedBaseModel):
