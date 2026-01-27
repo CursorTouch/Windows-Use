@@ -1,6 +1,5 @@
-from windows_use.agent.tools.service import (click_tool, type_tool, shell_tool, done_tool,
-shortcut_tool, scroll_tool, move_tool, wait_tool, app_tool, scrape_tool, desktop_tool)
 from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage
+from windows_use.agent.tools import BUILTIN_TOOLS,EXPERIMENTAL_TOOLS
 from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.telemetry.service import ProductTelemetry
 from windows_use.agent.registry.service import Registry
@@ -28,7 +27,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 class Agent:
-    def __init__(self,mode:Literal["flash","full"]="full",instructions:list[str]=[],browser:Browser=Browser.EDGE, use_annotation:bool=False, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False):
+    def __init__(self,mode:Literal["flash","full"]="full",instructions:list[str]=[],browser:Browser=Browser.EDGE, use_annotation:bool=False, llm: BaseChatLLM=None,max_consecutive_failures:int=3,max_steps:int=25,use_vision:bool=False,auto_minimize:bool=False,experimental:bool=False):
         '''
         Initialize the Windows Use Agent.
 
@@ -49,11 +48,7 @@ class Agent:
         self.name='Windows Use'
         self.description='An agent that can interact with GUI elements on Windows OS'
         self.mode=mode
-        self.registry = Registry([
-            click_tool,type_tool, app_tool, shell_tool, done_tool, 
-            shortcut_tool, scroll_tool, move_tool,wait_tool,
-            scrape_tool, desktop_tool
-        ])
+        self.registry = Registry(BUILTIN_TOOLS if experimental else BUILTIN_TOOLS+EXPERIMENTAL_TOOLS)
         self.instructions=instructions
         self.browser=browser
         self.max_steps=max_steps

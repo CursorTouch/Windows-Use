@@ -56,8 +56,12 @@ class Desktop:
         active_app=self.get_active_app(apps=apps) #Active App
         active_app_handle=active_app.handle if active_app else None
 
-        active_desktop=get_current_desktop()
-        all_desktops=get_all_desktops()
+        try:
+            active_desktop=get_current_desktop()
+            all_desktops=get_all_desktops()
+        except RuntimeError:
+            active_desktop = {'id': '00000000-0000-0000-0000-000000000000', 'name': 'Default Desktop'}
+            all_desktops = [active_desktop]
 
         if active_app is not None and active_app in apps:
             apps.remove(active_app)
