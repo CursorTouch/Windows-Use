@@ -43,7 +43,7 @@ class TestAgentToolsService:
     def test_done_tool(self):
         """Test done_tool returns the response."""
         response = "Task done"
-        assert done_tool.invoke(**{"response": response}) == response
+        assert done_tool.invoke(**{"answer": response}) == response
 
     @pytest.mark.parametrize("mode, name, loc, size", [
         ("launch", "notepad", None, None),
