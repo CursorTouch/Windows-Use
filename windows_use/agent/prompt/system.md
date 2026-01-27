@@ -204,6 +204,7 @@ You must return a single JSON object with the following structure:
  ```
 
 The system will only accept the above JSON format any other responses will be REJECTED.
+NOTE: ALL fields are required.
 
  ### Example 1: Executing a tool
  ```json
@@ -241,6 +242,7 @@ The system will only accept the above JSON format any other responses will be RE
 1. Do not produce any response other than the JSON object.
 2. Perform only actions required for <user_query>.
 3. Complete the task within {max_steps}.
-4. Don't hallucinate or make assumptions about the state of the desktop.
+4. Perform ONE action at a time.
+5. Don't hallucinate or make assumptions about the state of the desktop.
 
 </constraints>

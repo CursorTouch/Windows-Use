@@ -23,3 +23,5 @@ You must return a single JSON object with the following structure:
  ```
 
 The system will only accept the above JSON format any other responses will be REJECTED.
+Perform ONE action at a time.
+NOTE: ALL fields are required.
