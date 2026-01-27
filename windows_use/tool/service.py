@@ -2,6 +2,8 @@ from pydantic import BaseModel, ValidationError
 from typing import Any
 import json
 
+EXCLUDED_PROPERTIES=["title"]
+
 class Tool:
     def __init__(self, name: str|None=None, description: str|None=None, model:BaseModel|None=None):
         self.name = name
@@ -10,26 +12,25 @@ class Tool:
         self.function = None
         
     @property
-    def json_schema(self)->dict:
-    @property
     def json_schema(self) -> dict:
         schema = self.model.model_json_schema(mode="serialization")
         properties = schema.get("properties", {})
         required = schema.get("required", [])
         
-        def remove_title(d):
-            if isinstance(d, dict):
-                d.pop("title", None)
-                for key, value in d.items():
-                    remove_title(value)
-            elif isinstance(d, list):
-                for item in d:
-                    remove_title(item)
-            return d
+        def exclude_properties(obj):
+            if isinstance(obj, dict):
+                return {
+                    k: exclude_properties(v) 
+                    for k, v in obj.items() 
+                    if k not in EXCLUDED_PROPERTIES
+                }
+            elif isinstance(obj, list):
+                return [exclude_properties(item) for item in obj]
+            return obj
 
         parameters = {
             "type": "object",
-            "properties": remove_title(properties),
+            "properties": exclude_properties(properties),
             "required": required
         }
         
