@@ -11,18 +11,33 @@ class Tool:
         
     @property
     def json_schema(self)->dict:
-        schema=self.model.model_json_schema(mode="serialization")
-        properties=schema.get("properties",{})
-        required=schema.get("required",[])
+    @property
+    def json_schema(self) -> dict:
+        schema = self.model.model_json_schema(mode="serialization")
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        
+        def remove_title(d):
+            if isinstance(d, dict):
+                d.pop("title", None)
+                for key, value in d.items():
+                    remove_title(value)
+            elif isinstance(d, list):
+                for item in d:
+                    remove_title(item)
+            return d
+
+        parameters = {
+            "type": "object",
+            "properties": remove_title(properties),
+            "required": required
+        }
+        
         return {
-                "name":self.name,
-                "description":self.description,
-                "parameters":{
-                    "type":"object",
-                    "properties":properties,
-                    "required":required
-                }
-            } 
+            "name": self.name,
+            "description": self.description,
+            "parameters": parameters
+        } 
 
     def validate(self,args:dict):
         errors:list[str]=[]
