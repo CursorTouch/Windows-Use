@@ -428,7 +428,8 @@ class VirtualDesktopManager:
         Note: ID is kept for internal robustness but name is preferred.
         """
         if not self._internal_manager:
-            raise RuntimeError("Internal VDM not initialized")
+            # Fallback for Server/unsupported builds
+            return [{'id': '00000000-0000-0000-0000-000000000000', 'name': 'Default Desktop'}]
         
         desktops_array = self._internal_manager.GetDesktops()
         count = desktops_array.GetCount()
@@ -465,7 +466,8 @@ class VirtualDesktopManager:
         Returns: {'name': str, 'id': str}
         """
         if not self._internal_manager:
-            raise RuntimeError("Internal VDM not initialized")
+            # Fallback for Server/unsupported builds
+            return {'id': '00000000-0000-0000-0000-000000000000', 'name': 'Default Desktop'}
         
         current_desktop = self._internal_manager.GetCurrentDesktop()
         guid = current_desktop.GetID()
