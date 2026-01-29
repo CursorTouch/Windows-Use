@@ -274,19 +274,46 @@ class Desktop:
             content=f'Switched to {app_name.title()} window.'
         return content,0
     
-    def bring_window_to_top(self,target_handle:int):
-        foreground_handle=win32gui.GetForegroundWindow()
-        foreground_thread,_=win32process.GetWindowThreadProcessId(foreground_handle)
-        target_thread,_=win32process.GetWindowThreadProcessId(target_handle)
+    def bring_window_to_top(self, target_handle: int):
+        if not win32gui.IsWindow(target_handle):
+            raise ValueError("Invalid window handle")
+
         try:
+            if win32gui.IsIconic(target_handle):
+                win32gui.ShowWindow(target_handle, win32con.SW_RESTORE)
+
+            foreground_handle = win32gui.GetForegroundWindow()
+            foreground_thread, _ = win32process.GetWindowThreadProcessId(foreground_handle)
+            target_thread, _ = win32process.GetWindowThreadProcessId(target_handle)
+
+            if not foreground_thread or not target_thread or foreground_thread == target_thread:
+                win32gui.SetForegroundWindow(target_handle)
+                win32gui.BringWindowToTop(target_handle)
+                return
+
             ctypes.windll.user32.AllowSetForegroundWindow(-1)
-            win32process.AttachThreadInput(foreground_thread,target_thread,True)
-            win32gui.SetForegroundWindow(target_handle)
-            win32gui.BringWindowToTop(target_handle)
+
+            attached = False
+            try:
+                win32process.AttachThreadInput(foreground_thread, target_thread, True)
+                attached = True
+
+                win32gui.SetForegroundWindow(target_handle)
+                win32gui.BringWindowToTop(target_handle)
+
+                win32gui.SetWindowPos(
+                    target_handle,
+                    win32con.HWND_TOP,
+                    0, 0, 0, 0,
+                    win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW
+                )
+
+            finally:
+                if attached:
+                    win32process.AttachThreadInput(foreground_thread, target_thread, False)
+
         except Exception as e:
-            logger.error(f'Failed to bring window to top: {e}')
-        finally:
-            win32process.AttachThreadInput(foreground_thread,target_thread,False)
+            logger.exception(f"Failed to bring window to top: {e}")
     
     def get_element_handle_from_label(self,label:int)->uia.Control:
         tree_state=self.desktop_state.tree_state

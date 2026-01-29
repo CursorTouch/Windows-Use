@@ -1,6 +1,6 @@
 [project]
 name = "windows-use"
-version = "0.7.1"
+version = "0.7.3"
 description = "An AI Agent that interacts with Windows OS at GUI level."
 authors = [
     { name = "Jeomon George", email = "jeogeoalukka@gmail.com" }
@@ -10,7 +10,7 @@ license = 'MIT'
 license-files = ["LICENSE"]
 urls = { homepage = "https://github.com/CursorTouch" }
 keywords = ["windows", "agent", "ai", "desktop","ai agent","automation"]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

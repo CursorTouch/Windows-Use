@@ -212,7 +212,7 @@ NOTE: ALL fields are required. Provide only VALID JSON.
    "evaluate": "Success - I need to open notepad to procced to fulfil the goal",
    "thought": "I need to launch Notepad to write the file.",
    "action": {{
-     "name": "Shell Tool",
+     "name": "shell_tool",
      "params": {{
        "command": "notepad.exe"
      }}
@@ -226,7 +226,7 @@ NOTE: ALL fields are required. Provide only VALID JSON.
    "evaluate": "Neutral - I will click on the this location to continue",
    "thought": "The submission button is visible. I will click it.",
    "action": {{
-     "name": "Click Tool",
+     "name": "click_tool",
      "params": {{
        "button": "left",
        "clicks": 1

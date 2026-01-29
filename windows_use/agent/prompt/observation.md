@@ -37,3 +37,5 @@
     </user_query>
 </input>
 ```
+
+Based on the new Desktop State, give the next action to be taken by you in JSON format.

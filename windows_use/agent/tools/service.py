@@ -278,7 +278,8 @@ def multi_select_tool(press_ctrl:Literal['true','false']='true',elements:list[li
     '''
     desktop:_Desktop=kwargs['desktop']
     desktop.multi_select(press_ctrl,elements)
-    return f'Multi-selected elements at {'\n'.join([f'({x},{y})' for x,y in elements])}.'
+    elements_str = '\n'.join([f"({x},{y})" for x,y in elements])
+    return f'Multi-selected elements at {elements_str}.'
 
 @Tool('multi_edit_tool',model=MultiEdit)
 def multi_edit_tool(elements:list[list],**kwargs)->str:
@@ -294,7 +295,8 @@ def multi_edit_tool(elements:list[list],**kwargs)->str:
     '''
     desktop:_Desktop=kwargs['desktop']
     desktop.multi_edit(elements)
-    return f'Multi-edited elements at {','.join([f'({x},{y}) text={text}' for x,y,text in elements])}.'
+    elements_str = ','.join([f'({x},{y}) text={text}' for x,y,text in elements])
+    return f'Multi-edited elements at {elements_str}.'
 
 @Tool('wait_tool',model=Wait)
 def wait_tool(duration:int,**kwargs)->str:
