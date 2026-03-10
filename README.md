@@ -313,7 +313,7 @@ os.environ["ANONYMIZED_TELEMETRY"] = "false"
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=CursorTouch/Windows-Use&type=Date)](https://www.star-history.com/#CursorTouch/Windows-Use&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Jeomon/Windows-Use&type=Date)](https://www.star-history.com/?repos=Jeomon%2FWindows-Use&type=date&legend=top-left)
 
 ## 🪪 License
 
