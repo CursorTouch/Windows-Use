@@ -1,0 +1,48 @@
+# get_ControlViewCondition
+
+[Original Documentation](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-get_controlviewcondition)
+
+# IUIAutomation::get\_ControlViewCondition method (uiautomationclient.h)
+
+Retrieves a predefined [IUIAutomationCondition](/en-us/windows/desktop/api/uiautomationclient/nn-uiautomationclient-iuiautomationcondition) interface that selects control elements.
+
+This property is read-only.
+
+## Syntax
+
+```
+HRESULT get_ControlViewCondition(
+  IUIAutomationCondition **condition
+);
+```
+
+## Parameters
+
+`condition`
+
+## Return value
+
+None
+
+## Requirements
+
+| Requirement | Value |
+| --- | --- |
+| **Minimum supported client** | Windows 7, Windows Vista with SP2 and Platform Update for Windows Vista, Windows XP with SP3 and Platform Update for Windows Vista [desktop apps only] |
+| **Minimum supported server** | Windows Server 2008 R2, Windows Server 2008 with SP2 and Platform Update for Windows Server 2008, Windows Server 2003 with SP2 and Platform Update for Windows Server 2008 [desktop apps only] |
+| **Target Platform** | Windows |
+| **Header** | uiautomationclient.h (include UIAutomation.h) |
+
+## See also
+
+[ContentViewCondition](/en-us/windows/desktop/api/uiautomationclient/nf-uiautomationclient-iuiautomation-get_contentviewcondition)
+
+[IUIAutomation](/en-us/windows/desktop/api/uiautomationclient/nn-uiautomationclient-iuiautomation)
+
+[IUIAutomationCondition](/en-us/windows/desktop/api/uiautomationclient/nn-uiautomationclient-iuiautomationcondition)
+
+[RawViewCondition](/en-us/windows/desktop/api/uiautomationclient/nf-uiautomationclient-iuiautomation-get_rawviewcondition)
+
+**Reference**
+
+---

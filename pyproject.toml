@@ -1,0 +1,85 @@
+[project]
+name = "windows-use"
+version = "0.7.65"
+description = "An AI Agent that interacts with Windows OS at GUI level."
+authors = [
+    { name = "Jeomon George", email = "jeogeoalukka@gmail.com" }
+]
+readme = "README.md"
+license = 'MIT'
+license-files = ["LICENSE"]
+urls = { homepage = "https://github.com/CursorTouch" }
+keywords = ["windows", "agent", "ai", "desktop","ai agent","automation"]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: User Interfaces",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3.10",
+]
+
+dependencies = [
+    "fuzzywuzzy>=0.18.0",
+    "ipykernel>=6.29.5",
+    "markdownify>=1.1.0",
+    "pillow>=11.2.1",
+    "psutil>=7.0.0",
+    "pydantic>=2.11.7",
+    "python-levenshtein>=0.27.1",
+    "rich>=14.0.0",
+    "tabulate>=0.9.0",
+    "termcolor>=3.1.0",
+    "twine>=6.1.0",
+    "python-dotenv>=1.0.0",
+    "uuid7>=0.1.0",
+    "posthog>=6.7.8",
+    "groq>=0.29.0",
+    "google-genai>=1.45.0",
+    "openai>=1.93.0",
+    "ollama>=0.5.1",
+    "cerebras-cloud-sdk>=1.50.1",
+    "anthropic>=0.68.1",
+    "litellm>=1.72.0",
+    "mistralai>=1.9.11",
+    "pywin32>=311",
+    "comtypes>=1.4.14",
+    "qrcode>=8.2",
+    "neonize>=0.3.14.post0",
+    "python-telegram-bot>=21.10",
+    "pysignalclirestapi>=0.3.24",
+    "httpx>=0.28.1",
+    "websockets>=15.0.1",
+    "discord-py>=2.6.4",
+    "slack-bolt>=1.27.0",
+    "pynacl>=1.6.2",
+    "elevenlabs>=2.35.0",
+    "deepgram-sdk>=4.0,<5.0",
+    "datasets>=4.5.0",
+    "typer>=0.15.0",
+    "questionary>=2.0.0",
+    "cryptography>=44.0.0",
+]
+
+[project.scripts]
+windows-use = "windows_use.cli.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.1",
+    "ruff>=0.12.1",
+]
+speech = [
+    "pyaudio>=0.2.14",
+    "elevenlabs>=1.50.0",
+    "deepgram-sdk>=3.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+packages = ["windows_use"]

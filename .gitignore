@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.ruff_cache
+.pytest_cache
+
+# Virtual environments
+.venv
+.env
+sandbox
+*.ipynb
+__pycache__
+
+.dataset
+.vscode
+.agent
+.windows-use
+
+experiments/
+logs
+
+# Electron UI
+ui/node_modules/
+ui/dist/
+ui/out/
