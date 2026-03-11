@@ -191,28 +191,48 @@ class Desktop:
         self._cached_default_language = result
         return result
     
-    def resize_app(self,size:tuple[int,int]=None,loc:tuple[int,int]=None)->tuple[str,int]:
-        active_app=self.desktop_state.active_window
-        if active_app is None:
-            return "No active app found",1
-        if active_app.status==Status.MINIMIZED:
-            return f"{active_app.name} is minimized",1
-        elif active_app.status==Status.MAXIMIZED:
-            return f"{active_app.name} is maximized",1
+    def _find_window_by_name(self, name: str) -> tuple['Window | None', str]:
+        """Find a window by fuzzy name match. Returns (window, error_msg).
+        If the returned window is None, error_msg describes the failure reason.
+        """
+        window_list = [w for w in [self.desktop_state.active_window] + self.desktop_state.windows if w is not None]
+        if not window_list:
+            return None, 'No windows found on the desktop.'
+        windows = {window.name: window for window in window_list}
+        matched = process.extractOne(name, list(windows.keys()), score_cutoff=70)
+        if matched is None:
+            return None, f'Application {name.title()} not found.'
+        window_name, _ = matched
+        return windows.get(window_name), ''
+
+    def resize_app(self, name: str | None = None, size: tuple[int, int] = None, loc: tuple[int, int] = None) -> tuple[str, int]:
+        if name is not None:
+            target_app, error = self._find_window_by_name(name)
+            if target_app is None:
+                return error, 1
         else:
-            app_control=uia.ControlFromHandle(active_app.handle)
+            target_app = self.desktop_state.active_window
+            if target_app is None:
+                return 'No active app found', 1
+
+        if target_app.status == Status.MINIMIZED:
+            return f'{target_app.name} is minimized', 1
+        elif target_app.status == Status.MAXIMIZED:
+            return f'{target_app.name} is maximized', 1
+        else:
+            app_control = uia.ControlFromHandle(target_app.handle)
             if loc is None:
-                x=app_control.BoundingRectangle.left
-                y=app_control.BoundingRectangle.top
-                loc=(x,y)
+                x = app_control.BoundingRectangle.left
+                y = app_control.BoundingRectangle.top
+                loc = (x, y)
             if size is None:
-                width=app_control.BoundingRectangle.width()
-                height=app_control.BoundingRectangle.height()
-                size=(width,height)
-            x,y=loc
-            width,height=size
-            app_control.MoveWindow(x,y,width,height)
-            return (f'{active_app.name} resized to {width}x{height} at {x},{y}.',0)
+                width = app_control.BoundingRectangle.width()
+                height = app_control.BoundingRectangle.height()
+                size = (width, height)
+            x, y = loc
+            width, height = size
+            app_control.MoveWindow(x, y, width, height)
+            return (f'{target_app.name} resized to {width}x{height} at {x},{y}.', 0)
     
     def is_app_running(self,name:str)->bool:
         apps, _ = self.get_windows()
@@ -248,7 +268,7 @@ class Desktop:
                     return f'{name.title()} launched.'
                 return f'Launching {name.title()} sent, but window not detected yet.'
             case 'resize':
-                response,status=self.resize_app(size=size,loc=loc)
+                response,status=self.resize_app(name=name,size=size,loc=loc)
                 if status!=0:
                     return response
                 else:
@@ -284,22 +304,19 @@ class Desktop:
             
         return response, status, pid
     
-    def switch_app(self,name:str):
-        apps={app.name:app for app in [self.desktop_state.active_window]+self.desktop_state.windows if app is not None}
-        matched_app:Optional[tuple[str,float]]=process.extractOne(name,list(apps.keys()),score_cutoff=70)
-        if matched_app is None:
-            return (f'Application {name.title()} not found.',1)
-        app_name,_=matched_app
-        app=apps.get(app_name)
-        target_handle=app.handle
+    def switch_app(self, name: str):
+        app, error = self._find_window_by_name(name)
+        if app is None:
+            return error, 1
 
-        was_minimized=uia.IsIconic(target_handle)
+        target_handle = app.handle
+        was_minimized = uia.IsIconic(target_handle)
         self.bring_window_to_top(target_handle)
         if was_minimized:
-            content=f'{app_name.title()} restored from minimized and switched to it.'
+            content = f'{app.name.title()} restored from minimized and switched to it.'
         else:
-            content=f'Switched to {app_name.title()} window.'
-        return content,0
+            content = f'Switched to {app.name.title()} window.'
+        return content, 0
     
     def bring_window_to_top(self, target_handle: int):
         if not win32gui.IsWindow(target_handle):
