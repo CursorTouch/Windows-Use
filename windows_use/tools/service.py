@@ -87,7 +87,10 @@ class Tool(ABC):
     def invoke(self, *args, **kwargs):
         """Synchronous invocation. Use ainvoke for async tools."""
         try:
-            return self.function(*args, **kwargs)
+            result = self.function(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return asyncio.run(result)
+            return result
         except Exception as e:
             logger.error(f"Error invoking tool {self.name}: {e}")
             raise
