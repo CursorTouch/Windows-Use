@@ -4315,7 +4315,7 @@ wheels = [
 
 [[package]]
 name = "windows-use"
-version = "0.7.55"
+version = "0.7.65"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },

@@ -19,6 +19,7 @@ __pycache__
 .vscode
 .agent
 .windows-use
+.claude
 
 experiments/
 logs
