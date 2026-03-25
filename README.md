@@ -59,7 +59,7 @@ Pick any supported LLM provider and run a task:
 
 ```python
 from windows_use.providers.anthropic import ChatAnthropic
-from windows_use.agent import Agent, Browser
+from windows_use import Agent, Browser
 
 llm = ChatAnthropic(model="claude-sonnet-4-5")
 agent = Agent(llm=llm, browser=Browser.EDGE)
@@ -70,7 +70,7 @@ agent.invoke(task="Open Notepad and write a short poem about Windows")
 
 ```python
 from windows_use.providers.openai import ChatOpenAI
-from windows_use.agent import Agent, Browser
+from windows_use import Agent, Browser
 
 llm = ChatOpenAI(model="gpt-4o")
 agent = Agent(llm=llm, browser=Browser.CHROME)
@@ -81,7 +81,7 @@ agent.invoke(task="Search for the weather in New York on Google")
 
 ```python
 from windows_use.providers.google import ChatGoogle
-from windows_use.agent import Agent, Browser
+from windows_use import Agent, Browser
 
 llm = ChatGoogle(model="gemini-2.5-flash")
 agent = Agent(llm=llm, browser=Browser.EDGE)
@@ -92,7 +92,7 @@ agent.invoke(task=input("Enter a task: "))
 
 ```python
 from windows_use.providers.ollama import ChatOllama
-from windows_use.agent import Agent, Browser
+from windows_use import Agent, Browser
 
 llm = ChatOllama(model="qwen3-vl:235b-cloud")
 agent = Agent(llm=llm, use_vision=False)
@@ -104,7 +104,7 @@ agent.invoke(task=input("Enter a task: "))
 ```python
 import asyncio
 from windows_use.providers.anthropic import ChatAnthropic
-from windows_use.agent import Agent
+from windows_use import Agent
 
 async def main():
     llm = ChatAnthropic(model="claude-sonnet-4-5")
@@ -219,7 +219,7 @@ The agent has access to these tools automatically — no configuration needed.
 Observe every step the agent takes with the event system:
 
 ```python
-from windows_use.agent import Agent, AgentEvent, EventType, BaseEventSubscriber
+from windows_use import Agent, AgentEvent, EventType, BaseEventSubscriber
 
 class MySubscriber(BaseEventSubscriber):
     def invoke(self, event: AgentEvent):
