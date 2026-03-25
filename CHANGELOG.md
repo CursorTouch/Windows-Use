@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.66] - 2026-03-25
+
+### Added
+- **Telemetry**: Agent now sends structured `agent_event` data to PostHog on every `invoke`/`ainvoke` call, capturing query, steps, model, provider, success/failure, and error details. Runs silently with no console output.
+- **Public API**: `Agent`, `Browser`, `AgentEvent`, `EventType`, `BaseEventSubscriber` and friends are now importable directly from `windows_use` — `from windows_use import Agent, Browser`.
+- **CI/CD**: GitHub Actions workflows for linting (ruff via pre-commit) and tests on Windows across Python 3.10–3.13, plus automated PyPI publishing on version tags.
+
+### Fixed
+- **Tree traversal**: `NoneType.strip()` crashes when Windows UI Automation returns `None` for element names — fixed with `(value or '').strip()` in 6 locations.
+- **Event system**: `ValueError: list.remove(x): x not in list` when removing an event subscriber that was already removed or never added.
+- **Telemetry user ID**: `PermissionError` on systems where `TEMP` points to `C:\WINDOWS\TEMP` — now uses `tempfile.gettempdir()`.
+
 ## [0.7.4] - 2026-01-30
 
 ### Changed
