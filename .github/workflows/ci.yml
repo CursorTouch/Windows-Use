@@ -13,14 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Run ruff lint
-        run: uvx ruff check .
-
-      - name: Run ruff format check
-        run: uvx ruff format --check .
+      - name: Run pre-commit hooks
+        uses: pre-commit/action@v3.0.1
 
   test:
     name: Test (Python ${{ matrix.python-version }})
