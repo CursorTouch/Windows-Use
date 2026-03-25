@@ -33,7 +33,8 @@ class Event:
 
     def remove_subscriber(self, subscriber: EventSubscriber) -> None:
         """Unregister an event subscriber."""
-        self._subscribers.remove(subscriber)
+        if subscriber in self._subscribers:
+            self._subscribers.remove(subscriber)
 
     def emit(self, event: AgentEvent) -> None:
         """Dispatch an event to all registered subscribers."""

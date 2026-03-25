@@ -43,7 +43,8 @@ class ProductTelemetry:
         if self._user_id is not None:
             return self._user_id
         
-        temp_dir = Path(os.path.join(os.environ.get('TEMP', os.environ.get('TMP', '/tmp')), '.windows-use'))
+        import tempfile
+        temp_dir = Path(os.path.join(tempfile.gettempdir(), '.windows-use'))
         temp_dir.mkdir(parents=True, exist_ok=True)
         user_id_file = temp_dir / '.windows-use-user-id'
         

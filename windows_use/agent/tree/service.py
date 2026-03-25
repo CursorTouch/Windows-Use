@@ -212,7 +212,7 @@ class Tree:
                         pass
 
                 dom_interactive_nodes.append(TreeElementNode(**{
-                    'name':child.Name.strip(),
+                    'name':(child.Name or '').strip(),
                     'control_type':node.CachedLocalizedControlType,
                     'bounding_box':bounding_box,
                     'center':center,
@@ -232,7 +232,7 @@ class Tree:
             metadata:dict[str,Any]={}
             metadata['has_focused']=is_focused
             dom_interactive_nodes.append(TreeElementNode(**{
-                'name':node.Name.strip(),
+                'name':(node.Name or '').strip(),
                 'control_type':control_type,
                 'bounding_box':bounding_box,
                 'center':center,
@@ -271,7 +271,7 @@ class Tree:
                             metadata:dict[str,Any]={}
                             metadata['has_focused']=node.CachedHasKeyboardFocus
                             scrollable_nodes.append(ScrollElementNode(**{
-                                'name':name.strip() or automation_id or localized_control_type.capitalize() or "''",
+                                'name':(name or '').strip() or automation_id or localized_control_type.capitalize() or "''",
                                 'control_type':localized_control_type.title(),
                                 'bounding_box':BoundingBox(**{
                                     'left':box.left,
@@ -359,7 +359,7 @@ class Tree:
 
                         if is_interactive:
                             is_focused = node.CachedHasKeyboardFocus
-                            name = node.CachedName.strip()
+                            name = (node.CachedName or '').strip()
                             localized_control_type = node.CachedLocalizedControlType
                             accelerator_key = node.CachedAcceleratorKey
 
@@ -509,7 +509,7 @@ class Tree:
                              if is_browser and is_dom:
                                  name = node.CachedName
                                  dom_informative_nodes.append(TextElementNode(
-                                     text=name.strip(),
+                                     text=(name or '').strip(),
                                  ))
             
             # Phase 3: Cached Children Retrieval
@@ -584,7 +584,7 @@ class Tree:
             window_bounding_box=node.BoundingRectangle
             
             interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
-            window_name=node.Name.strip()
+            window_name=(node.Name or '').strip()
             window_name=self.window_name_correction(window_name)
 
             self.tree_traversal(node, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False, element_cache_req=element_cache_req, children_cache_req=children_cache_req)
