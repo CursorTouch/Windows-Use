@@ -1,16 +1,12 @@
 from windows_use.telemetry.views import BaseTelemetryEvent
-from tempfile import TemporaryDirectory
 from uuid_extensions import uuid7str
 from dotenv import load_dotenv
 from posthog import Posthog
 from pathlib import Path
-import logging
 import os
 import atexit
 
 load_dotenv()
-
-logger=logging.getLogger(__name__)
 
 class ProductTelemetry:
     PROJECT_API_KEY = 'phc_uxdCItyVTjXNU0sMPr97dq3tcz39scQNt3qjTYw5vLV'
@@ -38,8 +34,7 @@ class ProductTelemetry:
                     atexit.unregister(self._client.join)
                 except Exception:
                     pass
-            except Exception as e:
-                logger.error(f"Failed to initialize Posthog client: {e}")
+            except Exception:
                 self._enabled = False
         return self._client
 
@@ -77,15 +72,13 @@ class ProductTelemetry:
                 event=event.event_name,
                 properties={**event.properties,'process_person_profile': True}
             )
-        except Exception as e:
-            logger.error(f"Failed to capture telemetry event {event.event_name}: {e}")
+        except Exception:
+            pass
 
     def flush(self):
         client = self.client
         if client:
             try:
                 client.flush()
-            except Exception as e:
-                logger.error(f"Failed to flush telemetry data: {e}")
-        else:
-            logger.debug("Telemetry client is not initialized; skipping flush.")
+            except Exception:
+                pass

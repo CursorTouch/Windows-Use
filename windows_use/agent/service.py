@@ -3,6 +3,7 @@ from windows_use.agent.events import AgentEvent, Event, EventType, ConsoleEventS
 from windows_use.agent.tools import BUILTIN_TOOLS, EXPERIMENTAL_TOOLS
 from windows_use.agent.views import AgentResult, AgentState
 from windows_use.telemetry.service import ProductTelemetry
+from windows_use.telemetry.views import AgentTelemetryEvent
 from windows_use.agent.registry.service import Registry
 from windows_use.agent.watchdog.service import WatchDog
 from windows_use.agent.desktop.service import Desktop
@@ -297,6 +298,18 @@ class Agent(BaseAgent):
                 self.watchdog.set_focus_callback(self.desktop.tree.on_focus_change)
                 with self.watchdog:
                     result = self.loop()
+            self.telemetry.capture(AgentTelemetryEvent(
+                query=task,
+                steps=self.state.step,
+                max_steps=self.state.max_steps,
+                model=self.llm.model_name,
+                provider=self.llm.provider,
+                use_vision=self.desktop.use_vision,
+                answer=result.content,
+                error=result.error,
+                is_success=result.is_done,
+            ))
+            self.telemetry.flush()
             return result
         except Exception as e:
             self.event.emit(
@@ -305,6 +318,17 @@ class Agent(BaseAgent):
                     data={"step": self.state.step, "error": str(e)},
                 )
             )
+            self.telemetry.capture(AgentTelemetryEvent(
+                query=task,
+                steps=self.state.step,
+                max_steps=self.state.max_steps,
+                model=self.llm.model_name,
+                provider=self.llm.provider,
+                use_vision=self.desktop.use_vision,
+                error=str(e),
+                is_success=False,
+            ))
+            self.telemetry.flush()
 
     async def aloop(self) -> AgentResult:
         """Run the main agent loop asynchronously."""
@@ -451,6 +475,18 @@ class Agent(BaseAgent):
                 self.watchdog.set_focus_callback(self.desktop.tree.on_focus_change)
                 with self.watchdog:
                     result = await self.aloop()
+            self.telemetry.capture(AgentTelemetryEvent(
+                query=task,
+                steps=self.state.step,
+                max_steps=self.state.max_steps,
+                model=self.llm.model_name,
+                provider=self.llm.provider,
+                use_vision=self.desktop.use_vision,
+                answer=result.content,
+                error=result.error,
+                is_success=result.is_done,
+            ))
+            self.telemetry.flush()
             return result
         except Exception as e:
             self.event.emit(
@@ -459,3 +495,14 @@ class Agent(BaseAgent):
                     data={"step": self.state.step, "error": str(e)},
                 )
             )
+            self.telemetry.capture(AgentTelemetryEvent(
+                query=task,
+                steps=self.state.step,
+                max_steps=self.state.max_steps,
+                model=self.llm.model_name,
+                provider=self.llm.provider,
+                use_vision=self.desktop.use_vision,
+                error=str(e),
+                is_success=False,
+            ))
+            self.telemetry.flush()
