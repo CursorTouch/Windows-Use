@@ -89,6 +89,7 @@ class Context:
         step: int,
         max_steps: int,
         desktop: Desktop,
+        nudge: str = "",
     ) -> HumanMessage | ImageMessage:
         desktop_state = desktop.get_state()  # Populates desktop.desktop_state
         content = self._build_state_prompt(
@@ -96,20 +97,23 @@ class Context:
             step=step,
             max_steps=max_steps,
             desktop=desktop,
+            nudge=nudge,
         )
         if desktop.use_vision and desktop_state.screenshot:
             return ImageMessage(images=[desktop_state.screenshot], content=content)
         return HumanMessage(content=content)
 
     def _build_state_prompt(
-        self, query: str, step: int, max_steps: int, desktop: Desktop
+        self, query: str, step: int, max_steps: int, desktop: Desktop, nudge: str = ""
     ) -> str:
         desktop_state = desktop.desktop_state
         cursor_x, cursor_y = uia.GetCursorPos()
         template = _load_template("state.md")
+        loop_warning = f"[Loop Warning]\n{nudge}\n[End of Loop Warning]\n" if nudge else ""
         return template.format(**{
             "steps": step,
             "max_steps": max_steps,
+            "loop_warning": loop_warning,
             "active_window": desktop_state.active_window_to_string(),
             "windows": desktop_state.windows_to_string(),
             "cursor_location": f"({cursor_x},{cursor_y})",

@@ -8,6 +8,7 @@ from windows_use.agent.registry.service import Registry
 from windows_use.agent.watchdog.service import WatchDog
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
+from windows_use.agent.loop import LoopGuard
 from windows_use.providers.events import LLMEventType
 from typing import Callable, Literal, TYPE_CHECKING
 from windows_use.agent.context import Context
@@ -106,6 +107,7 @@ class Agent(BaseAgent):
         self.log_to_file = log_to_file
         self.log_to_console = log_to_console
         self.llm = llm
+        self._loop_guard = LoopGuard()
 
         self.event = Event()
         if event_subscriber is not None:
@@ -158,10 +160,28 @@ class Agent(BaseAgent):
         self.state.messages.insert(0, self.system_message)
         self.state.messages.append(self.task_message)
         consecutive_failures = 0
+        self._loop_guard.reset()
 
         for step in range(self.state.max_steps):
             self.state.step = step
-            self.state.messages.append(self.state_message)
+
+            # Check for loops and build state message with nudge
+            nudge = self._loop_guard.check()
+            state_msg = self.context.state(
+                query=self.state.task,
+                step=step,
+                max_steps=self.state.max_steps,
+                desktop=self.desktop,
+                nudge=nudge or "",
+            )
+            if nudge:
+                self.event.emit(
+                    AgentEvent(type=EventType.ERROR, data={"step": step, "error": f"Loop detected: {nudge}"})
+                )
+            self.state.messages.append(state_msg)
+
+            # Record current desktop state for loop detection
+            self._loop_guard.record_state(self.desktop.desktop_state)
 
             # Reason: call LLM, retry on failure, return ToolMessage
             message: ToolMessage | None = None
@@ -240,6 +260,9 @@ class Agent(BaseAgent):
 
             # Act: execute tool via registry
             tool_result = self.registry.execute(tool_name=tool_name, tool_params=tool_params, desktop=self.desktop)
+
+            # Record action for loop detection
+            self._loop_guard.record_action(tool_name, tool_params, tool_result.is_success)
 
             if tool_result.is_success:
                 content = tool_result.content
@@ -336,10 +359,28 @@ class Agent(BaseAgent):
         self.state.messages.insert(0, self.system_message)
         self.state.messages.append(self.task_message)
         consecutive_failures = 0
+        self._loop_guard.reset()
 
         for step in range(self.state.max_steps):
             self.state.step = step
-            self.state.messages.append(self.state_message)
+
+            # Check for loops and build state message with nudge
+            nudge = self._loop_guard.check()
+            state_msg = self.context.state(
+                query=self.state.task,
+                step=step,
+                max_steps=self.state.max_steps,
+                desktop=self.desktop,
+                nudge=nudge or "",
+            )
+            if nudge:
+                self.event.emit(
+                    AgentEvent(type=EventType.ERROR, data={"step": step, "error": f"Loop detected: {nudge}"})
+                )
+            self.state.messages.append(state_msg)
+
+            # Record current desktop state for loop detection
+            self._loop_guard.record_state(self.desktop.desktop_state)
 
             message: ToolMessage | None = None
             last_error: Exception | None = None
@@ -417,6 +458,9 @@ class Agent(BaseAgent):
 
             # Act: execute tool via registry asynchronously
             tool_result = await self.registry.aexecute(tool_name=tool_name, tool_params=tool_params, desktop=self.desktop)
+
+            # Record action for loop detection
+            self._loop_guard.record_action(tool_name, tool_params, tool_result.is_success)
 
             if tool_result.is_success:
                 content = tool_result.content
