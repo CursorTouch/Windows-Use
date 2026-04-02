@@ -32,6 +32,7 @@ class ChatGoogle(BaseChatLLM):
         self,
         model: str = "gemini-2.5-flash",
         api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         temperature: Optional[float] = None,
         thinking_budget: Optional[int] = None,
         **kwargs,
@@ -42,16 +43,22 @@ class ChatGoogle(BaseChatLLM):
         Args:
             model: The model name to use. Defaults to "gemini-2.5-flash".
             api_key: Google API key. Falls back to GEMINI_API_KEY or GOOGLE_API_KEY env vars.
+            base_url: Base URL for the API. Defaults to GOOGLE_BASE_URL environment variable.
             temperature: Sampling temperature.
             thinking_budget: Token budget for extended thinking (Gemini 2.5 models).
             **kwargs: Additional arguments for GenerateContentConfig.
         """
         self._model = model
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        self.base_url = base_url or os.environ.get("GOOGLE_BASE_URL")
         self.temperature = temperature
         self.thinking_budget = thinking_budget
 
-        self.client = genai.Client(api_key=self.api_key)
+        client_kwargs = {"api_key": self.api_key}
+        if self.base_url:
+            client_kwargs["http_options"] = {"api_endpoint": self.base_url}
+
+        self.client = genai.Client(**client_kwargs)
         self.kwargs = kwargs
 
     @property

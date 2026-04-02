@@ -67,13 +67,16 @@ def get_providers_config() -> list[dict[str, Any]]:
 
 
 def get_active_config() -> dict[str, Any] | None:
-    """Return the active provider config (provider, llm, api_key decrypted) or None."""
+    """Return the active provider config (provider, llm, api_key decrypted, base_url) or None."""
     configs = get_providers_config()
     for c in configs:
         if c.get("active") is True:
             out = dict(c)
             enc = out.pop("api_key_encrypted", "")
             out["api_key"] = decrypt_secret(enc) if enc else None
+            # Include base_url if present
+            if "base_url" not in out:
+                out["base_url"] = None
             return out
     return None
 
@@ -110,6 +113,7 @@ def upsert_provider(
     provider: str,
     llm: str,
     api_key: str | None = None,
+    base_url: str | None = None,
     set_active: bool = True,
 ) -> None:
     """Add or update a provider config. If set_active, deactivates others."""
@@ -120,17 +124,22 @@ def upsert_provider(
             c["llm"] = llm
             if api_key is not None:
                 c["api_key_encrypted"] = encrypt_secret(api_key) if api_key else ""
+            if base_url is not None:
+                c["base_url"] = base_url
             if set_active:
                 c["active"] = True
             updated = True
             break
     if not updated:
-        configs.append({
+        new_config = {
             "provider": provider,
             "llm": llm,
             "api_key_encrypted": encrypt_secret(api_key) if api_key else "",
             "active": set_active,
-        })
+        }
+        if base_url is not None:
+            new_config["base_url"] = base_url
+        configs.append(new_config)
     if set_active:
         for c in configs:
             if c.get("provider") != provider:
@@ -144,6 +153,17 @@ def update_provider_api_key(provider: str, api_key: str) -> None:
     for c in configs:
         if c.get("provider") == provider:
             c["api_key_encrypted"] = encrypt_secret(api_key) if api_key else ""
+            save_providers_config(configs)
+            return
+    raise ValueError(f"Provider '{provider}' not found in config")
+
+
+def update_provider_base_url(provider: str, base_url: str) -> None:
+    """Update the base URL for an existing provider config."""
+    configs = get_providers_config()
+    for c in configs:
+        if c.get("provider") == provider:
+            c["base_url"] = base_url if base_url else None
             save_providers_config(configs)
             return
     raise ValueError(f"Provider '{provider}' not found in config")
