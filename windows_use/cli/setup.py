@@ -18,6 +18,7 @@ from windows_use.cli.config import (
     get_speech_config,
     save_speech_config,
     update_provider_api_key,
+    update_provider_base_url,
     upsert_provider,
 )
 from windows_use.cli.registry import get_provider_display, get_providers, get_models, provider_requires_api_key
@@ -105,7 +106,21 @@ def run_setup() -> dict[str, str]:
             raise KeyboardInterrupt("Setup cancelled")
         api_key = api_key.strip()
 
-    upsert_provider(provider_key, model_id, api_key=api_key, set_active=True)
+    # Ask for base URL (optional)
+    base_url: str | None = None
+    set_base_url = questionary.confirm(
+        "Do you want to set a custom base URL? (optional)",
+        default=False,
+        style=_SELECT_STYLE,
+    ).ask()
+    if set_base_url:
+        base_url = questionary.text(
+            "Enter base URL:",
+        ).ask()
+        if base_url:
+            base_url = base_url.strip()
+
+    upsert_provider(provider_key, model_id, api_key=api_key, base_url=base_url, set_active=True)
 
     console.print("[dim]Creating .windows-use...[/]")
 
@@ -173,8 +188,22 @@ def run_llm_switch() -> tuple[str, str] | None:
                 return None
             api_key = api_key.strip()
 
+    # Ask for base URL (optional)
+    base_url: str | None = None
+    set_base_url = questionary.confirm(
+        "Do you want to set a custom base URL? (optional)",
+        default=False,
+        style=_SELECT_STYLE,
+    ).ask()
+    if set_base_url:
+        base_url = questionary.text(
+            "Enter base URL:",
+        ).ask()
+        if base_url:
+            base_url = base_url.strip()
+
     # Only update config once we have all required input (provider, model, api_key if needed)
-    upsert_provider(provider_key, model_id, api_key=api_key, set_active=True)
+    upsert_provider(provider_key, model_id, api_key=api_key, base_url=base_url, set_active=True)
 
     return provider_key, model_id
 
@@ -212,13 +241,84 @@ def run_key_change() -> bool:
         return False
 
     update_provider_api_key(provider_key, api_key.strip())
+
+    # Ask if user wants to set base URL
+    set_base_url = questionary.confirm(
+        "Do you want to set a custom base URL?",
+        default=False,
+        style=_SELECT_STYLE,
+    ).ask()
+
+    if set_base_url:
+        # Get current base_url if exists
+        current_base_url = None
+        for c in configs:
+            if c.get("provider") == provider_key:
+                current_base_url = c.get("base_url")
+                break
+
+        default_text = current_base_url if current_base_url else ""
+
+        base_url = questionary.text(
+            "Enter base URL (leave empty to use default):",
+            default=default_text,
+        ).ask()
+
+        if base_url is not None:
+            update_provider_base_url(provider_key, base_url.strip())
+
     return True
 
 
-def create_llm(provider: str, model: str, api_key: str | None = None):
+def run_base_url_change() -> bool:
+    """Interactive prompt to change base URL for a configured provider. Returns True if updated."""
+    import questionary
+
+    configs = get_providers_config()
+    providers_list = [
+        (get_provider_display(c["provider"]), c["provider"])
+        for c in configs
+    ]
+    if not providers_list:
+        return False
+
+    provider_choice = questionary.select(
+        "Which provider's base URL to change?",
+        choices=[name for name, _ in providers_list],
+        style=_SELECT_STYLE,
+    ).ask()
+
+    if provider_choice is None:
+        return False
+
+    provider_key = next(k for n, k in providers_list if n == provider_choice)
+
+    # Get current base_url if exists
+    current_base_url = None
+    for c in configs:
+        if c.get("provider") == provider_key:
+            current_base_url = c.get("base_url")
+            break
+
+    default_text = current_base_url if current_base_url else ""
+
+    base_url = questionary.text(
+        "Enter new base URL (leave empty to use default):",
+        default=default_text,
+    ).ask()
+
+    if base_url is None:
+        return False
+
+    update_provider_base_url(provider_key, base_url.strip())
+    return True
+
+
+def create_llm(provider: str, model: str, api_key: str | None = None, base_url: str | None = None):
     """Create LLM instance from provider key and model id.
 
     api_key: From config (decrypted) or env. Passed explicitly overrides env.
+    base_url: From config or env. Passed explicitly overrides env.
     """
     # Resolve API key: explicit arg > config > env
     key = api_key
@@ -229,40 +329,40 @@ def create_llm(provider: str, model: str, api_key: str | None = None):
 
     if provider == "groq":
         from windows_use.providers.groq import ChatGroq
-        return ChatGroq(model=model, api_key=key)
+        return ChatGroq(model=model, api_key=key, base_url=base_url)
     if provider == "openai":
         from windows_use.providers.openai import ChatOpenAI
-        return ChatOpenAI(model=model, api_key=key)
+        return ChatOpenAI(model=model, api_key=key, base_url=base_url)
     if provider == "anthropic":
         from windows_use.providers.anthropic import ChatAnthropic
-        return ChatAnthropic(model=model, api_key=key)
+        return ChatAnthropic(model=model, api_key=key, base_url=base_url)
     if provider == "google":
         from windows_use.providers.google import ChatGoogle
-        return ChatGoogle(model=model, api_key=key)
+        return ChatGoogle(model=model, api_key=key, base_url=base_url)
     if provider == "ollama":
         from windows_use.providers.ollama import ChatOllama
-        return ChatOllama(model=model)
+        return ChatOllama(model=model, host=base_url)
     if provider == "mistral":
         from windows_use.providers.mistral import ChatMistral
-        return ChatMistral(model=model, api_key=key)
+        return ChatMistral(model=model, api_key=key, base_url=base_url)
     if provider == "cerebras":
         from windows_use.providers.cerebras import ChatCerebras
-        return ChatCerebras(model=model, api_key=key)
+        return ChatCerebras(model=model, api_key=key, base_url=base_url)
     if provider == "open_router":
         from windows_use.providers.open_router import ChatOpenRouter
-        return ChatOpenRouter(model=model, api_key=key)
+        return ChatOpenRouter(model=model, api_key=key, base_url=base_url)
     if provider == "azure_openai":
         from windows_use.providers.azure_openai import ChatAzureOpenAI
         return ChatAzureOpenAI(deployment_name=model, api_key=key)
     if provider == "litellm":
         from windows_use.providers.litellm import ChatLiteLLM
-        return ChatLiteLLM(model=model, api_key=key)
+        return ChatLiteLLM(model=model, api_key=key, base_url=base_url)
     if provider == "deepseek":
         from windows_use.providers.deepseek import ChatDeepSeek
-        return ChatDeepSeek(model=model, api_key=key)
+        return ChatDeepSeek(model=model, api_key=key, base_url=base_url)
     if provider == "nvidia":
         from windows_use.providers.nvidia import ChatNvidia
-        return ChatNvidia(model=model, api_key=key)
+        return ChatNvidia(model=model, api_key=key, base_url=base_url)
     raise ValueError(f"Unknown provider: {provider}")
 
 
