@@ -354,6 +354,12 @@ def create_llm(provider: str, model: str, api_key: str | None = None, base_url: 
     if provider == "azure_openai":
         from windows_use.providers.azure_openai import ChatAzureOpenAI
         return ChatAzureOpenAI(deployment_name=model, api_key=key)
+    if provider == "perplexity":
+        from windows_use.providers.perplexity import ChatPerplexity
+        kwargs = {"model": model, "api_key": key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        return ChatPerplexity(**kwargs)
     if provider == "litellm":
         from windows_use.providers.litellm import ChatLiteLLM
         return ChatLiteLLM(model=model, api_key=key, base_url=base_url)
@@ -572,6 +578,7 @@ def _env_api_key_for_speech_provider(provider: str) -> str | None:
         "groq": "GROQ_API_KEY",
         "elevenlabs": "ELEVENLABS_API_KEY",
         "deepgram": "DEEPGRAM_API_KEY",
+        "perplexity": "PERPLEXITY_API_KEY"
     }
     name = env_map.get(provider)
     if not name:
@@ -684,6 +691,7 @@ def _env_api_key_for_provider(provider: str) -> str | None:
         "litellm": "OPENAI_API_KEY",  # LiteLLM uses various env vars
         "deepseek": "DEEPSEEK_API_KEY",
         "nvidia": "NVIDIA_API_KEY",
+        "perplexity": "PERPLEXITY_API_KEY",
     }
     name = env_map.get(provider)
     if not name:
