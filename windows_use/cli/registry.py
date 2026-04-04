@@ -21,6 +21,7 @@ PROVIDERS: list[tuple[str, str]] = [
     ("LiteLLM", "litellm"),
     ("DeepSeek", "deepseek"),
     ("NVIDIA", "nvidia"),
+    ("Perplexity", "perplexity"),
 ]
 
 # provider_key -> list of (display_name, model_id)
@@ -52,6 +53,14 @@ MODELS: dict[str, list[tuple[str, str]]] = {
         ("GPT-4o mini", "gpt-4o-mini"),
         ("GPT-4 Turbo", "gpt-4-turbo"),
         ("GPT-3.5 Turbo", "gpt-3.5-turbo"),
+    ],
+    "perplexity": [
+        ("GPT-5.4 (recommended)", "openai/gpt-5.4"),
+        ("Gemini 3.1 Pro Preview", "google/gemini-3.1-pro-preview"),
+        ("Gemini 3 Flash Preview", "google/gemini-3-flash-preview"),
+        ("Claude Sonnet 4.6", "anthropic/claude-sonnet-4-6"),
+        ("Claude Opus 4.6", "anthropic/claude-opus-4-6"),
+        ("Perplexity Sonar", "perplexity/sonar"),
     ],
     "anthropic": [
         ("Claude Opus 4.6", "claude-opus-4-6"),
@@ -174,6 +183,7 @@ PROVIDERS_REQUIRING_API_KEY: set[str] = {
     "litellm",
     "deepseek",
     "nvidia",
+    "perplexity",
 }
 
 
@@ -196,6 +206,7 @@ PROVIDER_DISPLAY: dict[str, str] = {
     "litellm": "LiteLLM",
     "deepseek": "DeepSeek",
     "nvidia": "NVIDIA",
+    "perplexity": "Perplexity",
 }
 
 
