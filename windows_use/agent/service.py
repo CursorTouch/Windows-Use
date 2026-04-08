@@ -50,6 +50,7 @@ class Agent(BaseAgent):
         log_to_console: bool = True,
         event_subscriber: Callable[[AgentEvent], None] | None = None,
         experimental: bool = False,
+        disable_loop_detection: bool = False,
     ):
         """Initialize the Agent.
 
@@ -76,6 +77,7 @@ class Agent(BaseAgent):
             event_subscriber: Optional callback invoked for each agent event (thought, tool call,
                 tool result, done, error). Enables event-driven observation.
             experimental: Whether to include experimental tools. Defaults to False.
+            disable_loop_detection: Whether to disable loop detection. Defaults to False.
         """
         self.name = "Windows Use"
         self.description = "An agent that can interact with GUI elements on Windows OS"
@@ -107,6 +109,7 @@ class Agent(BaseAgent):
         self.log_to_file = log_to_file
         self.log_to_console = log_to_console
         self.llm = llm
+        self.disable_loop_detection = disable_loop_detection
         self._loop_guard = LoopGuard()
 
         self.event = Event()
@@ -166,7 +169,7 @@ class Agent(BaseAgent):
             self.state.step = step
 
             # Check for loops and build state message with nudge
-            nudge = self._loop_guard.check()
+            nudge = None if self.disable_loop_detection else self._loop_guard.check()
             state_msg = self.context.state(
                 query=self.state.task,
                 step=step,
@@ -181,7 +184,8 @@ class Agent(BaseAgent):
             self.state.messages.append(state_msg)
 
             # Record current desktop state for loop detection
-            self._loop_guard.record_state(self.desktop.desktop_state)
+            if not self.disable_loop_detection:
+                self._loop_guard.record_state(self.desktop.desktop_state)
 
             # Reason: call LLM, retry on failure, return ToolMessage
             message: ToolMessage | None = None
@@ -262,7 +266,8 @@ class Agent(BaseAgent):
             tool_result = self.registry.execute(tool_name=tool_name, tool_params=tool_params, desktop=self.desktop)
 
             # Record action for loop detection
-            self._loop_guard.record_action(tool_name, tool_params, tool_result.is_success)
+            if not self.disable_loop_detection:
+                self._loop_guard.record_action(tool_name, tool_params, tool_result.is_success)
 
             if tool_result.is_success:
                 content = tool_result.content
@@ -365,7 +370,7 @@ class Agent(BaseAgent):
             self.state.step = step
 
             # Check for loops and build state message with nudge
-            nudge = self._loop_guard.check()
+            nudge = None if self.disable_loop_detection else self._loop_guard.check()
             state_msg = self.context.state(
                 query=self.state.task,
                 step=step,
@@ -380,7 +385,8 @@ class Agent(BaseAgent):
             self.state.messages.append(state_msg)
 
             # Record current desktop state for loop detection
-            self._loop_guard.record_state(self.desktop.desktop_state)
+            if not self.disable_loop_detection:
+                self._loop_guard.record_state(self.desktop.desktop_state)
 
             message: ToolMessage | None = None
             last_error: Exception | None = None
@@ -460,7 +466,8 @@ class Agent(BaseAgent):
             tool_result = await self.registry.aexecute(tool_name=tool_name, tool_params=tool_params, desktop=self.desktop)
 
             # Record action for loop detection
-            self._loop_guard.record_action(tool_name, tool_params, tool_result.is_success)
+            if not self.disable_loop_detection:
+                self._loop_guard.record_action(tool_name, tool_params, tool_result.is_success)
 
             if tool_result.is_success:
                 content = tool_result.content
