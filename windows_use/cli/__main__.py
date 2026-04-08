@@ -117,7 +117,7 @@ def _callback(
         None,
         "--model",
         "-m",
-        help="LLM model to use (overrides config).",
+        help="LLM model ID to use (overrides config). Supports both predefined and custom models.",
     ),
     provider: str | None = typer.Option(
         None,
