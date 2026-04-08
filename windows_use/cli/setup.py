@@ -83,6 +83,7 @@ def run_setup() -> dict[str, str]:
     # Pick model
     models = get_models(provider_key)
     model_choices = [name for name, _ in models]
+    model_choices.append("(custom model)")
 
     model_choice = questionary.select(
         "Pick the model:",
@@ -93,7 +94,16 @@ def run_setup() -> dict[str, str]:
     if model_choice is None:
         raise KeyboardInterrupt("Setup cancelled")
 
-    model_id = next(mid for name, mid in models if name == model_choice)
+    if model_choice == "(custom model)":
+        model_id = questionary.text(
+            "Enter custom model ID:",
+            validate=lambda x: True if x and x.strip() else "Model ID cannot be empty",
+        ).ask()
+        if model_id is None:
+            raise KeyboardInterrupt("Setup cancelled")
+        model_id = model_id.strip()
+    else:
+        model_id = next(mid for name, mid in models if name == model_choice)
 
     # Ask for API key if provider requires it
     api_key: str | None = None
@@ -132,8 +142,11 @@ def run_setup() -> dict[str, str]:
     return {"provider": provider_key, "llm": model_id}
 
 
-def run_llm_switch() -> tuple[str, str] | None:
+def run_llm_switch(custom_model: str | None = None) -> tuple[str, str] | None:
     """Interactive provider/model picker. Skips API key prompt if already present.
+
+    Args:
+        custom_model: Optional custom model ID. If provided, skip model selection.
 
     Returns (provider_key, model_id) or None if cancelled.
     """
@@ -151,29 +164,43 @@ def run_llm_switch() -> tuple[str, str] | None:
 
     provider_key = next(k for n, k in providers if n == provider_choice)
 
-    models = get_models(provider_key)
-    model_choices = [name for name, _ in models]
-    default_model = None
-    for c in get_providers_config():
-        if c.get("provider") == provider_key and c.get("llm"):
-            saved_id = c["llm"]
-            for name, mid in models:
-                if mid == saved_id:
-                    default_model = name
-                    break
-            break
+    # If custom model provided, use it directly
+    if custom_model:
+        model_id = custom_model
+    else:
+        models = get_models(provider_key)
+        model_choices = [name for name, _ in models]
+        model_choices.append("(custom model)")
+        default_model = None
+        for c in get_providers_config():
+            if c.get("provider") == provider_key and c.get("llm"):
+                saved_id = c["llm"]
+                for name, mid in models:
+                    if mid == saved_id:
+                        default_model = name
+                        break
+                break
 
-    model_choice = questionary.select(
-        "Pick the model:",
-        choices=model_choices,
-        default=default_model,
-        style=_SELECT_STYLE,
-    ).ask()
+        model_choice = questionary.select(
+            "Pick the model:",
+            choices=model_choices,
+            default=default_model,
+            style=_SELECT_STYLE,
+        ).ask()
 
-    if model_choice is None:
-        return None
+        if model_choice is None:
+            return None
 
-    model_id = next(mid for name, mid in models if name == model_choice)
+        if model_choice == "(custom model)":
+            model_id = questionary.text(
+                "Enter custom model ID:",
+                validate=lambda x: True if x and x.strip() else "Model ID cannot be empty",
+            ).ask()
+            if model_id is None:
+                return None
+            model_id = model_id.strip()
+        else:
+            model_id = next(mid for name, mid in models if name == model_choice)
 
     # Ask for API key if provider requires it and we don't have it stored in config
     api_key: str | None = None
