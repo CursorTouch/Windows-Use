@@ -195,11 +195,15 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
     """Run the interactive task loop."""
     from windows_use.cli.setup import create_llm, run_llm_switch, run_speech_setup
     from windows_use.cli.setup import create_stt_provider, create_tts_provider
+    from windows_use.cli.config import get_active_config
     from windows_use.agent import Agent, Browser
     from windows_use.cli.subscriber import CLIEventSubscriber
 
     agent = None
-    llm = create_llm(provider, model)
+    # Get base_url from config if available
+    active_config = get_active_config()
+    base_url = active_config.get("base_url") if active_config else None
+    llm = create_llm(provider, model, base_url=base_url)
     provider_display = get_provider_display(provider)
 
     # Resolve STT/TTS (lazy - may fail if pyaudio not installed)
@@ -290,7 +294,9 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
             try:
                 from windows_use.cli.setup import run_key_change
                 if run_key_change():
-                    llm = create_llm(provider, model)
+                    active_config = get_active_config()
+                    base_url = active_config.get("base_url") if active_config else None
+                    llm = create_llm(provider, model, base_url=base_url)
                     agent = Agent(
                         llm=llm,
                         browser=Browser.EDGE,
@@ -408,7 +414,9 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
             if result is None:
                 continue
             provider, model = result
-            llm = create_llm(provider, model)
+            active_config = get_active_config()
+            base_url = active_config.get("base_url") if active_config else None
+            llm = create_llm(provider, model, base_url=base_url)
             provider_display = get_provider_display(provider)
 
             agent = Agent(
