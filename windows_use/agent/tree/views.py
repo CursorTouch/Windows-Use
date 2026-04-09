@@ -158,91 +158,56 @@ ElementNode=TreeElementNode|ScrollElementNode|TextElementNode
 _SelectorNode = Union[TreeElementNode, ScrollElementNode]
 
 class SelectorMap:
-    """Maps element labels to their TreeElementNodes for cursor-free element lookup.
+    """Maps the element index (as shown in the tree output) to its node.
 
-    Provides fast access to interactive and scrollable elements by name,
-    with optional control_type filtering for disambiguation when multiple
-    elements share the same label.
+    The index matches exactly what the agent sees in the tree:
+        # id|window|control_type|name|coords|metadata
+        0|Notepad|ButtonControl|Save|(640,400)|{}
+        1|Notepad|EditControl|Search|(200,100)|{}
+        ...
+
+    Interactive nodes occupy indices 0..N-1.
+    Scrollable nodes continue from N onward (same as scrollable_elements_to_string).
 
     Usage:
         selector = tree_state.build_selector_map()
 
-        # Exact label lookup
-        node = selector['Submit']           # first element named 'Submit'
-        node = selector.get('Submit')       # same, returns None if not found
-        node = selector.get('OK', control_type='ButtonControl')  # disambiguate
+        node  = selector[0]              # TreeElementNode at index 0
+        xpath = selector.xpath_of(0)     # 'WindowControl/PaneControl[1]/ButtonControl'
+        hwnd  = selector.hwnd_of(0)      # window handle
 
-        # All matches for a label
-        nodes = selector.get_all('File')    # e.g. File menu + File tab
-
-        # Partial / case-insensitive search
-        nodes = selector.find('save')       # finds 'Save', 'Save As', 'Autosave'
-
-        # Resolve to live UIA element (cursor-free)
+        # Resolve to live UIA element — cursor-free
         element = desktop.get_element_from_window_xpath(node.hwnd, node.xpath)
     """
 
     def __init__(self, nodes: list[_SelectorNode]):
-        # name → all nodes with that name (preserves insertion order)
-        self._by_name: dict[str, list[_SelectorNode]] = {}
-        # (name, control_type) → nodes, for disambiguation
-        self._by_label_type: dict[tuple[str, str], list[_SelectorNode]] = {}
+        self._nodes: list[_SelectorNode] = nodes
 
-        for node in nodes:
-            name = (node.name or '').strip()
-            if not name:
-                continue
-            ct = node.control_type
-            self._by_name.setdefault(name, []).append(node)
-            self._by_label_type.setdefault((name, ct), []).append(node)
+    def __getitem__(self, index: int) -> _SelectorNode:
+        return self._nodes[index]
 
-    def get(self, label: str, control_type: str | None = None) -> _SelectorNode | None:
-        """Return the first element matching label, optionally filtered by control_type."""
-        if control_type:
-            nodes = self._by_label_type.get((label, control_type), [])
-        else:
-            nodes = self._by_name.get(label, [])
-        return nodes[0] if nodes else None
+    def get(self, index: int) -> _SelectorNode | None:
+        try:
+            return self._nodes[index]
+        except IndexError:
+            return None
 
-    def get_all(self, label: str, control_type: str | None = None) -> list[_SelectorNode]:
-        """Return all elements matching label, optionally filtered by control_type."""
-        if control_type:
-            return list(self._by_label_type.get((label, control_type), []))
-        return list(self._by_name.get(label, []))
-
-    def find(self, label: str) -> list[_SelectorNode]:
-        """Case-insensitive partial label match. Useful when exact name is unknown."""
-        label_lower = label.lower()
-        results = []
-        for name, nodes in self._by_name.items():
-            if label_lower in name.lower():
-                results.extend(nodes)
-        return results
-
-    def xpath_of(self, label: str, control_type: str | None = None) -> str | None:
-        """Shortcut: return xpath of first matching element, or None."""
-        node = self.get(label, control_type)
+    def xpath_of(self, index: int) -> str | None:
+        node = self.get(index)
         return node.xpath if node else None
 
-    def hwnd_of(self, label: str, control_type: str | None = None) -> int | None:
-        """Shortcut: return hwnd of first matching element, or None."""
-        node = self.get(label, control_type)
+    def hwnd_of(self, index: int) -> int | None:
+        node = self.get(index)
         return node.hwnd if node else None
 
-    def __getitem__(self, label: str) -> _SelectorNode:
-        node = self.get(label)
-        if node is None:
-            raise KeyError(f'No element with label {label!r}')
-        return node
-
-    def __contains__(self, label: str) -> bool:
-        return label in self._by_name
-
     def __len__(self) -> int:
-        return sum(len(v) for v in self._by_name.values())
+        return len(self._nodes)
 
-    def keys(self) -> list[str]:
-        return list(self._by_name.keys())
+    def __iter__(self):
+        return iter(self._nodes)
+
+    def items(self):
+        return enumerate(self._nodes)
 
     def __repr__(self) -> str:
-        return f'SelectorMap({len(self._by_name)} labels, {len(self)} elements)'
+        return f'SelectorMap({len(self._nodes)} elements)'
