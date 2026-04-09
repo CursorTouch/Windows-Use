@@ -616,8 +616,9 @@ class Tree:
             interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
             window_name=(node.Name or '').strip()
             window_name=self.window_name_correction(window_name)
+            current_xpath=node.ControlTypeName
 
-            self.tree_traversal(node, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False, element_cache_req=element_cache_req, children_cache_req=children_cache_req, current_xpath=node.ControlTypeName, hwnd=handle)
+            self.tree_traversal(node, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False, element_cache_req=element_cache_req, children_cache_req=children_cache_req, current_xpath=current_xpath, hwnd=handle)
             logger.debug(f'Window name:{window_name}')
             logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
             if is_browser:

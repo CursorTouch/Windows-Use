@@ -486,7 +486,6 @@ class Desktop:
 
     def get_controls_handles(self,optimized:bool=False):
         handles = set()
-        # For even more faster results (still under development)
         def callback(hwnd, _):
             if win32gui.IsWindowVisible(hwnd) and is_window_on_current_desktop(hwnd):
                 handles.add(hwnd)
@@ -645,8 +644,9 @@ class Desktop:
         return element
 
     def get_element_from_xpath(self,xpath:str)->uia.Control:
+        ROOT_CONTROL_TYPE="PaneControl"
         pattern = re.compile(r'(\w+)(?:\[(\d+)\])?')
-        parts=xpath.split("/")
+        parts=[ROOT_CONTROL_TYPE]+xpath.split("/")
         root=uia.GetRootControl()
         element=root
         for part in parts[1:]:
