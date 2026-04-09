@@ -104,6 +104,8 @@ class TreeElementNode:
     name: str=''
     control_type: str=''
     window_name: str=''
+    xpath: str=''
+    hwnd: int=0
     metadata:dict[str,Any]=field(default_factory=dict)
 
     def update_from_node(self,node:'TreeElementNode'):
@@ -127,6 +129,8 @@ class ScrollElementNode:
     window_name: str
     bounding_box: BoundingBox
     center: Center
+    xpath: str=''
+    hwnd: int=0
     metadata:dict[str,Any]=field(default_factory=dict)
 
     # Legacy method kept for compatibility

@@ -621,6 +621,29 @@ class Desktop:
         xpath="/".join(path_parts)
         return xpath
 
+    def get_element_from_window_xpath(self, handle: int, xpath: str) -> uia.Control:
+        """Resolve a window-relative xpath (as stored in TreeElementNode.xpath) to a live UIA Control.
+
+        Starts traversal from ControlFromHandle(handle) and skips the first xpath
+        component (the window's own ControlTypeName), making it faster and independent
+        of the window's position in the global desktop tree.
+        """
+        pattern = re.compile(r'(\w+)(?:\[(\d+)\])?')
+        parts = xpath.split('/')
+        element = uia.ControlFromHandle(handle)
+        for part in parts[1:]:  # skip first component (window's own type)
+            match = pattern.fullmatch(part)
+            if match is None:
+                continue
+            control_type, index = match.groups()
+            index = int(index) if index else None
+            children = element.GetChildren()
+            same_type_children = [x for x in children if x.ControlTypeName == control_type]
+            if not same_type_children:
+                raise ValueError(f'No child of type {control_type!r} found at xpath step {part!r}')
+            element = same_type_children[(index - 1) if index else 0]
+        return element
+
     def get_element_from_xpath(self,xpath:str)->uia.Control:
         pattern = re.compile(r'(\w+)(?:\[(\d+)\])?')
         parts=xpath.split("/")
