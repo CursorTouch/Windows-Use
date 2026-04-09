@@ -21,8 +21,7 @@ def sample_interactive_node(sample_bbox, sample_center):
         control_type="Button",
         window_name="App",
         bounding_box=sample_bbox,
-        center=sample_center,
-        is_focused=True
+        center=sample_center
     )
 
 @pytest.fixture
@@ -31,14 +30,8 @@ def sample_scrollable_node(sample_bbox, sample_center):
         name="Pane",
         control_type="Pane",
         window_name="App",
-        xpath="/path",
         bounding_box=sample_bbox,
-        center=sample_center,
-        horizontal_scrollable=False,
-        horizontal_scroll_percent=0.0,
-        vertical_scrollable=True,
-        vertical_scroll_percent=50.0,
-        is_focused=False
+        center=sample_center
     )
 
 class TestTreeViews:
@@ -53,8 +46,8 @@ class TestTreeViews:
     def test_tree_state_interactive_string(self, sample_interactive_node):
         state = TreeState(interactive_nodes=[sample_interactive_node])
         s = state.interactive_elements_to_string()
-        assert "0|App|Button|Button|(100,200)|True" in s
-        assert "# id|window|control_type|name|coords|focus" in s
+        assert "0|App|Button|Button|(100,200)|{}" in s
+        assert "# id|window|control_type|name|coords|metadata" in s
 
     def test_tree_state_scrollable_string(self, sample_interactive_node, sample_scrollable_node):
         state = TreeState(
@@ -63,5 +56,15 @@ class TestTreeViews:
         )
         s = state.scrollable_elements_to_string()
         # id should be 1 since there is 1 interactive node
-        assert "1|App|Pane|Pane|(100,200)|False|0.0|True|50.0|False" in s
-        assert "# id|window|control_type|name|coords|h_scroll|h_pct|v_scroll|v_pct|focus" in s
+        assert "1|App|Pane|Pane|(100,200)|{}" in s
+        assert "# id|window|control_type|name|coords|metadata" in s
+
+    def test_selector_map(self, sample_interactive_node, sample_scrollable_node):
+        state = TreeState(
+            interactive_nodes=[sample_interactive_node],
+            scrollable_nodes=[sample_scrollable_node]
+        )
+        selector = state.build_selector_map()
+        assert selector.node_of(0) is sample_interactive_node
+        assert selector.node_of(1) is sample_scrollable_node
+        assert selector.center_of(0).to_string() == "(100,200)"
