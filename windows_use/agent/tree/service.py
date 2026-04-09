@@ -217,8 +217,8 @@ class Tree:
                     'bounding_box':bounding_box,
                     'center':center,
                     'window_name':window_name,
-                    'xpath':popped.xpath,
                     'hwnd':popped.hwnd,
+                    'control':node,
                     'metadata':metadata
                 }))
         elif self.element_has_child_element(node,'link','heading'):
@@ -239,8 +239,8 @@ class Tree:
                 'bounding_box':bounding_box,
                 'center':center,
                 'window_name':window_name,
-                'xpath':popped.xpath,
                 'hwnd':popped.hwnd,
+                'control':node,
                 'metadata':metadata
             }))
 
@@ -250,7 +250,7 @@ class Tree:
                     dom_interactive_nodes:Optional[list[TreeElementNode]]=None, dom_informative_nodes:Optional[list[TextElementNode]]=None,
                     is_dom:bool=False, is_dialog:bool=False,
                     element_cache_req:Optional[Any]=None, children_cache_req:Optional[Any]=None,
-                    current_xpath:str='', hwnd:int=0):
+                    hwnd:int=0):
         try:
             # Build cached control if caching is enabled
             if not hasattr(node, '_is_cached') and element_cache_req:
@@ -292,8 +292,8 @@ class Tree:
                                 'vertical_scrollable':scroll_pattern.VerticallyScrollable,
                                 'vertical_scroll_percent':round(scroll_pattern.VerticalScrollPercent,2) if scroll_pattern.VerticallyScrollable else 0,
                                 'window_name':window_name,
-                                'xpath':current_xpath,
                                 'hwnd':hwnd,
+                                'control':node,
                                 'metadata':metadata
                             }))
                     except Exception:
@@ -474,8 +474,8 @@ class Tree:
                                     'bounding_box':bounding_box,
                                     'center':center,
                                     'window_name':window_name,
-                                    'xpath':current_xpath,
                                     'hwnd':hwnd,
+                                    'control':node,
                                     'metadata':metadata
                                 })
                                 dom_interactive_nodes.append(tree_node)
@@ -489,8 +489,8 @@ class Tree:
                                     'bounding_box':bounding_box,
                                     'center':center,
                                     'window_name':window_name,
-                                    'xpath':current_xpath,
                                     'hwnd':hwnd,
+                                    'control':node,
                                     'metadata':metadata
                                 })
                                 interactive_nodes.append(tree_node)
@@ -526,29 +526,12 @@ class Tree:
             # Phase 3: Cached Children Retrieval
             children = CachedControlHelper.get_cached_children(node, children_cache_req)
 
-            # Incrementally build xpath for each child in natural order,
-            # then iterate in traversal order (reversed for non-DOM apps).
-            type_counts: dict[str, int] = {}
-            for child in children:
-                t = child.CachedControlTypeName
-                type_counts[t] = type_counts.get(t, 0) + 1
-
-            type_position: dict[str, int] = {}
-            child_xpaths: list[str] = []
-            for child in children:
-                t = child.CachedControlTypeName
-                type_position[t] = type_position.get(t, 0) + 1
-                suffix = f'[{type_position[t]}]' if type_counts[t] > 1 else ''
-                child_xpaths.append(f'{current_xpath}/{t}{suffix}')
-
             # enumerate preserves original index so reversed iteration still maps correctly
             traversal = list(enumerate(children))
             if not is_dom:
                 traversal = list(reversed(traversal))
 
             for orig_idx, child in traversal:
-                child_xpath = child_xpaths[orig_idx]
-
                 # Check if the child is a DOM element
                 if is_browser and child.CachedAutomationId=="RootWebArea":
                     bounding_box=child.CachedBoundingRectangle
@@ -557,7 +540,7 @@ class Tree:
                     height=bounding_box.height())
                     self.dom=child
                     # enter DOM subtree
-                    self.tree_traversal(child, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=True, is_dialog=is_dialog, element_cache_req=element_cache_req, children_cache_req=children_cache_req, current_xpath=child_xpath, hwnd=hwnd)
+                    self.tree_traversal(child, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=True, is_dialog=is_dialog, element_cache_req=element_cache_req, children_cache_req=children_cache_req, hwnd=hwnd)
                 # Check if the child is a dialog
                 elif isinstance(child,WindowControl):
                     if not child.CachedIsOffscreen:
@@ -577,10 +560,10 @@ class Tree:
                             if is_modal:
                                 interactive_nodes.clear()
                     # enter dialog subtree
-                    self.tree_traversal(child, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=True, element_cache_req=element_cache_req, children_cache_req=children_cache_req, current_xpath=child_xpath, hwnd=hwnd)
+                    self.tree_traversal(child, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=True, element_cache_req=element_cache_req, children_cache_req=children_cache_req, hwnd=hwnd)
                 else:
                     # normal non-dialog children
-                    self.tree_traversal(child, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog, element_cache_req=element_cache_req, children_cache_req=children_cache_req, current_xpath=child_xpath, hwnd=hwnd)
+                    self.tree_traversal(child, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog, element_cache_req=element_cache_req, children_cache_req=children_cache_req, hwnd=hwnd)
         except Exception as e:
             logger.error(f"Error in tree_traversal: {e}", exc_info=True)
             raise
@@ -616,9 +599,8 @@ class Tree:
             interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
             window_name=(node.Name or '').strip()
             window_name=self.window_name_correction(window_name)
-            current_xpath=node.ControlTypeName
 
-            self.tree_traversal(node, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False, element_cache_req=element_cache_req, children_cache_req=children_cache_req, current_xpath=current_xpath, hwnd=handle)
+            self.tree_traversal(node, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=False, is_dialog=False, element_cache_req=element_cache_req, children_cache_req=children_cache_req, hwnd=handle)
             logger.debug(f'Window name:{window_name}')
             logger.debug(f'Interactive nodes:{len(interactive_nodes)}')
             if is_browser:

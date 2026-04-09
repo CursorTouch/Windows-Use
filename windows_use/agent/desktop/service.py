@@ -361,10 +361,16 @@ class Desktop:
     
     def get_element_handle_from_label(self,label:int)->uia.Control:
         tree_state=self.desktop_state.tree_state
-        element_node=tree_state.interactive_nodes[label]
-        xpath=element_node.xpath
-        element_handle=self.get_element_from_xpath(xpath)
-        return element_handle
+        selector=tree_state.build_selector_map()
+        element_node=selector.node_of(label)
+        if element_node is None:
+            raise ValueError(f'No element found for label {label}')
+        control=selector.control_of(label)
+        if control is not None:
+            return control
+        if element_node.hwnd:
+            return uia.ControlFromHandle(element_node.hwnd)
+        raise ValueError(f'No live control available for label {label}')
     
     def get_coordinates_from_label(self,label:int)->tuple[int,int]:
         element_handle=self.get_element_handle_from_label(label)
@@ -596,72 +602,6 @@ class Desktop:
             logger.error(f"Error in get_windows: {ex}")
             windows = []
         return windows,window_handles
-    
-    def get_xpath_from_element(self,element:uia.Control):
-        current=element
-        if current is None:
-            return ""
-        path_parts=[]
-        while current is not None:
-            parent=current.GetParentControl()
-            if parent is None:
-                # we are at the root node
-                path_parts.append(f'{current.ControlTypeName}')
-                break
-            children=parent.GetChildren()
-            same_type_children=["-".join(map(lambda x:str(x),child.GetRuntimeId())) for child in children if child.ControlType==current.ControlType]
-            index=same_type_children.index("-".join(map(lambda x:str(x),current.GetRuntimeId())))
-            if same_type_children:
-                path_parts.append(f'{current.ControlTypeName}[{index+1}]')
-            else:
-                path_parts.append(f'{current.ControlTypeName}')
-            current=parent
-        path_parts.reverse()
-        xpath="/".join(path_parts)
-        return xpath
-
-    def get_element_from_window_xpath(self, handle: int, xpath: str) -> uia.Control:
-        """Resolve a window-relative xpath (as stored in TreeElementNode.xpath) to a live UIA Control.
-
-        Starts traversal from ControlFromHandle(handle) and skips the first xpath
-        component (the window's own ControlTypeName), making it faster and independent
-        of the window's position in the global desktop tree.
-        """
-        pattern = re.compile(r'(\w+)(?:\[(\d+)\])?')
-        parts = xpath.split('/')
-        element = uia.ControlFromHandle(handle)
-        for part in parts[1:]:  # skip first component (window's own type)
-            match = pattern.fullmatch(part)
-            if match is None:
-                continue
-            control_type, index = match.groups()
-            index = int(index) if index else None
-            children = element.GetChildren()
-            same_type_children = [x for x in children if x.ControlTypeName == control_type]
-            if not same_type_children:
-                raise ValueError(f'No child of type {control_type!r} found at xpath step {part!r}')
-            element = same_type_children[(index - 1) if index else 0]
-        return element
-
-    def get_element_from_xpath(self,xpath:str)->uia.Control:
-        ROOT_CONTROL_TYPE="PaneControl"
-        pattern = re.compile(r'(\w+)(?:\[(\d+)\])?')
-        parts=[ROOT_CONTROL_TYPE]+xpath.split("/")
-        root=uia.GetRootControl()
-        element=root
-        for part in parts[1:]:
-            match=pattern.fullmatch(part)
-            if match is None:
-                continue
-            control_type, index=match.groups()
-            index=int(index) if index else None
-            children=element.GetChildren()
-            same_type_children=list(filter(lambda x:x.ControlTypeName==control_type,children))
-            if index:
-                element=same_type_children[index-1]
-            else:
-                element=same_type_children[0]
-        return element
     
     def get_windows_version(self)->str:
         if self._cached_windows_version is not None:

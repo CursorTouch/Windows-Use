@@ -7,6 +7,7 @@ EMPTY_MESSAGE="No elements found"
 
 if TYPE_CHECKING:
     from windows_use.uia.core import Rect
+    from windows_use.uia.controls import Control
 
 @dataclass
 class TreeState:
@@ -109,8 +110,8 @@ class TreeElementNode:
     name: str=''
     control_type: str=''
     window_name: str=''
-    xpath: str=''
     hwnd: int=0
+    control: Optional['Control']=None
     metadata:dict[str,Any]=field(default_factory=dict)
 
     def update_from_node(self,node:'TreeElementNode'):
@@ -134,8 +135,8 @@ class ScrollElementNode:
     window_name: str
     bounding_box: BoundingBox
     center: Center
-    xpath: str=''
     hwnd: int=0
+    control: Optional['Control']=None
     metadata:dict[str,Any]=field(default_factory=dict)
 
     # Legacy method kept for compatibility
@@ -167,13 +168,21 @@ class SelectorMap(dict):
     Usage:
         selector = tree_state.build_selector_map()
         node  = selector[0]
-        xpath = selector.xpath_of(0)
+        control = selector.control_of(0)
         hwnd  = selector.hwnd_of(0)
     """
 
-    def xpath_of(self, index: int) -> str | None:
+    def node_of(self, index: int) -> _SelectorNode | None:
         node = self.get(index)
-        return node.xpath if node else None
+        return node
+
+    def control_of(self, index: int) -> Optional['Control']:
+        node = self.get(index)
+        return node.control if node else None
+
+    def center_of(self, index: int) -> Optional[Center]:
+        node = self.get(index)
+        return node.center if node else None
 
     def hwnd_of(self, index: int) -> int | None:
         node = self.get(index)
