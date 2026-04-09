@@ -5,6 +5,7 @@ INTERACTIVE_CONTROL_TYPE_NAMES=set([
     'EditControl',
     'CheckBoxControl',
     'RadioButtonControl',
+    'DocumentControl',
     'ComboBoxControl',
     'HyperlinkControl',
     'SplitButtonControl',
@@ -40,7 +41,10 @@ INTERACTIVE_ROLES = {
     'Slider', 'SpinButton', 'Dial', 'ScrollBar', 'Grip',
     
     # Grids
-    'ColumnHeader', 'RowHeader', 'Cell'
+    'ColumnHeader', 'RowHeader', 'Cell',
+
+    # Document
+    'Document'
 }
 
 DOCUMENT_CONTROL_TYPE_NAMES=set([
