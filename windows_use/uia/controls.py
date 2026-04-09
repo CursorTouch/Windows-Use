@@ -1000,6 +1000,28 @@ class Control():
                 self._supportedPatterns[patternId] = pattern
                 return pattern
 
+    @property
+    def AvailablePatternIds(self) -> List[PatternId]:
+        """
+        Return the UI Automation pattern ids currently supported by this control.
+        These ids can be passed directly into `GetPattern()`.
+        """
+        supported_pattern_ids: List[PatternId] = []
+        for pattern_id in PatternConstructors.keys():
+            try:
+                if self.GetPattern(pattern_id):
+                    supported_pattern_ids.append(pattern_id)
+            except comtypes.COMError:
+                continue
+        return supported_pattern_ids
+
+    @property
+    def AvailablePatternNames(self) -> List[str]:
+        """
+        Return the UI Automation pattern names currently supported by this control.
+        """
+        return [PatternIdNames.get(pattern_id, str(pattern_id)) for pattern_id in self.AvailablePatternIds]
+
     def GetLegacyIAccessiblePattern(self) -> LegacyIAccessiblePattern:
         """
         Return `LegacyIAccessiblePattern` if it supports the pattern else None.
@@ -4517,4 +4539,3 @@ def WaitHotKeyReleased(hotkey: Tuple[int, int]) -> None:
                     break
         else:
             break
-
