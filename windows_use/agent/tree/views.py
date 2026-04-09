@@ -177,15 +177,11 @@ class SelectorMap(dict):
         return node
 
     def control_of(self, index: int) -> Optional['Control']:
-        node = self.get(index)
+        node = self.node_of(index)
         return node.control if node else None
 
-    def center_of(self, index: int) -> Optional[Center]:
-        node = self.get(index)
-        return node.center if node else None
-
     def hwnd_of(self, index: int) -> int | None:
-        node = self.get(index)
+        node = self.node_of(index)
         return node.hwnd if node else None
 
     def __repr__(self) -> str:

@@ -37,7 +37,7 @@ ProcessTime = time.perf_counter  # this returns nearly 0 when first call it if p
 ProcessTime()  # need to call it once if python version <= 3.6
 TreeNode = Any
 
-class ControlType:
+class ControlType(IntEnum):
     """
     ControlType from IUIAutomation.
     Refer https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-controltype-ids
@@ -130,7 +130,7 @@ ControlTypeNames = {
 }
 
 
-class PatternId:
+class PatternId(IntEnum):
     """
     PatternId from IUIAutomation.
     Refer https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-controlpattern-ids
@@ -211,7 +211,7 @@ PatternIdNames = {
 }
 
 
-class PropertyId:
+class PropertyId(IntEnum):
     """
     PropertyId from IUIAutomation.
     Refer https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-automation-element-propids
