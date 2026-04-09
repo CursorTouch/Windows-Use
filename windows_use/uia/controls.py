@@ -1384,6 +1384,7 @@ class Control():
         """
         cursorX, cursorY = GetCursorPos()
         self.SetFocus()
+        time.sleep(waitTime)
         self.MoveCursorToInnerPos(x, y, ratioX, ratioY, simulateMove=False)
         WheelDown(wheelTimes, interval, waitTime)
         SetCursorPos(cursorX, cursorY)
@@ -1401,6 +1402,7 @@ class Control():
         """
         cursorX, cursorY = GetCursorPos()
         self.SetFocus()
+        time.sleep(waitTime)
         self.MoveCursorToInnerPos(x, y, ratioX, ratioY, simulateMove=False)
         WheelUp(wheelTimes, interval, waitTime)
         SetCursorPos(cursorX, cursorY)
@@ -1484,6 +1486,7 @@ class Control():
         waitTime: float.
         """
         self.SetFocus()
+        time.sleep(waitTime)
         SendKey(key, waitTime)
 
     def SendKeys(self, text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT_TIME, charMode: bool = True) -> None:
@@ -1496,6 +1499,7 @@ class Control():
         charMode: bool, if False, the text typied is depend on the input method if a input method is on.
         """
         self.SetFocus()
+        time.sleep(waitTime)
         SendKeys(text, interval, waitTime, charMode)
 
     def IsTopLevel(self) -> bool:
@@ -4522,7 +4526,7 @@ def ShowDesktop(waitTime: float = 1) -> None:
         # time.sleep(1)
 
 
-def WaitHotKeyReleased(hotkey: Tuple[int, int]) -> None:
+def WaitHotKeyReleased(hotkey: Tuple[int, int], waitTime: float = OPERATION_WAIT_TIME) -> None:
     """hotkey: Tuple[int, int], two ints tuple (modifierKey, key)"""
     mod = {ModifierKey.Alt: Keys.VK_MENU,
            ModifierKey.Control: Keys.VK_CONTROL,
@@ -4530,7 +4534,7 @@ def WaitHotKeyReleased(hotkey: Tuple[int, int]) -> None:
            ModifierKey.Win: Keys.VK_LWIN
            }
     while True:
-        time.sleep(0.05)
+        time.sleep(waitTime)
         if IsKeyPressed(hotkey[1]):
             continue
         for k, v in mod.items():
