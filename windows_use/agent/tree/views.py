@@ -38,7 +38,7 @@ class TreeState:
     def build_selector_map(self) -> 'SelectorMap':
         """Build a SelectorMap from all interactive and scrollable nodes in this tree state."""
         nodes: list = list(self.interactive_nodes or []) + list(self.scrollable_nodes or [])
-        return SelectorMap(nodes)
+        return SelectorMap(enumerate(nodes))
 
     def scrollable_elements_to_string(self) -> str:
         parts = []
@@ -157,40 +157,19 @@ ElementNode=TreeElementNode|ScrollElementNode|TextElementNode
 
 _SelectorNode = Union[TreeElementNode, ScrollElementNode]
 
-class SelectorMap:
-    """Maps the element index (as shown in the tree output) to its node.
+class SelectorMap(dict):
+    """Maps element index (as shown in the tree output) to its node.
 
-    The index matches exactly what the agent sees in the tree:
         # id|window|control_type|name|coords|metadata
         0|Notepad|ButtonControl|Save|(640,400)|{}
         1|Notepad|EditControl|Search|(200,100)|{}
-        ...
-
-    Interactive nodes occupy indices 0..N-1.
-    Scrollable nodes continue from N onward (same as scrollable_elements_to_string).
 
     Usage:
         selector = tree_state.build_selector_map()
-
-        node  = selector[0]              # TreeElementNode at index 0
-        xpath = selector.xpath_of(0)     # 'WindowControl/PaneControl[1]/ButtonControl'
-        hwnd  = selector.hwnd_of(0)      # window handle
-
-        # Resolve to live UIA element — cursor-free
-        element = desktop.get_element_from_window_xpath(node.hwnd, node.xpath)
+        node  = selector[0]
+        xpath = selector.xpath_of(0)
+        hwnd  = selector.hwnd_of(0)
     """
-
-    def __init__(self, nodes: list[_SelectorNode]):
-        self._nodes: list[_SelectorNode] = nodes
-
-    def __getitem__(self, index: int) -> _SelectorNode:
-        return self._nodes[index]
-
-    def get(self, index: int) -> _SelectorNode | None:
-        try:
-            return self._nodes[index]
-        except IndexError:
-            return None
 
     def xpath_of(self, index: int) -> str | None:
         node = self.get(index)
@@ -200,14 +179,5 @@ class SelectorMap:
         node = self.get(index)
         return node.hwnd if node else None
 
-    def __len__(self) -> int:
-        return len(self._nodes)
-
-    def __iter__(self):
-        return iter(self._nodes)
-
-    def items(self):
-        return enumerate(self._nodes)
-
     def __repr__(self) -> str:
-        return f'SelectorMap({len(self._nodes)} elements)'
+        return f'SelectorMap({len(self)} elements)'
