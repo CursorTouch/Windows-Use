@@ -9,7 +9,7 @@ from windows_use.agent.watchdog.service import WatchDog
 from windows_use.agent.desktop.service import Desktop
 from windows_use.agent.desktop.views import Browser
 from windows_use.agent.loop import LoopGuard
-from windows_use.providers.events import LLMEventType
+from windows_use.providers.events import LLMEventType, LLMStreamEventType
 from typing import Callable, Literal, TYPE_CHECKING
 from windows_use.agent.context import Context
 from windows_use.agent.base import BaseAgent
@@ -105,7 +105,7 @@ class Agent(BaseAgent):
         self.telemetry = ProductTelemetry()
         self.watchdog = WatchDog()
         self.console = Console()
-        self.context = Context()
+        self.context = Context(llm=llm)
         self.log_to_file = log_to_file
         self.log_to_console = log_to_console
         self.llm = llm
@@ -168,6 +168,12 @@ class Agent(BaseAgent):
         for step in range(self.state.max_steps):
             self.state.step = step
 
+            if self.context.need_compaction:
+                messages=self.state.messages+self.state.error_messages
+                if content:=self.context.compact(messages):
+                    self.state.messages = [self.system_message, HumanMessage(content=content)]
+                self.state.error_messages.clear()
+
             # Check for loops and build state message with nudge
             nudge = None if self.disable_loop_detection else self._loop_guard.check()
             state_msg = self.context.state(
@@ -190,10 +196,12 @@ class Agent(BaseAgent):
             # Reason: call LLM, retry on failure, return ToolMessage
             message: ToolMessage | None = None
             last_error: Exception | None = None
+            llm_errors: list[dict] = []
             for attempt in range(self.state.max_consecutive_failures):
                 try:
                     messages = list(chain(self.state.messages, self.state.error_messages))
                     llm_event = self.llm.invoke(messages=messages, tools=self.tools)
+                    self.context.update_token_usage(llm_event.usage)
                     match llm_event.type:
                         case LLMEventType.TOOL_CALL:
                             message = ToolMessage(
@@ -209,8 +217,37 @@ class Agent(BaseAgent):
                             )
                             self.state.error_messages.extend([ai_message, human_message])
                             continue
+                        case LLMEventType.ERROR:
+                            # Emit LLM error event
+                            llm_error_data = {
+                                "step": step,
+                                "attempt": attempt + 1,
+                                "provider": self.llm.provider,
+                                "model": self.llm.model_name,
+                                "error_type": type(llm_event).__name__,
+                                "error": str(llm_event),
+                            }
+                            self.event.emit(
+                                AgentEvent(type=EventType.ERROR, data=llm_error_data)
+                            )
+                            llm_errors.append(llm_error_data)
+                            continue
                 except Exception as e:
                     last_error = e
+                    # Emit LLM error event for exception
+                    llm_error_data = {
+                        "step": step,
+                        "attempt": attempt + 1,
+                        "provider": self.llm.provider,
+                        "model": self.llm.model_name,
+                        "error_type": type(e).__name__,
+                        "error": str(e),
+                    }
+                    self.event.emit(
+                        AgentEvent(type=EventType.ERROR, data=llm_error_data)
+                    )
+                    llm_errors.append(llm_error_data)
+
                     if attempt < self.state.max_consecutive_failures - 1:
                         wait_time = 2 ** (attempt + 1)
                         logger.error(
@@ -229,7 +266,15 @@ class Agent(BaseAgent):
             if message is None:
                 error = f"Agent failed after exhausting retries: {last_error}"
                 self.event.emit(
-                    AgentEvent(type=EventType.ERROR, data={"step": step, "error": error})
+                    AgentEvent(
+                        type=EventType.ERROR,
+                        data={
+                            "step": step,
+                            "error": error,
+                            "llm_errors": llm_errors,
+                            "error_source": "llm_exhausted_retries",
+                        }
+                    )
                 )
                 return AgentResult(is_done=False, error=error)
 
@@ -369,6 +414,12 @@ class Agent(BaseAgent):
         for step in range(self.state.max_steps):
             self.state.step = step
 
+            if self.context.need_compaction:
+                messages=self.state.messages+self.state.error_messages
+                if content:=self.context.compact(messages):
+                    self.state.messages = [self.system_message, HumanMessage(content=content)]
+                self.state.error_messages.clear()
+
             # Check for loops and build state message with nudge
             nudge = None if self.disable_loop_detection else self._loop_guard.check()
             state_msg = self.context.state(
@@ -394,6 +445,7 @@ class Agent(BaseAgent):
                 try:
                     messages = list(chain(self.state.messages, self.state.error_messages))
                     llm_event = await self.llm.ainvoke(messages=messages, tools=self.tools)
+                    self.context.update_token_usage(llm_event.usage)
                     match llm_event.type:
                         case LLMEventType.TOOL_CALL:
                             message = ToolMessage(
