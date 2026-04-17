@@ -1,4 +1,5 @@
-from windows_use.messages import SystemMessage, HumanMessage, ImageMessage
+from windows_use.messages import SystemMessage, HumanMessage, ImageMessage, AIMessage, ToolMessage, BaseMessage
+from windows_use.providers import BaseChatLLM,TokenUsage
 from windows_use.agent.desktop.views import Browser
 from windows_use.agent.desktop.service import Desktop
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +13,8 @@ import windows_use.uia as uia
 
 _template_cache: dict[str, str] = {}
 
+_NON_TOOL_PARAMS = {"thought"}
+
 
 def _load_template(filename: str) -> str:
     """Load a prompt template from disk, caching after first read."""
@@ -23,6 +26,10 @@ def _load_template(filename: str) -> str:
 
 
 class Context:
+    def __init__(self,llm: BaseChatLLM):
+        self.token_usage:TokenUsage=TokenUsage()
+        self.llm = llm
+        
     def _build_system_prompt(self,
         mode: Literal["flash", "normal"],
         desktop: Desktop,
@@ -65,6 +72,60 @@ class Context:
             case _:
                 raise ValueError(f"Invalid mode: {mode} (must be 'flash' or 'normal')")
 
+    def _format_history_for_compaction(self,messages: list[BaseMessage]) -> str:
+        lines=['Following is the conversation that needs to be compacted:']
+        for message in messages:
+            content=message.content[:2000]+'...[TRUNCATED]' if len(message.content)>2000 else message.content
+            if isinstance(message,SystemMessage):
+                pass
+            elif isinstance(message,(HumanMessage)):
+                lines.append(f'USER: {content}')
+            elif isinstance(message,AIMessage):
+                lines.append(f'ASSISTANT: {content}')
+            elif isinstance(message,ToolMessage):
+                id=message.id
+                name=message.name
+                params=message.params
+                if 'thought' in params:
+                    lines.append(f'THOUGHT: {params["thought"]}')
+                lines.append(f'TOOL CALL {id}: {name}({', '.join([f'{k}={v[:2000]+'...[TRUNCATED]' if len(v)>2000 else v}' for k,v in params.items() if k not in _NON_TOOL_PARAMS])})')
+                lines.append(f'TOOL RESULT {id}: {content}')
+            else:
+                pass
+        return '\n\n---\n\n'.join(lines)
+
+    @property
+    def need_compaction(self)->bool:
+        metadata=self.llm.get_metadata()
+        context_window=metadata.context_window
+        total_tokens=self.token_usage.total_tokens
+        return total_tokens>context_window*0.8
+
+    def compact(
+        self,
+        messages: list[BaseMessage],
+        ) -> str|None:
+        template=_load_template("compact.md")
+        compaction_messages=[
+            SystemMessage(content=template),
+            HumanMessage(content=self._format_history_for_compaction(messages))
+        ]
+        llm_response=self.llm.invoke(compaction_messages)
+        return f'''
+# Context Restoration (Previous Session Compacted)
+
+The previous conversation was compacted due to context window limitations. Below is the detailed summary of work done so far.
+
+**CRITICAL: Don't repeat already completed ACTIONS**
+
+---
+
+{llm_response.content}
+
+---
+
+Continue work from where the previous session left off. FOCUS only on the remaining tasks.
+'''
 
     def system(
         self,
@@ -134,3 +195,6 @@ class Context:
 
     def task(self, task: str) -> HumanMessage:
         return HumanMessage(content=f"TASK: {task}")
+
+    def update_token_usage(self,token_usage:TokenUsage):
+        self.token_usage=token_usage

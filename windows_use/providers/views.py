@@ -4,13 +4,13 @@ from pydantic import BaseModel
 class TokenUsage(BaseModel):
     """Token usage information from LLM responses."""
 
-    prompt_tokens: int
-    completion_tokens: int
-    total_tokens: int
-    image_tokens: int | None = None
-    thinking_tokens: int | None = None
-    cache_creation_input_tokens: int | None = None
-    cache_read_input_tokens: int | None = None
+    prompt_tokens: int=0
+    completion_tokens: int=0
+    total_tokens: int=0
+    image_tokens: int=0
+    thinking_tokens: int=0
+    cache_creation_input_tokens: int=0
+    cache_read_input_tokens: int=0
 
 
 class Metadata(BaseModel):
