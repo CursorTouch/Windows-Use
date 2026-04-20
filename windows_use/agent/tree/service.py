@@ -1,4 +1,5 @@
-from windows_use.uia import Control, ComboBoxControl, CheckBoxControl, EditControl, ButtonControl, SliderControl, ScrollPattern, WindowControl, Rect, ExpandCollapseState, ToggleState, PatternId, PropertyId, AccessibleRoleNames, TreeScope, ControlFromHandle
+from windows_use.uia import Control, ComboBoxControl, CheckBoxControl, EditControl, ButtonControl, SliderControl, ScrollPattern, WindowControl, Rect, ExpandCollapseState, ToggleState, PatternId, PropertyId, AccessibleRoleNames, TreeScope, ControlFromHandle, UIAException, UIADeadElementError, UIARetryableError, from_com_error
+from _ctypes import COMError
 from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES, DOCUMENT_CONTROL_TYPE_NAMES, INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
 from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, TextElementNode, Center, BoundingBox, TreeState
 from windows_use.agent.tree.cache_utils import CacheRequestFactory, CachedControlHelper
@@ -115,7 +116,10 @@ class Tree:
                         scrollable_nodes.extend(scroll_nodes)
                         dom_informative_nodes.extend(info_nodes)
                     break
-                except Exception as e:
+                except UIADeadElementError as e:
+                    logger.debug(f"Skipping destroyed window (handle {handle}): {e}")
+                    break
+                except (UIAException, Exception) as e:
                     retry_counts[handle] = attempt + 1
                     try:
                         window_name = ControlFromHandle(handle).Name
@@ -564,9 +568,10 @@ class Tree:
                 else:
                     # normal non-dialog children
                     self.tree_traversal(child, window_bounding_box, window_name, is_browser, interactive_nodes, scrollable_nodes, dom_interactive_nodes, dom_informative_nodes, is_dom=is_dom, is_dialog=is_dialog, element_cache_req=element_cache_req, children_cache_req=children_cache_req, hwnd=hwnd)
-        except Exception as e:
-            logger.error(f"Error in tree_traversal: {e}", exc_info=True)
+        except UIAException:
             raise
+        except COMError as e:
+            raise from_com_error(e) from e
 
     def window_name_correction(self,window_name:str)->str:
         match window_name:
@@ -610,9 +615,10 @@ class Tree:
 
             interactive_nodes.extend(dom_interactive_nodes)
             return (interactive_nodes,scrollable_nodes,dom_informative_nodes)
-        except Exception as e:
-            logger.error(f"Error getting nodes for handle {handle}: {e}")
+        except UIAException:
             raise
+        except COMError as e:
+            raise from_com_error(e) from e
 
     def on_focus_change(self, sender:ctypes.POINTER('IUIAutomationElement')):
         """Handle focus change events."""

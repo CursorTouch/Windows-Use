@@ -1953,3 +1953,93 @@ class VisualEffects(IntEnum):
     VisualEffects_SoftEdges = 4
     VisualEffects_Bevel = 5
 
+
+class UIAError(IntEnum):
+    """
+    COM/UIA HRESULT error codes as signed 32-bit integers (the form Python ctypes.COMError reports them).
+
+    Groups:
+      UIA_E_*     — UI Automation–specific errors (UIAutomationCoreApi.h)
+      EVENT_E_*   — COM+ event system errors (Winerror.h) — share hex range with UIA_E
+      RO_E_*      — Windows Runtime object lifecycle errors (Winerror.h)
+      RPC_E_*     — COM RPC transport/threading errors (Winerror.h)
+      CO_E_*      — COM object state errors (Winerror.h)
+      E_*         — Generic COM errors (Winerror.h)
+    """
+
+    # --- UIA-specific (UIAutomationCoreApi.h) ---
+    UIA_E_ELEMENTNOTENABLED     = -2147220992  # 0x80040200 — method called on disabled element
+    UIA_E_ELEMENTNOTAVAILABLE   = -2147220991  # 0x80040201 — element destroyed or virtualized
+    UIA_E_NOCLICKABLEPOINT      = -2147220990  # 0x80040202 — element has no clickable point
+    UIA_E_PROXYASSEMBLYNOTLOADED= -2147220989  # 0x80040203 — client-side proxy provider failed to load
+    UIA_E_NOTSUPPORTED          = -2147220988  # 0x80040204 — property/pattern not supported by provider
+    UIA_E_INVALIDOPERATION      = -2146233079  # 0x80131509 — operation not valid in current state
+    UIA_E_TIMEOUT               = -2146233083  # 0x80131505 — UIA operation timed out
+
+    # --- COM+ Event system (Winerror.h) — same hex range as UIA_E, easy to confuse ---
+    EVENT_E_ALL_SUBSCRIBERS_FAILED  = -2147220991  # 0x80040201 — same code as UIA_E_ELEMENTNOTAVAILABLE; "unable to invoke any subscribers"
+    EVENT_E_INTERNALEXCEPTION       = -2147220987  # 0x80040205 — unexpected exception in event system
+    EVENT_E_USER_EXCEPTION          = -2147220984  # 0x80040208 — a subscriber raised an exception
+
+    # --- Windows Runtime object lifecycle (Winerror.h) ---
+    RO_E_CLOSED                 = -2147483629  # 0x80000013 — object has been closed/disposed
+
+    # --- COM RPC transport & threading (Winerror.h) ---
+    RPC_E_CALL_REJECTED         = -2147418111  # 0x80010001 — callee rejected the call (app busy, may retry)
+    RPC_E_CALL_CANCELED         = -2147418110  # 0x80010002 — call canceled by message filter
+    RPC_E_CONNECTION_TERMINATED = -2147418106  # 0x80010006 — connection terminated or in bogus state
+    RPC_E_SERVER_DIED           = -2147418105  # 0x80010007 — server gone, call may have executed
+    RPC_E_SERVER_DIED_DNE       = -2147418094  # 0x80010012 — server gone, call did NOT execute
+    RPC_E_SYS_CALL_FAILED       = -2147417854  # 0x80010100 — underlying system call failed
+    RPC_E_OUT_OF_RESOURCES      = -2147417855  # 0x80010101 — could not allocate required resource
+    RPC_E_ATTEMPTED_MULTITHREAD = -2147417854  # 0x80010102 — multiple threads in STA mode
+    RPC_E_SERVERFAULT           = -2147417851  # 0x80010105 — server threw an exception
+    RPC_E_CHANGED_MODE          = -2147417850  # 0x80010106 — STA/MTA mode conflict on thread
+    RPC_E_DISCONNECTED          = -2147418360  # 0x80010108 — object invoked has disconnected from clients
+    RPC_E_SERVERCALL_RETRYLATER = -2147417846  # 0x8001010A — app busy, retry later
+    RPC_E_SERVERCALL_REJECTED   = -2147417845  # 0x8001010B — message filter rejected the call
+    RPC_E_WRONG_THREAD          = -2147417842  # 0x8001010E — interface marshalled for a different thread
+    RPC_E_THREAD_NOT_INIT       = -2147417841  # 0x8001010F — CoInitialize not called on current thread
+    RPC_E_TIMEOUT               = -2147417825  # 0x8001011F — RPC-level operation timed out
+    RPC_E_UNEXPECTED            = -2147352577  # 0x8001FFFF — internal RPC error
+
+    # --- COM object state (Winerror.h) ---
+    CO_E_OBJNOTCONNECTED        = -2147220995  # 0x800401FD — object not connected to server
+    CO_E_RELEASED               = -2147220993  # 0x800401FF — object has been released
+    CO_E_NOTINITIALIZED         = -2147220496  # 0x800401F0 — CoInitialize not called
+
+    # --- Generic COM (Winerror.h) ---
+    E_NOTIMPL                   = -2147467263  # 0x80004001 — not implemented
+    E_NOINTERFACE               = -2147467262  # 0x80004002 — interface not supported
+    E_ABORT                     = -2147467260  # 0x80004004 — operation aborted
+    E_FAIL                      = -2147467259  # 0x80004005 — unspecified failure
+    RPC_E_ACCESS_DENIED         = -2147417829  # 0x8001011B — RPC-level access denied
+    E_ACCESSDENIED              = -2147024891  # 0x80070005 — access denied
+    E_OUTOFMEMORY               = -2147024882  # 0x8007000E — out of memory
+    E_INVALIDARG                = -2147024809  # 0x80070057 — invalid argument
+    E_UNEXPECTED                = -2147418113  # 0x8000FFFF — catastrophic/unexpected failure
+    E_POINTER                   = -2147467261  # 0x80004003 — invalid pointer
+
+
+def is_dead_element_error(code: int) -> bool:
+    """Return True if the COM error code means the UIA element/window no longer exists."""
+    return code in {
+        UIAError.UIA_E_ELEMENTNOTAVAILABLE,  # == EVENT_E_ALL_SUBSCRIBERS_FAILED
+        UIAError.RO_E_CLOSED,
+        UIAError.RPC_E_DISCONNECTED,
+        UIAError.RPC_E_SERVER_DIED,
+        UIAError.RPC_E_SERVER_DIED_DNE,
+        UIAError.RPC_E_CONNECTION_TERMINATED,
+        UIAError.CO_E_OBJNOTCONNECTED,
+        UIAError.CO_E_RELEASED,
+    }
+
+
+def is_retryable_error(code: int) -> bool:
+    """Return True if the COM error code means the app is busy but alive — retrying may succeed."""
+    return code in {
+        UIAError.RPC_E_CALL_REJECTED,
+        UIAError.RPC_E_SERVERCALL_RETRYLATER,
+        UIAError.RPC_E_SERVERCALL_REJECTED,
+    }
+
