@@ -28,7 +28,7 @@ import os
 import io
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 class Desktop:
     def __init__(self,use_vision:bool=False,use_annotation:bool=False,use_accessibility:bool=True):
@@ -634,13 +634,12 @@ class Desktop:
         except Exception as e:
             logger.warning(f"Failed to capture virtual screen, using primary screen")
             screenshot = ImageGrab.grab()
-        finally:
-            if as_bytes:
-                buffered = io.BytesIO()
-                screenshot.save(buffered, format="PNG")
-                screenshot = buffered.getvalue()
-                buffered.close()
-            return screenshot
+        if as_bytes:
+            buffered = io.BytesIO()
+            screenshot.save(buffered, format="PNG")
+            screenshot = buffered.getvalue()
+            buffered.close()
+        return screenshot
 
     def get_annotated_screenshot(self, nodes: list[TreeElementNode],as_bytes:bool=False) -> bytes|Image.Image:
         screenshot = self.get_screenshot()
