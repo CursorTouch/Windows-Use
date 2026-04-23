@@ -139,21 +139,31 @@ class CachedControlHelper:
         """
         if cache_request is None:
             cache_request = CacheRequestFactory.create_tree_traversal_cache()
-        
-        # Ensure the cache request includes children
-        # Note: We do NOT set this here to avoid modifying shared cache request objects
-        # The caller is responsible for providing a CacheRequest with TreeScope_Children
-        if (cache_request.TreeScope & TreeScope.TreeScope_Children) == 0:
-             logger.warning("Cache request passed to get_cached_children does not have Children scope!")
-        
-        # Try to use existing cache first if available
-        try:
-            # Build updated cache that includes children
-            cached_node = node.BuildUpdatedCache(cache_request)
-            children = cached_node.GetCachedChildren()
             
-            for child in children:
-                child._is_cached = True
+        # Optimization: To avoid redundant COM property fetches for the parent node,
+        # we only need the Children scope. If TreeScope_Element is omitted,
+        # UI Automation only fetches the children and their properties.
+        # We clone the request to avoid modifying shared cache request objects.
+        req_clone = cache_request.Clone()
+        req_clone.TreeScope = TreeScope.TreeScope_Children
+        
+        try:
+            # Bypass `Control.CreateControlFromElement` when building the cache.
+            # When TreeScope_Element is omitted, BuildUpdatedCache returns a dummy element
+            # which does not have valid properties (like CurrentControlType), 
+            # so our python wrapper would crash. We just use the raw IUIAutomationElement.
+            updated_element = node.Element.BuildUpdatedCache(req_clone.check_request)
+            element_array = updated_element.GetCachedChildren()
+            
+            children = []
+            if element_array:
+                length = element_array.Length
+                for i in range(length):
+                    child_elem = element_array.GetElement(i)
+                    child_control = Control.CreateControlFromElement(child_elem)
+                    if child_control:
+                        child_control._is_cached = True
+                        children.append(child_control)
             
             logger.debug(f"Retrieved {len(children)} cached children (newly built)")
             return children
