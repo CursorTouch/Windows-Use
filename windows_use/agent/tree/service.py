@@ -351,22 +351,29 @@ class Tree:
                                  
                         elif control_type_name == 'GroupControl':
                              if is_browser:
-                                 try:
+                                try:
+                                    has_expand_collapse = node.GetCachedPropertyValue(PropertyId.ExpandCollapseExpandCollapseStateProperty)
+                                    if has_expand_collapse in ExpandCollapseState:
+                                        is_interactive = True
+                                except Exception:
+                                    pass
+
+                                try:
                                     role = node.GetCachedPropertyValue(PropertyId.LegacyIAccessibleRoleProperty)
                                     is_role_interactive = AccessibleRoleNames.get(role, "Default") in INTERACTIVE_ROLES
-                                 except Exception:
+                                except Exception:
                                     is_role_interactive = False
-                                    
-                                 is_default_action = False
-                                 try:
-                                     default_action = node.GetCachedPropertyValue(PropertyId.LegacyIAccessibleDefaultActionProperty)
-                                     if default_action and default_action.title() in DEFAULT_ACTIONS:
-                                         is_default_action = True
-                                 except Exception:
+
+                                is_default_action = False
+                                try:
+                                    default_action = node.GetCachedPropertyValue(PropertyId.LegacyIAccessibleDefaultActionProperty)
+                                    if default_action and default_action.title() in DEFAULT_ACTIONS:
+                                        is_default_action = True
+                                except Exception:
                                     pass
-                                 
-                                 if is_role_interactive and (is_default_action or is_keyboard_focusable):
-                                     is_interactive = True
+
+                                if is_role_interactive and (is_default_action or is_keyboard_focusable):
+                                    is_interactive = True
 
                         if is_interactive:
                             is_focused = node.CachedHasKeyboardFocus
