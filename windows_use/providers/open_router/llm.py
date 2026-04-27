@@ -29,6 +29,7 @@ from windows_use.tools import Tool
 
 logger = logging.getLogger(__name__)
 
+
 class ChatOpenRouter(BaseChatLLM):
     """
     OpenRouter LLM implementation following the BaseChatLLM protocol.
@@ -46,7 +47,7 @@ class ChatOpenRouter(BaseChatLLM):
         max_retries: int = 2,
         temperature: float | None = None,
         default_headers: dict | None = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the OpenRouter LLM.
@@ -72,14 +73,14 @@ class ChatOpenRouter(BaseChatLLM):
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
-            default_headers=headers
+            default_headers=headers,
         )
         self.aclient = AsyncOpenAI(
             api_key=self.api_key,
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
-            default_headers=headers
+            default_headers=headers,
         )
         self.kwargs = kwargs
 
@@ -108,10 +109,12 @@ class ChatOpenRouter(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content_list.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"}
-                    })
+                    content_list.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
+                        }
+                    )
                 openai_messages.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 msg_dict: dict = {"role": "assistant", "content": msg.content or ""}
@@ -123,34 +126,21 @@ class ChatOpenRouter(BaseChatLLM):
                 tool_call = {
                     "id": msg.id,
                     "type": "function",
-                    "function": {
-                        "name": msg.name,
-                        "arguments": json.dumps(msg.params)
-                    }
+                    "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
-                openai_messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [tool_call]
-                })
-                openai_messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.id,
-                    "content": msg.content or ""
-                })
+                openai_messages.append(
+                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                )
+                openai_messages.append(
+                    {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
+                )
         return openai_messages
 
     def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to OpenRouter-compatible tool definitions.
         """
-        return [
-            {
-                "type": "function",
-                "function": tool.json_schema
-            }
-            for tool in tools
-        ]
+        return [{"type": "function", "function": tool.json_schema} for tool in tools]
 
     def _process_response(self, response: Any) -> LLMEvent:
         """Process OpenRouter API response into AIMessage or ToolMessage."""
@@ -166,7 +156,8 @@ class ChatOpenRouter(BaseChatLLM):
                 getattr(usage_data, "completion_tokens_details", None),
                 "reasoning_tokens",
                 None,
-            ) or getattr(
+            )
+            or getattr(
                 getattr(usage_data, "completion_tokens_details", None),
                 "thinking_tokens",
                 None,
@@ -187,28 +178,36 @@ class ChatOpenRouter(BaseChatLLM):
                 params = {}
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                usage=usage,
             )
-        return LLMEvent(type=LLMEventType.TEXT, content=message.content or "", thinking=thinking_obj, usage=usage)
+        return LLMEvent(
+            type=LLMEventType.TEXT,
+            content=message.content or "",
+            thinking=thinking_obj,
+            usage=usage,
+        )
 
     @overload
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": openai_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": openai_messages, **self.kwargs}
 
         # Only add tools if they exist
         if openai_tools:
@@ -222,7 +221,9 @@ class ChatOpenRouter(BaseChatLLM):
 
         # Note: OpenRouter doesn't support structured_output via beta.parse
         if structured_output:
-            logger.warning("OpenRouter does not support structured_output via beta.parse. Using json_mode instead.")
+            logger.warning(
+                "OpenRouter does not support structured_output via beta.parse. Using json_mode instead."
+            )
             params["response_format"] = {"type": "json_object"}
 
         response = self.client.chat.completions.create(**params)
@@ -243,14 +244,22 @@ class ChatOpenRouter(BaseChatLLM):
                     "thinking_tokens",
                     None,
                 )
-                content = parsed_obj.model_dump() if hasattr(parsed_obj, "model_dump") else str(parsed_obj)
+                content = (
+                    parsed_obj.model_dump()
+                    if hasattr(parsed_obj, "model_dump")
+                    else str(parsed_obj)
+                )
                 usage = TokenUsage(
                     prompt_tokens=getattr(response.usage, "prompt_tokens", 0),
                     completion_tokens=getattr(response.usage, "completion_tokens", 0),
                     total_tokens=getattr(response.usage, "total_tokens", 0),
                     thinking_tokens=thinking_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content) if isinstance(content, dict) else content,
+                    usage=usage,
+                )
             except (json.JSONDecodeError, TypeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 # Fall through to normal response processing
@@ -258,18 +267,25 @@ class ChatOpenRouter(BaseChatLLM):
         return self._process_response(response)
 
     @overload
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": openai_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": openai_messages, **self.kwargs}
 
         if openai_tools:
             params["tools"] = openai_tools
@@ -281,7 +297,9 @@ class ChatOpenRouter(BaseChatLLM):
             params["response_format"] = {"type": "json_object"}
 
         if structured_output:
-            logger.warning("OpenRouter does not support structured_output via beta.parse. Using json_mode instead.")
+            logger.warning(
+                "OpenRouter does not support structured_output via beta.parse. Using json_mode instead."
+            )
             params["response_format"] = {"type": "json_object"}
 
         response = await self.aclient.chat.completions.create(**params)
@@ -301,24 +319,43 @@ class ChatOpenRouter(BaseChatLLM):
                     "thinking_tokens",
                     None,
                 )
-                content = parsed_obj.model_dump() if hasattr(parsed_obj, "model_dump") else str(parsed_obj)
+                content = (
+                    parsed_obj.model_dump()
+                    if hasattr(parsed_obj, "model_dump")
+                    else str(parsed_obj)
+                )
                 usage = TokenUsage(
                     prompt_tokens=getattr(response.usage, "prompt_tokens", 0),
                     completion_tokens=getattr(response.usage, "completion_tokens", 0),
                     total_tokens=getattr(response.usage, "total_tokens", 0),
                     thinking_tokens=thinking_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content) if isinstance(content, dict) else content,
+                    usage=usage,
+                )
             except (json.JSONDecodeError, TypeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
 
         return self._process_response(response)
 
     @overload
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
-        ...
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]: ...
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
@@ -327,7 +364,7 @@ class ChatOpenRouter(BaseChatLLM):
             "messages": openai_messages,
             "stream": True,
             "stream_options": {"include_usage": True},
-            **self.kwargs
+            **self.kwargs,
         }
 
         if openai_tools:
@@ -376,7 +413,9 @@ class ChatOpenRouter(BaseChatLLM):
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content)
+                yield LLMStreamEvent(
+                    type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content
+                )
             if delta.content:
                 if think_started:
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
@@ -387,7 +426,7 @@ class ChatOpenRouter(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
 
             # Accumulate tool call deltas
-            if hasattr(delta, 'tool_calls') and delta.tool_calls:
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
@@ -406,12 +445,8 @@ class ChatOpenRouter(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -420,10 +455,21 @@ class ChatOpenRouter(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_END, usage=usage)
 
     @overload
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
-        ...
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]: ...
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
@@ -432,7 +478,7 @@ class ChatOpenRouter(BaseChatLLM):
             "messages": openai_messages,
             "stream": True,
             "stream_options": {"include_usage": True},
-            **self.kwargs
+            **self.kwargs,
         }
 
         if openai_tools:
@@ -481,7 +527,9 @@ class ChatOpenRouter(BaseChatLLM):
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content)
+                yield LLMStreamEvent(
+                    type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content
+                )
             if delta.content:
                 if think_started:
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
@@ -492,7 +540,7 @@ class ChatOpenRouter(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
 
             # Accumulate tool call deltas
-            if hasattr(delta, 'tool_calls') and delta.tool_calls:
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
@@ -511,12 +559,8 @@ class ChatOpenRouter(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -528,5 +572,5 @@ class ChatOpenRouter(BaseChatLLM):
         return Metadata(
             name=self._model,
             context_window=128000,  # Varies by model, this is a safe default
-            owned_by="open_router"
+            owned_by="open_router",
         )

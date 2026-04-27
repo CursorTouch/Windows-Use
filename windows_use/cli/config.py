@@ -30,9 +30,7 @@ def _get_fernet() -> Fernet:
         salt=_ENC_SALT,
         iterations=480_000,
     )
-    key = base64.urlsafe_b64encode(
-        kdf.derive(Path.home().as_posix().encode("utf-8"))
-    )
+    key = base64.urlsafe_b64encode(kdf.derive(Path.home().as_posix().encode("utf-8")))
     return Fernet(key)
 
 
@@ -214,7 +212,9 @@ def get_tts_config() -> dict[str, Any] | None:
     return out
 
 
-def save_speech_config(stt: dict[str, Any] | None = None, tts: dict[str, Any] | None = None) -> None:
+def save_speech_config(
+    stt: dict[str, Any] | None = None, tts: dict[str, Any] | None = None
+) -> None:
     """Save speech config. Merges with existing; pass None to leave unchanged."""
     cfg = get_speech_config()
     if stt is not None:

@@ -40,6 +40,7 @@ from windows_use.cli.speech_registry import (
 def _version() -> str:
     try:
         from importlib.metadata import version
+
         return version("windows-use")
     except Exception:
         return "0.0.0"
@@ -63,13 +64,15 @@ def run_setup() -> dict[str, str]:
 
     # Welcome banner
     console.print()
-    console.print(Panel.fit(
-        f"[bold cyan]Windows-Use[/] v{_version()}\n\n"
-        "[dim]Computer-Use for Windows OS[/]\n"
-        "[dim]Let's get you set up in a few steps.[/]",
-        border_style="cyan",
-        padding=(1, 2),
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Windows-Use[/] v{_version()}\n\n"
+            "[dim]Computer-Use for Windows OS[/]\n"
+            "[dim]Let's get you set up in a few steps.[/]",
+            border_style="cyan",
+            padding=(1, 2),
+        )
+    )
     console.print()
 
     # Pick provider
@@ -307,10 +310,7 @@ def run_base_url_change() -> bool:
     import questionary
 
     configs = get_providers_config()
-    providers_list = [
-        (get_provider_display(c["provider"]), c["provider"])
-        for c in configs
-    ]
+    providers_list = [(get_provider_display(c["provider"]), c["provider"]) for c in configs]
     if not providers_list:
         return False
 
@@ -361,45 +361,58 @@ def create_llm(provider: str, model: str, api_key: str | None = None, base_url: 
 
     if provider == "groq":
         from windows_use.providers.groq import ChatGroq
+
         return ChatGroq(model=model, api_key=key, base_url=base_url)
     if provider == "openai":
         from windows_use.providers.openai import ChatOpenAI
+
         return ChatOpenAI(model=model, api_key=key, base_url=base_url)
     if provider == "anthropic":
         from windows_use.providers.anthropic import ChatAnthropic
+
         return ChatAnthropic(model=model, api_key=key, base_url=base_url)
     if provider == "google":
         from windows_use.providers.google import ChatGoogle
+
         return ChatGoogle(model=model, api_key=key, base_url=base_url)
     if provider == "ollama":
         from windows_use.providers.ollama import ChatOllama
+
         return ChatOllama(model=model, host=base_url)
     if provider == "mistral":
         from windows_use.providers.mistral import ChatMistral
+
         return ChatMistral(model=model, api_key=key, base_url=base_url)
     if provider == "cerebras":
         from windows_use.providers.cerebras import ChatCerebras
+
         return ChatCerebras(model=model, api_key=key, base_url=base_url)
     if provider == "open_router":
         from windows_use.providers.open_router import ChatOpenRouter
+
         return ChatOpenRouter(model=model, api_key=key, base_url=base_url)
     if provider == "azure_openai":
         from windows_use.providers.azure_openai import ChatAzureOpenAI
+
         return ChatAzureOpenAI(deployment_name=model, api_key=key)
     if provider == "perplexity":
         from windows_use.providers.perplexity import ChatPerplexity
+
         kwargs = {"model": model, "api_key": key}
         if base_url:
             kwargs["base_url"] = base_url
         return ChatPerplexity(**kwargs)
     if provider == "litellm":
         from windows_use.providers.litellm import ChatLiteLLM
+
         return ChatLiteLLM(model=model, api_key=key, base_url=base_url)
     if provider == "deepseek":
         from windows_use.providers.deepseek import ChatDeepSeek
+
         return ChatDeepSeek(model=model, api_key=key, base_url=base_url)
     if provider == "nvidia":
         from windows_use.providers.nvidia import ChatNvidia
+
         return ChatNvidia(model=model, api_key=key, base_url=base_url)
     raise ValueError(f"Unknown provider: {provider}")
 
@@ -555,13 +568,25 @@ def _configure_tts(console) -> None:
     if provider_key == "openai":
         voice = questionary.select(
             "Pick a voice:",
-            choices=["alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"],
+            choices=[
+                "alloy",
+                "ash",
+                "ballad",
+                "coral",
+                "echo",
+                "fable",
+                "onyx",
+                "nova",
+                "sage",
+                "shimmer",
+            ],
             default="alloy",
             style=_SELECT_STYLE,
         ).ask()
         voice = voice or "alloy"
     elif provider_key == "google":
         from windows_use.providers.google.tts import GOOGLE_TTS_VOICES
+
         voice = questionary.select(
             "Pick a voice:",
             choices=GOOGLE_TTS_VOICES[:12],
@@ -610,7 +635,7 @@ def _env_api_key_for_speech_provider(provider: str) -> str | None:
         "groq": "GROQ_API_KEY",
         "elevenlabs": "ELEVENLABS_API_KEY",
         "deepgram": "DEEPGRAM_API_KEY",
-        "perplexity": "PERPLEXITY_API_KEY"
+        "perplexity": "PERPLEXITY_API_KEY",
     }
     name = env_map.get(provider)
     if not name:
@@ -633,6 +658,7 @@ def create_stt_provider():
     api_key = cfg.get("api_key_encrypted")
     if api_key:
         from windows_use.cli.config import decrypt_secret
+
         api_key = decrypt_secret(api_key)
     if not api_key:
         api_key = get_api_key(provider_key)
@@ -641,22 +667,27 @@ def create_stt_provider():
 
     if provider_key == "openai":
         from windows_use.providers.openai import STTOpenAI
+
         return STTOpenAI(model=model, api_key=api_key)
     if provider_key == "google":
         from windows_use.providers.google import STTGoogle
+
         return STTGoogle(model=model, api_key=api_key)
     if provider_key == "groq":
         from windows_use.providers.groq import STTGroq
+
         return STTGroq(model=model, api_key=api_key)
     if provider_key == "elevenlabs":
         try:
             from windows_use.providers.elevenlabs import STTElevenLabs
+
             return STTElevenLabs(api_key=api_key)
         except ImportError:
             return None
     if provider_key == "deepgram":
         try:
             from windows_use.providers.deepgram import STTDeepgram
+
             return STTDeepgram(model=model, api_key=api_key)
         except ImportError:
             return None
@@ -679,6 +710,7 @@ def create_tts_provider():
     api_key = cfg.get("api_key_encrypted")
     if api_key:
         from windows_use.cli.config import decrypt_secret
+
         api_key = decrypt_secret(api_key)
     if not api_key:
         api_key = get_api_key(provider_key)
@@ -687,22 +719,27 @@ def create_tts_provider():
 
     if provider_key == "openai":
         from windows_use.providers.openai import TTSOpenAI
+
         return TTSOpenAI(model=model, voice=voice, api_key=api_key)
     if provider_key == "google":
         from windows_use.providers.google import TTSGoogle
+
         return TTSGoogle(model=model, voice=voice, api_key=api_key)
     if provider_key == "groq":
         from windows_use.providers.groq import TTSGroq
+
         return TTSGroq(model=model, voice=voice, api_key=api_key)
     if provider_key == "elevenlabs":
         try:
             from windows_use.providers.elevenlabs import TTSElevenLabs
+
             return TTSElevenLabs(model=model, api_key=api_key)
         except ImportError:
             return None
     if provider_key == "deepgram":
         try:
             from windows_use.providers.deepgram import TTSDeepgram
+
             return TTSDeepgram(model=model, api_key=api_key)
         except ImportError:
             return None

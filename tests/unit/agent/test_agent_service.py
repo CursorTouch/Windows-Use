@@ -33,8 +33,12 @@ class TestAgent:
             mock_instance.use_accessibility = True
             mock_instance.desktop_state.active_window_to_string.return_value = "Active: Notepad"
             mock_instance.desktop_state.windows_to_string.return_value = "Windows: [Notepad]"
-            mock_instance.desktop_state.tree_state.interactive_elements_to_string.return_value = "elements"
-            mock_instance.desktop_state.tree_state.scrollable_elements_to_string.return_value = "scrollable"
+            mock_instance.desktop_state.tree_state.interactive_elements_to_string.return_value = (
+                "elements"
+            )
+            mock_instance.desktop_state.tree_state.scrollable_elements_to_string.return_value = (
+                "scrollable"
+            )
             mock_instance.desktop_state.active_desktop_to_string.return_value = "Desktop 1"
             mock_instance.desktop_state.desktops_to_string.return_value = "Desktops: [1]"
             mock_instance.desktop_state.active_window.handle = 12345
@@ -54,7 +58,9 @@ class TestAgent:
 
     @patch("windows_use.agent.service.Registry")
     @patch("windows_use.agent.service.WatchDog")
-    def test_invoke_done(self, mock_watchdog, mock_registry_class, mock_llm, mock_desktop, mock_console):
+    def test_invoke_done(
+        self, mock_watchdog, mock_registry_class, mock_llm, mock_desktop, mock_console
+    ):
         mock_registry = mock_registry_class.return_value
 
         mock_response = MagicMock()
@@ -64,7 +70,11 @@ class TestAgent:
 
         mock_llm.invoke.return_value = LLMEvent(
             type=LLMEventType.TOOL_CALL,
-            tool_call=ToolCall(id="call_1", name="done_tool", params={"answer": "Job's done", "thought": "I have finished the task."}),
+            tool_call=ToolCall(
+                id="call_1",
+                name="done_tool",
+                params={"answer": "Job's done", "thought": "I have finished the task."},
+            ),
             usage=TokenUsage(),
         )
 
@@ -78,7 +88,9 @@ class TestAgent:
 
     @patch("windows_use.agent.service.Registry")
     @patch("windows_use.agent.service.WatchDog")
-    def test_invoke_max_steps(self, mock_watchdog, mock_registry_class, mock_llm, mock_desktop, mock_console):
+    def test_invoke_max_steps(
+        self, mock_watchdog, mock_registry_class, mock_llm, mock_desktop, mock_console
+    ):
         mock_registry = mock_registry_class.return_value
         mock_response = MagicMock()
         mock_response.content = "Step result"
@@ -87,7 +99,9 @@ class TestAgent:
 
         mock_llm.invoke.return_value = LLMEvent(
             type=LLMEventType.TOOL_CALL,
-            tool_call=ToolCall(id="call_1", name="click_tool", params={"loc": [10, 10], "thought": "Keep working"}),
+            tool_call=ToolCall(
+                id="call_1", name="click_tool", params={"loc": [10, 10], "thought": "Keep working"}
+            ),
             usage=TokenUsage(),
         )
 

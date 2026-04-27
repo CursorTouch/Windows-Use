@@ -27,7 +27,9 @@ def test_condition_creation():
         assert false_cond is not None, "CreateFalseCondition failed"
 
         # Test property condition
-        prop_cond = core.CreatePropertyCondition(PropertyId.ControlTypeProperty, ControlType.WindowControl)
+        prop_cond = core.CreatePropertyCondition(
+            PropertyId.ControlTypeProperty, ControlType.WindowControl
+        )
         assert prop_cond is not None, "CreatePropertyCondition failed"
 
         # Test logical conditions
@@ -54,11 +56,14 @@ def test_find_methods():
     try:
         # Get root element (desktop) properly
         from windows_use.uia.core import _AutomationClient
+
         root_element = _AutomationClient.instance().IUIAutomation.GetRootElement()
         root = Control.CreateControlFromElement(root_element)
 
         # Test FindAll
-        condition = core.CreatePropertyCondition(PropertyId.ControlTypeProperty, ControlType.WindowControl)
+        condition = core.CreatePropertyCondition(
+            PropertyId.ControlTypeProperty, ControlType.WindowControl
+        )
         windows = root.FindAll(TreeScope.TreeScope_Children, condition)
         assert isinstance(windows, list), "FindAll should return a list"
         print(f"  ✓ FindAll works - found {len(windows)} windows")
@@ -74,6 +79,7 @@ def test_find_methods():
     except Exception as e:
         print(f"  ✗ Find methods failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -85,6 +91,7 @@ def test_cache_methods():
     try:
         # Get root element (desktop) properly
         from windows_use.uia.core import _AutomationClient
+
         root_element = _AutomationClient.instance().IUIAutomation.GetRootElement()
         root = Control.CreateControlFromElement(root_element)
 
@@ -94,13 +101,17 @@ def test_cache_methods():
         cache_request.AddProperty(PropertyId.NameProperty)
 
         # Test FindAllBuildCache
-        condition = core.CreatePropertyCondition(PropertyId.ControlTypeProperty, ControlType.WindowControl)
+        condition = core.CreatePropertyCondition(
+            PropertyId.ControlTypeProperty, ControlType.WindowControl
+        )
         windows = root.FindAllBuildCache(TreeScope.TreeScope_Children, condition, cache_request)
         assert isinstance(windows, list), "FindAllBuildCache should return a list"
         print(f"  ✓ FindAllBuildCache works - found {len(windows)} windows")
 
         # Test FindFirstBuildCache
-        first_window = root.FindFirstBuildCache(TreeScope.TreeScope_Children, condition, cache_request)
+        first_window = root.FindFirstBuildCache(
+            TreeScope.TreeScope_Children, condition, cache_request
+        )
         if first_window:
             # Try to access cached property
             cached_name = first_window.CachedName
@@ -126,6 +137,7 @@ def test_cache_methods():
     except Exception as e:
         print(f"  ✗ Cache methods failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

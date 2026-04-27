@@ -15,9 +15,11 @@ from windows_use.agent.tree.views import (
 def sample_center():
     return Center(x=100, y=200)
 
+
 @pytest.fixture
 def sample_bbox():
     return BoundingBox(left=50, top=150, right=150, bottom=250, width=100, height=100)
+
 
 @pytest.fixture
 def sample_interactive_node(sample_bbox, sample_center):
@@ -26,8 +28,9 @@ def sample_interactive_node(sample_bbox, sample_center):
         control_type="Button",
         window_name="App",
         bounding_box=sample_bbox,
-        center=sample_center
+        center=sample_center,
     )
+
 
 @pytest.fixture
 def sample_scrollable_node(sample_bbox, sample_center):
@@ -36,8 +39,9 @@ def sample_scrollable_node(sample_bbox, sample_center):
         control_type="Pane",
         window_name="App",
         bounding_box=sample_bbox,
-        center=sample_center
+        center=sample_center,
     )
+
 
 class TestTreeViews:
     def test_center(self, sample_center):
@@ -56,8 +60,7 @@ class TestTreeViews:
 
     def test_tree_state_scrollable_string(self, sample_interactive_node, sample_scrollable_node):
         state = TreeState(
-            interactive_nodes=[sample_interactive_node],
-            scrollable_nodes=[sample_scrollable_node]
+            interactive_nodes=[sample_interactive_node], scrollable_nodes=[sample_scrollable_node]
         )
         s = state.scrollable_elements_to_string()
         # id should be 1 since there is 1 interactive node
@@ -66,8 +69,7 @@ class TestTreeViews:
 
     def test_selector_map(self, sample_interactive_node, sample_scrollable_node):
         state = TreeState(
-            interactive_nodes=[sample_interactive_node],
-            scrollable_nodes=[sample_scrollable_node]
+            interactive_nodes=[sample_interactive_node], scrollable_nodes=[sample_scrollable_node]
         )
         selector = state.build_selector_map()
         assert selector.node_of(0) is sample_interactive_node

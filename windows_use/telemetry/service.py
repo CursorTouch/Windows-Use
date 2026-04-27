@@ -10,9 +10,10 @@ from windows_use.telemetry.views import BaseTelemetryEvent
 
 load_dotenv()
 
+
 class ProductTelemetry:
-    PROJECT_API_KEY = 'phc_uxdCItyVTjXNU0sMPr97dq3tcz39scQNt3qjTYw5vLV'
-    HOST = 'https://us.i.posthog.com'
+    PROJECT_API_KEY = "phc_uxdCItyVTjXNU0sMPr97dq3tcz39scQNt3qjTYw5vLV"
+    HOST = "https://us.i.posthog.com"
 
     def __init__(self):
         self._client = None
@@ -29,7 +30,7 @@ class ProductTelemetry:
                     disable_geoip=False,
                     enable_exception_autocapture=True,
                     flush_at=10,
-                    flush_interval=5.0
+                    flush_interval=5.0,
                 )
                 # Unregister Posthog's atexit join handler to prevent hanging on exit
                 try:
@@ -46,26 +47,27 @@ class ProductTelemetry:
             return self._user_id
 
         import tempfile
-        temp_dir = Path(os.path.join(tempfile.gettempdir(), '.windows-use'))
+
+        temp_dir = Path(os.path.join(tempfile.gettempdir(), ".windows-use"))
         temp_dir.mkdir(parents=True, exist_ok=True)
-        user_id_file = temp_dir / '.windows-use-user-id'
+        user_id_file = temp_dir / ".windows-use-user-id"
 
         if user_id_file.exists():
             try:
-                self._user_id = user_id_file.read_text(encoding='utf-8').strip()
+                self._user_id = user_id_file.read_text(encoding="utf-8").strip()
             except Exception:
                 pass
 
         if not self._user_id:
             self._user_id = uuid7str()
             try:
-                user_id_file.write_text(self._user_id, encoding='utf-8')
+                user_id_file.write_text(self._user_id, encoding="utf-8")
             except Exception:
                 pass
 
         return self._user_id
 
-    def capture(self, event:BaseTelemetryEvent):
+    def capture(self, event: BaseTelemetryEvent):
         client = self.client
         if not client:
             return
@@ -73,7 +75,7 @@ class ProductTelemetry:
             client.capture(
                 distinct_id=self.user_id,
                 event=event.event_name,
-                properties={**event.properties,'process_person_profile': True}
+                properties={**event.properties, "process_person_profile": True},
             )
         except Exception:
             pass

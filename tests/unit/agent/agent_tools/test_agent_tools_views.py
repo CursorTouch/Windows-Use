@@ -22,6 +22,7 @@ from windows_use.agent.tools.views import SharedBaseModel
 
 THOUGHT = "test thought"
 
+
 class TestAgentToolsViews:
     """
     Tests for the Pydantic models in windows_use.agent.tools.views.
@@ -59,7 +60,14 @@ class TestAgentToolsViews:
         assert mem.path == "test.md"
         assert mem.content == "hello"
 
-        mem_update = Memory(thought=THOUGHT, mode="update", path="test.md", operation="replace", old_str="a", new_str="b")
+        mem_update = Memory(
+            thought=THOUGHT,
+            mode="update",
+            path="test.md",
+            operation="replace",
+            old_str="a",
+            new_str="b",
+        )
         assert mem_update.operation == "replace"
 
         with pytest.raises(ValidationError):
@@ -108,14 +116,18 @@ class TestAgentToolsViews:
     )
     def test_type_model(self, loc, text, clear, caret_position, should_pass):
         if should_pass:
-            type_obj = Type(thought=THOUGHT, loc=loc, text=text, clear=clear, caret_position=caret_position)
+            type_obj = Type(
+                thought=THOUGHT, loc=loc, text=text, clear=clear, caret_position=caret_position
+            )
             assert type_obj.loc == loc
             assert type_obj.text == text
             assert type_obj.clear == clear
             assert type_obj.caret_position == caret_position
         else:
             with pytest.raises(ValidationError):
-                Type(thought=THOUGHT, loc=loc, text=text, clear=clear, caret_position=caret_position)
+                Type(
+                    thought=THOUGHT, loc=loc, text=text, clear=clear, caret_position=caret_position
+                )
 
     @pytest.mark.parametrize(
         "loc, type_val, direction, wheel_times, should_pass",
@@ -129,14 +141,26 @@ class TestAgentToolsViews:
     )
     def test_scroll_model(self, loc, type_val, direction, wheel_times, should_pass):
         if should_pass:
-            scroll = Scroll(thought=THOUGHT, loc=loc, type=type_val, direction=direction, wheel_times=wheel_times)
+            scroll = Scroll(
+                thought=THOUGHT,
+                loc=loc,
+                type=type_val,
+                direction=direction,
+                wheel_times=wheel_times,
+            )
             assert scroll.loc == loc
             assert scroll.type == type_val
             assert scroll.direction == direction
             assert scroll.wheel_times == wheel_times
         else:
             with pytest.raises(ValidationError):
-                Scroll(thought=THOUGHT, loc=loc, type=type_val, direction=direction, wheel_times=wheel_times)
+                Scroll(
+                    thought=THOUGHT,
+                    loc=loc,
+                    type=type_val,
+                    direction=direction,
+                    wheel_times=wheel_times,
+                )
 
     @pytest.mark.parametrize(
         "loc, drag, should_pass",

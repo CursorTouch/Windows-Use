@@ -1,4 +1,4 @@
-'''
+"""
 uiautomation for Python 3.
 Author: yinkaisheng
 Source: https://github.com/yinkaisheng/Python-UIAutomation-for-Windows
@@ -9,7 +9,7 @@ Run 'automation.py -h' for help.
 
 uiautomation is shared under the Apache Licene 2.0.
 This means that the code can be freely copied and distributed, and costs nothing to use.
-'''
+"""
 
 import ctypes
 import ctypes.wintypes
@@ -25,7 +25,7 @@ from typing import Any
 import comtypes
 import comtypes.client
 
-METRO_WINDOW_CLASS_NAME = 'Windows.UI.Core.CoreWindow'  # for Windows 8 and 8.1
+METRO_WINDOW_CLASS_NAME = "Windows.UI.Core.CoreWindow"  # for Windows 8 and 8.1
 SEARCH_INTERVAL = 0.5  # search control interval seconds
 MAX_MOVE_SECOND = 1  # simulate mouse move or drag max seconds
 TIME_OUT_SECOND = 10
@@ -47,17 +47,22 @@ from .enums import *
 def IsTopLevelWindow(handle: int) -> bool:
     return ctypes.windll.user32.GetParent(handle) == 0
 
+
 def IsIconic(handle: int) -> bool:
     return bool(ctypes.windll.user32.IsIconic(handle))
+
 
 def IsZoomed(handle: int) -> bool:
     return bool(ctypes.windll.user32.IsZoomed(handle))
 
+
 def IsWindowVisible(handle: int) -> bool:
     return bool(ctypes.windll.user32.IsWindowVisible(handle))
 
+
 def ShowWindow(handle: int, cmdShow: int) -> bool:
     return bool(ctypes.windll.user32.ShowWindow(handle, cmdShow))
+
 
 def GetForegroundWindow() -> int:
     return ctypes.windll.user32.GetForegroundWindow()
@@ -67,7 +72,7 @@ class _AutomationClient:
     _instance = None
 
     @classmethod
-    def instance(cls) -> '_AutomationClient':
+    def instance(cls) -> "_AutomationClient":
         """Singleton instance (this prevents com creation on import)."""
         if cls._instance is None:
             cls._instance = cls()
@@ -82,14 +87,16 @@ class _AutomationClient:
         for retry in range(tryCount):
             try:
                 self.UIAutomationCore = comtypes.client.GetModule("UIAutomationCore.dll")
-                self.IUIAutomation = comtypes.client.CreateObject("{ff48dba4-60ef-4201-aa87-54103eef594e}", interface=self.UIAutomationCore.IUIAutomation)
+                self.IUIAutomation = comtypes.client.CreateObject(
+                    "{ff48dba4-60ef-4201-aa87-54103eef594e}",
+                    interface=self.UIAutomationCore.IUIAutomation,
+                )
                 self.ViewWalker = self.IUIAutomation.RawViewWalker
-                #self.ViewWalker = self.IUIAutomation.ControlViewWalker
+                # self.ViewWalker = self.IUIAutomation.ControlViewWalker
                 break
             except Exception as ex:
                 if retry + 1 == tryCount:
                     raise ex
-
 
 
 # set Windows dll restype
@@ -111,7 +118,10 @@ ctypes.windll.kernel32.GlobalLock.restype = ctypes.c_void_p
 ctypes.windll.kernel32.OpenProcess.restype = ctypes.c_void_p
 ctypes.windll.ntdll.NtQueryInformationProcess.restype = ctypes.c_uint32
 
-def _GetDictKeyName(theDict: dict[str, Any], theValue: Any, keyCondition: Callable[[str], bool] | None = None) -> str:
+
+def _GetDictKeyName(
+    theDict: dict[str, Any], theValue: Any, keyCondition: Callable[[str], bool] | None = None
+) -> str:
     for key, value in theDict.items():
         if keyCondition:
             if keyCondition(key) and theValue == value:
@@ -119,7 +129,7 @@ def _GetDictKeyName(theDict: dict[str, Any], theValue: Any, keyCondition: Callab
         else:
             if theValue == value:
                 return key
-    return ''
+    return ""
 
 
 _StdOutputHandle = -11
@@ -137,13 +147,19 @@ def SetConsoleColor(color: int) -> bool:
     global _DefaultConsoleColor
     if not _DefaultConsoleColor:
         if not _ConsoleOutputHandle:
-            _ConsoleOutputHandle = ctypes.c_void_p(ctypes.windll.kernel32.GetStdHandle(_StdOutputHandle))
+            _ConsoleOutputHandle = ctypes.c_void_p(
+                ctypes.windll.kernel32.GetStdHandle(_StdOutputHandle)
+            )
         bufferInfo = ConsoleScreenBufferInfo()
-        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(_ConsoleOutputHandle, ctypes.byref(bufferInfo))
+        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(
+            _ConsoleOutputHandle, ctypes.byref(bufferInfo)
+        )
         _DefaultConsoleColor = int(bufferInfo.wAttributes & 0xFF)
     if sys.stdout:
         sys.stdout.flush()
-    return bool(ctypes.windll.kernel32.SetConsoleTextAttribute(_ConsoleOutputHandle, ctypes.c_ushort(color)))
+    return bool(
+        ctypes.windll.kernel32.SetConsoleTextAttribute(_ConsoleOutputHandle, ctypes.c_ushort(color))
+    )
 
 
 def ResetConsoleColor() -> bool:
@@ -153,8 +169,12 @@ def ResetConsoleColor() -> bool:
     """
     if sys.stdout:
         sys.stdout.flush()
-    assert _DefaultConsoleColor is not None, 'SetConsoleColor not previously called.'
-    return bool(ctypes.windll.kernel32.SetConsoleTextAttribute(_ConsoleOutputHandle, ctypes.c_ushort(_DefaultConsoleColor)))
+    assert _DefaultConsoleColor is not None, "SetConsoleColor not previously called."
+    return bool(
+        ctypes.windll.kernel32.SetConsoleTextAttribute(
+            _ConsoleOutputHandle, ctypes.c_ushort(_DefaultConsoleColor)
+        )
+    )
 
 
 def WindowFromPoint(x: int, y: int) -> int:
@@ -162,7 +182,9 @@ def WindowFromPoint(x: int, y: int) -> int:
     WindowFromPoint from Win32.
     Return int, a native window handle.
     """
-    return ctypes.windll.user32.WindowFromPoint(ctypes.wintypes.POINT(x, y))  # or ctypes.windll.user32.WindowFromPoint(x, y)
+    return ctypes.windll.user32.WindowFromPoint(
+        ctypes.wintypes.POINT(x, y)
+    )  # or ctypes.windll.user32.WindowFromPoint(x, y)
 
 
 def GetCursorPos() -> tuple[int, int]:
@@ -221,7 +243,14 @@ def PostMessage(handle: int, msg: int, wParam: int, lParam: int) -> bool:
     PostMessage from Win32.
     Return bool, True if succeed otherwise False.
     """
-    return bool(ctypes.windll.user32.PostMessageW(ctypes.c_void_p(handle), ctypes.c_uint(msg), ctypes.wintypes.WPARAM(wParam), ctypes.wintypes.LPARAM(lParam)))
+    return bool(
+        ctypes.windll.user32.PostMessageW(
+            ctypes.c_void_p(handle),
+            ctypes.c_uint(msg),
+            ctypes.wintypes.WPARAM(wParam),
+            ctypes.wintypes.LPARAM(lParam),
+        )
+    )
 
 
 def SendMessage(handle: int, msg: int, wParam: int, lParam: int) -> int:
@@ -230,7 +259,12 @@ def SendMessage(handle: int, msg: int, wParam: int, lParam: int) -> int:
     Return int, the return value specifies the result of the message processing;
                 it depends on the message sent.
     """
-    return ctypes.windll.user32.SendMessageW(ctypes.c_void_p(handle), ctypes.c_uint(msg), ctypes.wintypes.WPARAM(wParam), ctypes.wintypes.LPARAM(lParam))
+    return ctypes.windll.user32.SendMessageW(
+        ctypes.c_void_p(handle),
+        ctypes.c_uint(msg),
+        ctypes.wintypes.WPARAM(wParam),
+        ctypes.wintypes.LPARAM(lParam),
+    )
 
 
 def Click(x: int, y: int, waitTime: float = OPERATION_WAIT_TIME) -> None:
@@ -242,9 +276,21 @@ def Click(x: int, y: int, waitTime: float = OPERATION_WAIT_TIME) -> None:
     """
     SetCursorPos(x, y)
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.LeftDown | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.LeftDown | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(0.05)
-    mouse_event(MouseEventFlag.LeftUp | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.LeftUp | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -257,9 +303,21 @@ def MiddleClick(x: int, y: int, waitTime: float = OPERATION_WAIT_TIME) -> None:
     """
     SetCursorPos(x, y)
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.MiddleDown | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.MiddleDown | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(0.05)
-    mouse_event(MouseEventFlag.MiddleUp | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.MiddleUp | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -272,9 +330,21 @@ def RightClick(x: int, y: int, waitTime: float = OPERATION_WAIT_TIME) -> None:
     """
     SetCursorPos(x, y)
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.RightDown | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.RightDown | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(0.05)
-    mouse_event(MouseEventFlag.RightUp | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.RightUp | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -297,7 +367,13 @@ def PressMouse(x: int, y: int, waitTime: float = OPERATION_WAIT_TIME) -> None:
     """
     SetCursorPos(x, y)
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.LeftDown | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.LeftDown | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -308,7 +384,13 @@ def ReleaseMouse(waitTime: float = OPERATION_WAIT_TIME) -> None:
     """
     x, y = GetCursorPos()
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.LeftUp | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.LeftUp | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -321,7 +403,13 @@ def RightPressMouse(x: int, y: int, waitTime: float = OPERATION_WAIT_TIME) -> No
     """
     SetCursorPos(x, y)
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.RightDown | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.RightDown | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -332,7 +420,13 @@ def RightReleaseMouse(waitTime: float = OPERATION_WAIT_TIME) -> None:
     """
     x, y = GetCursorPos()
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.RightUp | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.RightUp | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -345,7 +439,13 @@ def MiddlePressMouse(x: int, y: int, waitTime: float = OPERATION_WAIT_TIME) -> N
     """
     SetCursorPos(x, y)
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.MiddleDown | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.MiddleDown | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -356,7 +456,13 @@ def MiddleReleaseMouse(waitTime: float = OPERATION_WAIT_TIME) -> None:
     """
     x, y = GetCursorPos()
     screenWidth, screenHeight = GetScreenSize()
-    mouse_event(MouseEventFlag.MiddleUp | MouseEventFlag.Absolute, x * 65535 // screenWidth, y * 65535 // screenHeight, 0, 0)
+    mouse_event(
+        MouseEventFlag.MiddleUp | MouseEventFlag.Absolute,
+        x * 65535 // screenWidth,
+        y * 65535 // screenHeight,
+        0,
+        0,
+    )
     time.sleep(waitTime)
 
 
@@ -369,7 +475,7 @@ def MoveTo(x: int, y: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAI
     waitTime: float.
     """
     if moveSpeed <= 0:
-        moveTime = 0.
+        moveTime = 0.0
     else:
         moveTime = MAX_MOVE_SECOND / moveSpeed
     curX, curY = GetCursorPos()
@@ -400,7 +506,9 @@ def MoveTo(x: int, y: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAI
     time.sleep(waitTime)
 
 
-def DragDrop(x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAIT_TIME) -> None:
+def DragDrop(
+    x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAIT_TIME
+) -> None:
     """
     Simulate mouse left button drag from point x1, y1 drop to point x2, y2.
     x1: int.
@@ -415,7 +523,9 @@ def DragDrop(x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, waitTime:
     ReleaseMouse(waitTime)
 
 
-def RightDragDrop(x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAIT_TIME) -> None:
+def RightDragDrop(
+    x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAIT_TIME
+) -> None:
     """
     Simulate mouse right button drag from point x1, y1 drop to point x2, y2.
     x1: int.
@@ -430,7 +540,9 @@ def RightDragDrop(x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, wait
     RightReleaseMouse(waitTime)
 
 
-def MiddleDragDrop(x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAIT_TIME) -> None:
+def MiddleDragDrop(
+    x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, waitTime: float = OPERATION_WAIT_TIME
+) -> None:
     """
     Simulate mouse middle button drag from point x1, y1 drop to point x2, y2.
     x1: int.
@@ -445,7 +557,9 @@ def MiddleDragDrop(x1: int, y1: int, x2: int, y2: int, moveSpeed: float = 1, wai
     MiddleReleaseMouse(waitTime)
 
 
-def WheelDown(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME) -> None:
+def WheelDown(
+    wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME
+) -> None:
     """
     Simulate mouse wheel down.
     wheelTimes: int.
@@ -458,7 +572,9 @@ def WheelDown(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPE
     time.sleep(waitTime)
 
 
-def WheelUp(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME) -> None:
+def WheelUp(
+    wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME
+) -> None:
     """
     Simulate mouse wheel up.
     wheelTimes: int.
@@ -471,7 +587,9 @@ def WheelUp(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERA
     time.sleep(waitTime)
 
 
-def WheelLeft(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME) -> None:
+def WheelLeft(
+    wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME
+) -> None:
     """
     Simulate horizontal scroll left.
     Uses Shift+wheel on Windows.
@@ -484,7 +602,9 @@ def WheelLeft(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPE
     time.sleep(waitTime)
 
 
-def WheelRight(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME) -> None:
+def WheelRight(
+    wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OPERATION_WAIT_TIME
+) -> None:
     """
     Simulate horizontal scroll right.
     Uses Shift+wheel on Windows.
@@ -497,8 +617,9 @@ def WheelRight(wheelTimes: int = 1, interval: float = 0.05, waitTime: float = OP
     time.sleep(waitTime)
 
 
-def DragTo(start_x: int, start_y: int, end_x: int, end_y: int,
-           duration: float = 0.5, steps: int = 20) -> None:
+def DragTo(
+    start_x: int, start_y: int, end_x: int, end_y: int, duration: float = 0.5, steps: int = 20
+) -> None:
     """
     Perform a smooth mouse drag from (start_x, start_y) to (end_x, end_y).
     More predictable than DragDrop for short distances and UI drag operations.
@@ -539,14 +660,18 @@ def SetScreenSize(width: int, height: int) -> bool:
     DM_PELSHEIGHT = 0x00100000
     DISP_CHANGE_SUCCESSFUL = 0
     devMode = bytearray(devModeSize)
-    devMode[dmSizeOffset:dmSizeOffset+2] = struct.pack("<H", devModeSize)
-    cDevMode = (ctypes.c_byte*devModeSize).from_buffer(devMode)
+    devMode[dmSizeOffset : dmSizeOffset + 2] = struct.pack("<H", devModeSize)
+    cDevMode = (ctypes.c_byte * devModeSize).from_buffer(devMode)
     if ctypes.windll.user32.EnumDisplaySettingsW(None, ctypes.wintypes.DWORD(-1), cDevMode):
-        curWidth, curHeight = struct.unpack("<II", devMode[dmPelsWidthOffset:dmPelsWidthOffset+8])
+        curWidth, curHeight = struct.unpack(
+            "<II", devMode[dmPelsWidthOffset : dmPelsWidthOffset + 8]
+        )
         if curWidth == width and curHeight == height:
             return True
-        devMode[dmFieldsOffset:dmFieldsOffset+4] = struct.pack("<I", DM_PELSWIDTH | DM_PELSHEIGHT)
-        devMode[dmPelsWidthOffset:dmPelsWidthOffset+8] = struct.pack("<II", width, height)
+        devMode[dmFieldsOffset : dmFieldsOffset + 4] = struct.pack(
+            "<I", DM_PELSWIDTH | DM_PELSHEIGHT
+        )
+        devMode[dmPelsWidthOffset : dmPelsWidthOffset + 8] = struct.pack("<II", width, height)
         if ctypes.windll.user32.ChangeDisplaySettingsW(cDevMode, 0) == DISP_CHANGE_SUCCESSFUL:
             return True
     return False
@@ -573,9 +698,8 @@ def GetVirtualScreenRect() -> tuple[int, int, int, int]:
         ctypes.windll.user32.GetSystemMetrics(SM_XVIRTUALSCREEN),
         ctypes.windll.user32.GetSystemMetrics(SM_YVIRTUALSCREEN),
         ctypes.windll.user32.GetSystemMetrics(SM_CXVIRTUALSCREEN),
-        ctypes.windll.user32.GetSystemMetrics(SM_CYVIRTUALSCREEN)
+        ctypes.windll.user32.GetSystemMetrics(SM_CYVIRTUALSCREEN),
     )
-
 
 
 def GetMonitorsRect() -> list[Rect]:
@@ -583,14 +707,33 @@ def GetMonitorsRect() -> list[Rect]:
     Get monitors' rect.
     Return List[Rect].
     """
-    MonitorEnumProc = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(ctypes.wintypes.RECT), ctypes.c_size_t)
+    MonitorEnumProc = ctypes.WINFUNCTYPE(
+        ctypes.c_int,
+        ctypes.c_size_t,
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.wintypes.RECT),
+        ctypes.c_size_t,
+    )
     rects = []
 
-    def MonitorCallback(hMonitor: int, hdcMonitor: int, lprcMonitor: ctypes.POINTER(ctypes.wintypes.RECT), dwData: int):
-        rect = Rect(lprcMonitor.contents.left, lprcMonitor.contents.top, lprcMonitor.contents.right, lprcMonitor.contents.bottom)
+    def MonitorCallback(
+        hMonitor: int,
+        hdcMonitor: int,
+        lprcMonitor: ctypes.POINTER(ctypes.wintypes.RECT),
+        dwData: int,
+    ):
+        rect = Rect(
+            lprcMonitor.contents.left,
+            lprcMonitor.contents.top,
+            lprcMonitor.contents.right,
+            lprcMonitor.contents.bottom,
+        )
         rects.append(rect)
         return 1
-    ctypes.windll.user32.EnumDisplayMonitors(ctypes.c_void_p(0), ctypes.c_void_p(0), MonitorEnumProc(MonitorCallback), 0)
+
+    ctypes.windll.user32.EnumDisplayMonitors(
+        ctypes.c_void_p(0), ctypes.c_void_p(0), MonitorEnumProc(MonitorCallback), 0
+    )
     return rects
 
 
@@ -624,7 +767,9 @@ def MessageBox(content: str, title: str, flags: int = MB.Ok) -> int:
     flags: int, a value or some combined values in class `MB`.
     Return int, a value in MB whose name starts with Id, such as MB.IdOk
     """
-    return ctypes.windll.user32.MessageBoxW(ctypes.c_void_p(0), ctypes.c_wchar_p(content), ctypes.c_wchar_p(title), ctypes.c_uint(flags))
+    return ctypes.windll.user32.MessageBoxW(
+        ctypes.c_void_p(0), ctypes.c_wchar_p(content), ctypes.c_wchar_p(title), ctypes.c_uint(flags)
+    )
 
 
 def SetForegroundWindow(handle: int) -> bool:
@@ -650,7 +795,9 @@ def SwitchToThisWindow(handle: int) -> None:
     SwitchToThisWindow from Win32.
     handle: int, the handle of a native window.
     """
-    ctypes.windll.user32.SwitchToThisWindow(ctypes.c_void_p(handle), ctypes.c_int(1))  # void function, no return
+    ctypes.windll.user32.SwitchToThisWindow(
+        ctypes.c_void_p(handle), ctypes.c_int(1)
+    )  # void function, no return
 
 
 def GetAncestor(handle: int, flag: int) -> int:
@@ -743,10 +890,21 @@ def MoveWindow(handle: int, x: int, y: int, width: int, height: int, repaint: in
     repaint: int, use 1 or 0.
     Return bool, True if succeed otherwise False.
     """
-    return bool(ctypes.windll.user32.MoveWindow(ctypes.c_void_p(handle), ctypes.c_int(x), ctypes.c_int(y), ctypes.c_int(width), ctypes.c_int(height), ctypes.c_int(repaint)))
+    return bool(
+        ctypes.windll.user32.MoveWindow(
+            ctypes.c_void_p(handle),
+            ctypes.c_int(x),
+            ctypes.c_int(y),
+            ctypes.c_int(width),
+            ctypes.c_int(height),
+            ctypes.c_int(repaint),
+        )
+    )
 
 
-def SetWindowPos(handle: int, hWndInsertAfter: int, x: int, y: int, width: int, height: int, flags: int) -> bool:
+def SetWindowPos(
+    handle: int, hWndInsertAfter: int, x: int, y: int, width: int, height: int, flags: int
+) -> bool:
     """
     SetWindowPos from Win32.
     handle: int, the handle of a native window.
@@ -758,7 +916,17 @@ def SetWindowPos(handle: int, hWndInsertAfter: int, x: int, y: int, width: int, 
     flags: int, values whose name starts with 'SWP' in class `SWP`.
     Return bool, True if succeed otherwise False.
     """
-    return bool(ctypes.windll.user32.SetWindowPos(ctypes.c_void_p(handle), ctypes.c_void_p(hWndInsertAfter), ctypes.c_int(x), ctypes.c_int(y), ctypes.c_int(width), ctypes.c_int(height), ctypes.c_uint(flags)))
+    return bool(
+        ctypes.windll.user32.SetWindowPos(
+            ctypes.c_void_p(handle),
+            ctypes.c_void_p(hWndInsertAfter),
+            ctypes.c_int(x),
+            ctypes.c_int(y),
+            ctypes.c_int(width),
+            ctypes.c_int(height),
+            ctypes.c_uint(flags),
+        )
+    )
 
 
 def SetWindowTopmost(handle: int, isTopmost: bool) -> bool:
@@ -790,7 +958,9 @@ def SetWindowText(handle: int, text: str) -> bool:
     text: str.
     Return bool, True if succeed otherwise False.
     """
-    return bool(ctypes.windll.user32.SetWindowTextW(ctypes.c_void_p(handle), ctypes.c_wchar_p(text)))
+    return bool(
+        ctypes.windll.user32.SetWindowTextW(ctypes.c_void_p(handle), ctypes.c_wchar_p(text))
+    )
 
 
 def GetEditText(handle: int) -> str:
@@ -818,7 +988,7 @@ def GetConsoleOriginalTitle() -> str:
         ctypes.windll.kernel32.GetConsoleOriginalTitleW(values, ctypes.c_uint(MAX_PATH))
         return values.value
     else:
-        raise RuntimeError('GetConsoleOriginalTitle is not supported on Windows XP or lower.')
+        raise RuntimeError("GetConsoleOriginalTitle is not supported on Windows XP or lower.")
 
 
 def GetConsoleTitle() -> str:
@@ -855,7 +1025,7 @@ def DwmIsCompositionEnabled() -> bool:
     Return bool.
     """
     try:
-        dwmapi = ctypes.WinDLL('dwmapi')
+        dwmapi = ctypes.WinDLL("dwmapi")
         dwmapi.DwmIsCompositionEnabled.restype = ctypes.HRESULT
         isEnabled = ctypes.wintypes.BOOL()
         hr = dwmapi.DwmIsCompositionEnabled(ctypes.byref(isEnabled))
@@ -874,14 +1044,14 @@ def DwmGetWindowExtendFrameBounds(handle: int) -> Rect | None:
     """
     try:
         DWMWA_EXTENDED_FRAME_BOUNDS = 9
-        dwmapi = ctypes.WinDLL('dwmapi')
+        dwmapi = ctypes.WinDLL("dwmapi")
         dwmapi.DwmGetWindowAttribute.restype = ctypes.HRESULT
         rect = ctypes.wintypes.RECT()
         hr = dwmapi.DwmGetWindowAttribute(
             ctypes.c_void_p(handle),
             DWMWA_EXTENDED_FRAME_BOUNDS,
             ctypes.byref(rect),
-            ctypes.sizeof(ctypes.wintypes.RECT)
+            ctypes.sizeof(ctypes.wintypes.RECT),
         )
         if hr == S_OK:
             return Rect(rect.left, rect.top, rect.right, rect.bottom)
@@ -910,14 +1080,18 @@ def IsDesktopLocked() -> bool:
     Desktop is locked if press Win+L, Ctrl+Alt+Del or in remote desktop mode.
     """
     isLocked = False
-    desk = ctypes.windll.user32.OpenDesktopW(ctypes.c_wchar_p('Default'), ctypes.c_uint(0), ctypes.c_int(0), ctypes.c_uint(0x0100))  # DESKTOP_SWITCHDESKTOP = 0x0100
+    desk = ctypes.windll.user32.OpenDesktopW(
+        ctypes.c_wchar_p("Default"), ctypes.c_uint(0), ctypes.c_int(0), ctypes.c_uint(0x0100)
+    )  # DESKTOP_SWITCHDESKTOP = 0x0100
     if desk:
         isLocked = not ctypes.windll.user32.SwitchDesktop(ctypes.c_void_p(desk))
         ctypes.windll.user32.CloseDesktop(ctypes.c_void_p(desk))
     return isLocked
 
 
-def PlayWaveFile(filePath: str = r'C:\Windows\Media\notify.wav', isAsync: bool = False, isLoop: bool = False) -> bool:
+def PlayWaveFile(
+    filePath: str = r"C:\Windows\Media\notify.wav", isAsync: bool = False, isLoop: bool = False
+) -> bool:
     """
     Call PlaySound from Win32.
     filePath: str, if emtpy, stop playing the current sound.
@@ -936,9 +1110,17 @@ def PlayWaveFile(filePath: str = r'C:\Windows\Media\notify.wav', isAsync: bool =
         if isLoop:
             flags |= SND_LOOP
             flags |= SND_ASYNC
-        return bool(ctypes.windll.winmm.PlaySoundW(ctypes.c_wchar_p(filePath), ctypes.c_void_p(0), ctypes.c_uint(flags)))
+        return bool(
+            ctypes.windll.winmm.PlaySoundW(
+                ctypes.c_wchar_p(filePath), ctypes.c_void_p(0), ctypes.c_uint(flags)
+            )
+        )
     else:
-        return bool(ctypes.windll.winmm.PlaySoundW(ctypes.c_wchar_p(0), ctypes.c_void_p(0), ctypes.c_uint(0)))
+        return bool(
+            ctypes.windll.winmm.PlaySoundW(
+                ctypes.c_wchar_p(0), ctypes.c_void_p(0), ctypes.c_uint(0)
+            )
+        )
 
 
 def IsProcess64Bit(processId: int) -> bool | None:
@@ -951,7 +1133,9 @@ def IsProcess64Bit(processId: int) -> bool | None:
         IsWow64Process = ctypes.windll.kernel32.IsWow64Process
     except Exception:
         return False
-    hProcess = ctypes.windll.kernel32.OpenProcess(0x1000, 0, processId)  # PROCESS_QUERY_INFORMATION=0x0400,PROCESS_QUERY_LIMITED_INFORMATION=0x1000
+    hProcess = ctypes.windll.kernel32.OpenProcess(
+        0x1000, 0, processId
+    )  # PROCESS_QUERY_INFORMATION=0x0400,PROCESS_QUERY_LIMITED_INFORMATION=0x1000
     if hProcess:
         hProcess = ctypes.c_void_p(hProcess)
         isWow64 = ctypes.wintypes.BOOL()
@@ -972,7 +1156,9 @@ def IsUserAnAdmin() -> bool:
     return bool(ctypes.windll.shell32.IsUserAnAdmin()) if IsNT6orHigher else True
 
 
-def RunScriptAsAdmin(argv: list[str], workingDirectory: str = None, showFlag: int = SW.ShowNormal) -> bool:
+def RunScriptAsAdmin(
+    argv: list[str], workingDirectory: str = None, showFlag: int = SW.ShowNormal
+) -> bool:
     """
     Run a python script as administrator.
     System will show a popup dialog askes you whether to elevate as administrator if UAC is enabled.
@@ -982,7 +1168,12 @@ def RunScriptAsAdmin(argv: list[str], workingDirectory: str = None, showFlag: in
     Return bool, True if succeed.
     """
     args = shlex.join(argv)
-    return ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, args, workingDirectory, showFlag) > 32
+    return (
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, args, workingDirectory, showFlag
+        )
+        > 32
+    )
 
 
 def SendKey(key: int, waitTime: float = OPERATION_WAIT_TIME) -> None:
@@ -1035,10 +1226,12 @@ def _CreateInput(structure) -> INPUT:
         return INPUT(InputType.Keyboard, INPUTUnion(ki=structure))
     if isinstance(structure, HARDWAREINPUT):
         return INPUT(InputType.Hardware, INPUTUnion(hi=structure))
-    raise TypeError('Cannot create INPUT structure!')
+    raise TypeError("Cannot create INPUT structure!")
 
 
-def MouseInput(dx: int, dy: int, mouseData: int = 0, dwFlags: int = MouseEventFlag.LeftDown, time_: int = 0) -> INPUT:
+def MouseInput(
+    dx: int, dy: int, mouseData: int = 0, dwFlags: int = MouseEventFlag.LeftDown, time_: int = 0
+) -> INPUT:
     """
     Create Win32 struct `MOUSEINPUT` for `SendInput`.
     Return `INPUT`.
@@ -1046,7 +1239,9 @@ def MouseInput(dx: int, dy: int, mouseData: int = 0, dwFlags: int = MouseEventFl
     return _CreateInput(MOUSEINPUT(dx, dy, mouseData, dwFlags, time_, None))
 
 
-def KeyboardInput(wVk: int, wScan: int, dwFlags: int = KeyboardEventFlag.KeyDown, time_: int = 0) -> INPUT:
+def KeyboardInput(
+    wVk: int, wScan: int, dwFlags: int = KeyboardEventFlag.KeyDown, time_: int = 0
+) -> INPUT:
     """Create Win32 struct `KEYBDINPUT` for `SendInput`."""
     return _CreateInput(KEYBDINPUT(wVk, wScan, dwFlags, time_, None))
 
@@ -1068,10 +1263,10 @@ def SendInput(*inputs) -> int:
         ret = ctypes.windll.user32.SendInput(1, ctypes.byref(ip), cbSize)
     return ret
     # or one call
-    #nInputs = len(inputs)
-    #LPINPUT = INPUT * nInputs
-    #pInputs = LPINPUT(*inputs)
-    #cbSize = ctypes.c_int(ctypes.sizeof(INPUT))
+    # nInputs = len(inputs)
+    # LPINPUT = INPUT * nInputs
+    # pInputs = LPINPUT(*inputs)
+    # cbSize = ctypes.c_int(ctypes.sizeof(INPUT))
     # return ctypes.windll.user32.SendInput(nInputs, ctypes.byref(pInputs), cbSize)
 
 
@@ -1097,8 +1292,10 @@ def SendUnicodeChar(char: str, charMode: bool = True) -> int:
             vk = 0
             scan = ord(char)
             flag = KeyboardEventFlag.KeyUnicode
-    return SendInput(KeyboardInput(vk, scan, flag | KeyboardEventFlag.KeyDown),
-                     KeyboardInput(vk, scan, flag | KeyboardEventFlag.KeyUp))
+    return SendInput(
+        KeyboardInput(vk, scan, flag | KeyboardEventFlag.KeyDown),
+        KeyboardInput(vk, scan, flag | KeyboardEventFlag.KeyUp),
+    )
 
 
 _SCKeys = {
@@ -1146,7 +1343,13 @@ def _VKtoSC(key: int) -> int:
     return scanCode
 
 
-def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT_TIME, charMode: bool = True, debug: bool = False) -> None:
+def SendKeys(
+    text: str,
+    interval: float = 0.01,
+    waitTime: float = OPERATION_WAIT_TIME,
+    charMode: bool = True,
+    debug: bool = False,
+) -> None:
     """
     Simulate typing keys on keyboard.
     text: str, keys to type.
@@ -1167,7 +1370,23 @@ def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT
     SendKeys('`~!@#$%^&*()-_=+{Enter}')
     SendKeys('[]{{}{}}\\|;:\'\",<.>/?{Enter}')
     """
-    holdKeys = ('WIN', 'LWIN', 'RWIN', 'SHIFT', 'LSHIFT', 'RSHIFT', 'CTRL', 'CONTROL', 'LCTRL', 'RCTRL', 'LCONTROL', 'LCONTROL', 'ALT', 'LALT', 'RALT')
+    holdKeys = (
+        "WIN",
+        "LWIN",
+        "RWIN",
+        "SHIFT",
+        "LSHIFT",
+        "RSHIFT",
+        "CTRL",
+        "CONTROL",
+        "LCTRL",
+        "RCTRL",
+        "LCONTROL",
+        "LCONTROL",
+        "ALT",
+        "LALT",
+        "RALT",
+    )
     keys = []
     printKeys = []
     i = 0
@@ -1177,18 +1396,20 @@ def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT
     include = False
     lastKeyValue = None
     while True:
-        if text[i] == '{':
-            rindex = text.find('}', i)
+        if text[i] == "{":
+            rindex = text.find("}", i)
             if rindex == i + 1:  # {}}
-                rindex = text.find('}', i + 2)
+                rindex = text.find("}", i + 2)
             if rindex == -1:
                 raise ValueError('"{" or "{}" is not valid, use "{{}" for "{", use "{}}" for "}"')
-            keyStr = text[i + 1:rindex]
-            key = [it for it in keyStr.split(' ') if it]
+            keyStr = text[i + 1 : rindex]
+            key = [it for it in keyStr.split(" ") if it]
             if not key:
-                raise ValueError(f'"{text[i:rindex + 1]}" is not valid, use "{{Space}}" or " " for " "')
+                raise ValueError(
+                    f'"{text[i : rindex + 1]}" is not valid, use "{{Space}}" or " " for " "'
+                )
             if (len(key) == 2 and not key[1].isdigit()) or len(key) > 2:
-                raise ValueError(f'"{text[i:rindex + 1]}" is not valid')
+                raise ValueError(f'"{text[i : rindex + 1]}" is not valid')
             upperKey = key[0].upper()
             count = 1
             if len(key) > 1:
@@ -1199,23 +1420,35 @@ def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT
                         keyValue = SpecialKeyNames[upperKey]
                         if type(lastKeyValue) == type(keyValue) and lastKeyValue == keyValue:
                             insertIndex += 1
-                        printKeys.insert(insertIndex, (key[0], 'KeyDown | ExtendedKey'))
-                        printKeys.insert(insertIndex + 1, (key[0], 'KeyUp | ExtendedKey'))
-                        keys.insert(insertIndex, (keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey))
-                        keys.insert(insertIndex + 1, (keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey))
+                        printKeys.insert(insertIndex, (key[0], "KeyDown | ExtendedKey"))
+                        printKeys.insert(insertIndex + 1, (key[0], "KeyUp | ExtendedKey"))
+                        keys.insert(
+                            insertIndex,
+                            (keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey),
+                        )
+                        keys.insert(
+                            insertIndex + 1,
+                            (keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey),
+                        )
                         lastKeyValue = keyValue
                     elif key[0] in CharacterCodes:
                         keyValue = CharacterCodes[key[0]]
                         if type(lastKeyValue) == type(keyValue) and lastKeyValue == keyValue:
                             insertIndex += 1
-                        printKeys.insert(insertIndex, (key[0], 'KeyDown | ExtendedKey'))
-                        printKeys.insert(insertIndex + 1, (key[0], 'KeyUp | ExtendedKey'))
-                        keys.insert(insertIndex, (keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey))
-                        keys.insert(insertIndex + 1, (keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey))
+                        printKeys.insert(insertIndex, (key[0], "KeyDown | ExtendedKey"))
+                        printKeys.insert(insertIndex + 1, (key[0], "KeyUp | ExtendedKey"))
+                        keys.insert(
+                            insertIndex,
+                            (keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey),
+                        )
+                        keys.insert(
+                            insertIndex + 1,
+                            (keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey),
+                        )
                         lastKeyValue = keyValue
                     else:
-                        printKeys.insert(insertIndex, (key[0], 'UnicodeChar'))
-                        keys.insert(insertIndex, (key[0], 'UnicodeChar'))
+                        printKeys.insert(insertIndex, (key[0], "UnicodeChar"))
+                        keys.insert(insertIndex, (key[0], "UnicodeChar"))
                         lastKeyValue = key[0]
                     if include:
                         insertIndex += 1
@@ -1227,10 +1460,14 @@ def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT
                 else:
                     if upperKey in SpecialKeyNames:
                         keyValue = SpecialKeyNames[upperKey]
-                        printKeys.append((key[0], 'KeyDown | ExtendedKey'))
-                        printKeys.append((key[0], 'KeyUp | ExtendedKey'))
-                        keys.append((keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey))
-                        keys.append((keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey))
+                        printKeys.append((key[0], "KeyDown | ExtendedKey"))
+                        printKeys.append((key[0], "KeyUp | ExtendedKey"))
+                        keys.append(
+                            (keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey)
+                        )
+                        keys.append(
+                            (keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey)
+                        )
                         lastKeyValue = keyValue
                         if upperKey in holdKeys:
                             hold = True
@@ -1238,56 +1475,66 @@ def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT
                         else:
                             hold = False
                     else:
-                        printKeys.append((key[0], 'UnicodeChar'))
-                        keys.append((key[0], 'UnicodeChar'))
+                        printKeys.append((key[0], "UnicodeChar"))
+                        keys.append((key[0], "UnicodeChar"))
                         lastKeyValue = key[0]
             i = rindex + 1
-        elif text[i] == '(':
+        elif text[i] == "(":
             if hold:
                 include = True
             else:
-                printKeys.append((text[i], 'UnicodeChar'))
-                keys.append((text[i], 'UnicodeChar'))
+                printKeys.append((text[i], "UnicodeChar"))
+                keys.append((text[i], "UnicodeChar"))
                 lastKeyValue = text[i]
             i += 1
-        elif text[i] == ')':
+        elif text[i] == ")":
             if hold:
                 include = False
                 hold = False
             else:
-                printKeys.append((text[i], 'UnicodeChar'))
-                keys.append((text[i], 'UnicodeChar'))
+                printKeys.append((text[i], "UnicodeChar"))
+                keys.append((text[i], "UnicodeChar"))
                 lastKeyValue = text[i]
             i += 1
         else:
             if hold:
                 if text[i] in CharacterCodes:
                     keyValue = CharacterCodes[text[i]]
-                    if include and type(lastKeyValue) == type(keyValue) and lastKeyValue == keyValue:
+                    if (
+                        include
+                        and type(lastKeyValue) == type(keyValue)
+                        and lastKeyValue == keyValue
+                    ):
                         insertIndex += 1
-                    printKeys.insert(insertIndex, (text[i], 'KeyDown | ExtendedKey'))
-                    printKeys.insert(insertIndex + 1, (text[i], 'KeyUp | ExtendedKey'))
-                    keys.insert(insertIndex, (keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey))
-                    keys.insert(insertIndex + 1, (keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey))
+                    printKeys.insert(insertIndex, (text[i], "KeyDown | ExtendedKey"))
+                    printKeys.insert(insertIndex + 1, (text[i], "KeyUp | ExtendedKey"))
+                    keys.insert(
+                        insertIndex,
+                        (keyValue, KeyboardEventFlag.KeyDown | KeyboardEventFlag.ExtendedKey),
+                    )
+                    keys.insert(
+                        insertIndex + 1,
+                        (keyValue, KeyboardEventFlag.KeyUp | KeyboardEventFlag.ExtendedKey),
+                    )
                     lastKeyValue = keyValue
                 else:
-                    printKeys.append((text[i], 'UnicodeChar'))
-                    keys.append((text[i], 'UnicodeChar'))
+                    printKeys.append((text[i], "UnicodeChar"))
+                    keys.append((text[i], "UnicodeChar"))
                     lastKeyValue = text[i]
                 if include:
                     insertIndex += 1
                 else:
                     hold = False
             else:
-                printKeys.append((text[i], 'UnicodeChar'))
-                keys.append((text[i], 'UnicodeChar'))
+                printKeys.append((text[i], "UnicodeChar"))
+                keys.append((text[i], "UnicodeChar"))
                 lastKeyValue = text[i]
             i += 1
         if i >= length:
             break
     hotkeyInterval = 0.01
     for i, key in enumerate(keys):
-        if key[1] == 'UnicodeChar':
+        if key[1] == "UnicodeChar":
             SendUnicodeChar(key[0], charMode)
             time.sleep(interval)
         else:
@@ -1297,10 +1544,15 @@ def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT
                 time.sleep(interval)
             else:
                 if key[1] & KeyboardEventFlag.KeyUp:
-                    if keys[i + 1][1] == 'UnicodeChar' or keys[i + 1][1] & KeyboardEventFlag.KeyUp == 0:
+                    if (
+                        keys[i + 1][1] == "UnicodeChar"
+                        or keys[i + 1][1] & KeyboardEventFlag.KeyUp == 0
+                    ):
                         time.sleep(interval)
                     else:
-                        time.sleep(hotkeyInterval)  # must sleep for a while, otherwise combined keys may not be caught
+                        time.sleep(
+                            hotkeyInterval
+                        )  # must sleep for a while, otherwise combined keys may not be caught
                 else:  # KeyboardEventFlag.KeyDown
                     time.sleep(hotkeyInterval)
     time.sleep(waitTime)
@@ -1315,7 +1567,9 @@ def SetThreadDpiAwarenessContext(dpiAwarenessContext: int):
         # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setthreaddpiawarenesscontext
         # Windows 10 1607+
         ctypes.windll.user32.SetThreadDpiAwarenessContext.restype = ctypes.c_void_p
-        oldContext = ctypes.windll.user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(dpiAwarenessContext))
+        oldContext = ctypes.windll.user32.SetThreadDpiAwarenessContext(
+            ctypes.c_void_p(dpiAwarenessContext)
+        )
         return oldContext
     except Exception:
         pass
@@ -1366,25 +1620,27 @@ if not SetProcessDpiAwarenessContext(DpiAwarenessContext.PerMonitorAwareV2):
 
 class tagPROCESSENTRY32(ctypes.Structure):
     _fields_ = [
-        ('dwSize', ctypes.wintypes.DWORD),
-        ('cntUsage', ctypes.wintypes.DWORD),
-        ('th32ProcessID', ctypes.wintypes.DWORD),
-        ('th32DefaultHeapID', ctypes.POINTER(ctypes.wintypes.ULONG)),
-        ('th32ModuleID', ctypes.wintypes.DWORD),
-        ('cntThreads', ctypes.wintypes.DWORD),
-        ('th32ParentProcessID', ctypes.wintypes.DWORD),
-        ('pcPriClassBase', ctypes.wintypes.LONG),
-        ('dwFlags', ctypes.wintypes.DWORD),
-        ('szExeFile', ctypes.c_wchar * MAX_PATH)
+        ("dwSize", ctypes.wintypes.DWORD),
+        ("cntUsage", ctypes.wintypes.DWORD),
+        ("th32ProcessID", ctypes.wintypes.DWORD),
+        ("th32DefaultHeapID", ctypes.POINTER(ctypes.wintypes.ULONG)),
+        ("th32ModuleID", ctypes.wintypes.DWORD),
+        ("cntThreads", ctypes.wintypes.DWORD),
+        ("th32ParentProcessID", ctypes.wintypes.DWORD),
+        ("pcPriClassBase", ctypes.wintypes.LONG),
+        ("dwFlags", ctypes.wintypes.DWORD),
+        ("szExeFile", ctypes.c_wchar * MAX_PATH),
     ]
 
 
 class ProcessInfo:
-    def __init__(self, exeName: str, pid: int, ppid: int = -1, exePath: str = '', cmdLine: str = ''):
+    def __init__(
+        self, exeName: str, pid: int, ppid: int = -1, exePath: str = "", cmdLine: str = ""
+    ):
         self.pid = pid
-        self.ppid = ppid        # ppid is -1 if failed
+        self.ppid = ppid  # ppid is -1 if failed
         self.exeName = exeName  # such as explorer.exe
-        self.is64Bit = None     # True if is 64 bit, False if 32 bit, None if failed
+        self.is64Bit = None  # True if is 64 bit, False if 32 bit, None if failed
         self.exePath = exePath  # such as C:\Windows\explorer.exe, empty if failed
         self.cmdLine = cmdLine  # empty if failed
 
@@ -1392,17 +1648,20 @@ class ProcessInfo:
         return f"ProcessInfo(pid={self.pid}, ppid={self.ppid}, exeName='{self.exeName}', is64Bit={self.is64Bit}, exePath='{self.exePath}', cmdLine='{self.cmdLine}'"
 
     def __repr__(self):
-        return '<{} object at 0x{:08X} {}>'.format(self.__class__.__name__, id(self),
-                                                   ', '.join(f'{k}={v}' for k, v in self.__dict__.items()))
+        return "<{} object at 0x{:08X} {}>".format(
+            self.__class__.__name__,
+            id(self),
+            ", ".join(f"{k}={v}" for k, v in self.__dict__.items()),
+        )
 
 
 def GetProcesses(detailedInfo: bool = True) -> list[ProcessInfo]:
-    '''
+    """
     Enum process by Win32 API.
     detailedInfo: bool, only get pid and exeName if False.
     You should run python as administrator to call this function.
     Can not get some system processes' info.
-    '''
+    """
     if detailedInfo:
         try:
             IsWow64Process = ctypes.windll.kernel32.IsWow64Process
@@ -1412,18 +1671,22 @@ def GetProcesses(detailedInfo: bool = True) -> list[ProcessInfo]:
     processEntry32 = tagPROCESSENTRY32()
     processEntry32.dwSize = ctypes.sizeof(processEntry32)
     processList = []
-    processNext = ctypes.windll.kernel32.Process32FirstW(ctypes.c_void_p(hSnapshot), ctypes.byref(processEntry32))
+    processNext = ctypes.windll.kernel32.Process32FirstW(
+        ctypes.c_void_p(hSnapshot), ctypes.byref(processEntry32)
+    )
     cPointerSize = ctypes.sizeof(ctypes.c_void_p)
     while processNext:
         pinfo = ProcessInfo(processEntry32.szExeFile, processEntry32.th32ProcessID)
         if detailedInfo:
-            #PROCESS_QUERY_INFORMATION=0x0400, PROCESS_QUERY_LIMITED_INFORMATION=0x1000, PROCESS_VM_READ=0x0010
+            # PROCESS_QUERY_INFORMATION=0x0400, PROCESS_QUERY_LIMITED_INFORMATION=0x1000, PROCESS_VM_READ=0x0010
             queryType = (0x1000 if IsNT6orHigher else 0x0400) | 0x0010
             hProcess = ctypes.windll.kernel32.OpenProcess(queryType, 0, pinfo.pid)
             if hProcess:
                 hProcess = ctypes.c_void_p(hProcess)
                 processBasicInformationAddr = 0
-                processBasicInformation = (ctypes.c_size_t * 6)()#sizeof PROCESS_BASIC_INFORMATION
+                processBasicInformation = (
+                    ctypes.c_size_t * 6
+                )()  # sizeof PROCESS_BASIC_INFORMATION
                 outLen = ctypes.c_ulong(0)
                 ctypes.windll.ntdll.NtQueryInformationProcess.restype = ctypes.c_uint32
                 if IsWow64Process:
@@ -1433,56 +1696,98 @@ def GetProcesses(detailedInfo: bool = True) -> list[ProcessInfo]:
                 else:
                     pinfo.is64Bit = False
                 ntStatus = ctypes.windll.ntdll.NtQueryInformationProcess(
-                    hProcess, processBasicInformationAddr, processBasicInformation, ctypes.sizeof(processBasicInformation), ctypes.byref(outLen))
-                if ntStatus == 0: #STATUS_SUCCESS=0
+                    hProcess,
+                    processBasicInformationAddr,
+                    processBasicInformation,
+                    ctypes.sizeof(processBasicInformation),
+                    ctypes.byref(outLen),
+                )
+                if ntStatus == 0:  # STATUS_SUCCESS=0
                     pinfo.ppid = processBasicInformation[5]
                     pebBaseAddress = processBasicInformation[1]
                     if pebBaseAddress:
-                        pebSize = 712 if CurrentProcessIs64Bit else 472 #sizeof PEB
+                        pebSize = 712 if CurrentProcessIs64Bit else 472  # sizeof PEB
                         peb = (ctypes.c_size_t * (pebSize // cPointerSize))()
                         outLen.value = 0
-                        isok = ctypes.windll.kernel32.ReadProcessMemory(hProcess, ctypes.c_void_p(pebBaseAddress), peb, pebSize, ctypes.byref(outLen))
+                        isok = ctypes.windll.kernel32.ReadProcessMemory(
+                            hProcess,
+                            ctypes.c_void_p(pebBaseAddress),
+                            peb,
+                            pebSize,
+                            ctypes.byref(outLen),
+                        )
                         if isok:
                             processParametersAddr = ctypes.c_void_p(peb[4])
-                            uppSize = 128 if CurrentProcessIs64Bit else 72 #sizeof RTL_USER_PROCESS_PARAMETERS
+                            uppSize = (
+                                128 if CurrentProcessIs64Bit else 72
+                            )  # sizeof RTL_USER_PROCESS_PARAMETERS
                             upp = (ctypes.c_ubyte * uppSize)()
                             outLen.value = 0
-                            isok = ctypes.windll.kernel32.ReadProcessMemory(hProcess, processParametersAddr, upp, uppSize, ctypes.byref(outLen))
+                            isok = ctypes.windll.kernel32.ReadProcessMemory(
+                                hProcess, processParametersAddr, upp, uppSize, ctypes.byref(outLen)
+                            )
                             if isok:
                                 offset = 16 + 10 * cPointerSize
-                                imgPathSize, imgPathSizeMax, imgPathAddr, cmdLineSize, cmdLineSizeMax, cmdLineAddr = struct.unpack('@HHNHHN', bytes(upp[offset:]))
+                                (
+                                    imgPathSize,
+                                    imgPathSizeMax,
+                                    imgPathAddr,
+                                    cmdLineSize,
+                                    cmdLineSizeMax,
+                                    cmdLineAddr,
+                                ) = struct.unpack("@HHNHHN", bytes(upp[offset:]))
                                 exePath = (ctypes.c_wchar * imgPathSizeMax)()
                                 outLen.value = 0
-                                isok = ctypes.windll.kernel32.ReadProcessMemory(hProcess, ctypes.c_void_p(imgPathAddr), exePath, ctypes.sizeof(exePath), ctypes.byref(outLen))
+                                isok = ctypes.windll.kernel32.ReadProcessMemory(
+                                    hProcess,
+                                    ctypes.c_void_p(imgPathAddr),
+                                    exePath,
+                                    ctypes.sizeof(exePath),
+                                    ctypes.byref(outLen),
+                                )
                                 if isok:
                                     pinfo.exePath = exePath.value
                                 cmdLine = (ctypes.c_wchar * cmdLineSizeMax)()
                                 outLen.value = 0
-                                isok = ctypes.windll.kernel32.ReadProcessMemory(hProcess, ctypes.c_void_p(cmdLineAddr), cmdLine, ctypes.sizeof(cmdLine), ctypes.byref(outLen))
+                                isok = ctypes.windll.kernel32.ReadProcessMemory(
+                                    hProcess,
+                                    ctypes.c_void_p(cmdLineAddr),
+                                    cmdLine,
+                                    ctypes.sizeof(cmdLine),
+                                    ctypes.byref(outLen),
+                                )
                                 if isok:
                                     pinfo.cmdLine = cmdLine.value
                 if not pinfo.exePath:
                     exePath = (ctypes.c_wchar * MAX_PATH)()
                     if IsNT6orHigher:
-                        win32PathFormat = 0 #nativeSystemPathFormat = 1
+                        win32PathFormat = 0  # nativeSystemPathFormat = 1
                         outLen.value = len(exePath)
-                        isok = ctypes.windll.kernel32.QueryFullProcessImageNameW(hProcess, win32PathFormat, exePath, ctypes.byref(outLen))
+                        isok = ctypes.windll.kernel32.QueryFullProcessImageNameW(
+                            hProcess, win32PathFormat, exePath, ctypes.byref(outLen)
+                        )
                     else:
                         hModule = None
                         try:
-                            #strlen =
-                            ctypes.windll.psapi.GetModuleFileNameExW(hProcess, hModule, exePath, len(exePath))
+                            # strlen =
+                            ctypes.windll.psapi.GetModuleFileNameExW(
+                                hProcess, hModule, exePath, len(exePath)
+                            )
                         except:
-                            #strlen =
-                            ctypes.windll.kernel32.GetModuleFileNameExW(hProcess, hModule, exePath, len(exePath))
-                        #exePath is nativeSystemPathFormat
-                        #strlen = ctypes.windll.psapi.GetProcessImageFileNameW(hProcess, exePath, len(exePath))
-                        #if exePath.value:
-                            #strlen = ctypes.windll.kernel32.QueryDosDeviceW(ctypes.c_wchar_p(exePath.value), exePath, len(exePath))
+                            # strlen =
+                            ctypes.windll.kernel32.GetModuleFileNameExW(
+                                hProcess, hModule, exePath, len(exePath)
+                            )
+                        # exePath is nativeSystemPathFormat
+                        # strlen = ctypes.windll.psapi.GetProcessImageFileNameW(hProcess, exePath, len(exePath))
+                        # if exePath.value:
+                        # strlen = ctypes.windll.kernel32.QueryDosDeviceW(ctypes.c_wchar_p(exePath.value), exePath, len(exePath))
                     pinfo.exePath = exePath.value
                 ctypes.windll.kernel32.CloseHandle(hProcess)
         processList.append(pinfo)
-        processNext = ctypes.windll.kernel32.Process32NextW(ctypes.c_void_p(hSnapshot), ctypes.byref(processEntry32))
+        processNext = ctypes.windll.kernel32.Process32NextW(
+            ctypes.c_void_p(hSnapshot), ctypes.byref(processEntry32)
+        )
     ctypes.windll.kernel32.CloseHandle(ctypes.c_void_p(hSnapshot))
     return processList
 
@@ -1498,10 +1803,10 @@ def TerminateProcess(pid: int) -> bool:
 
 
 def TerminateProcessByName(exeName: str, killAll: bool = True) -> int:
-    '''
+    """
     exeName: str, such as notepad.exe
     return int, process count that was terminated
-    '''
+    """
     count = 0
     for pinfo in GetProcesses(detailedInfo=False):
         if pinfo.exeName == exeName:
@@ -1510,8 +1815,6 @@ def TerminateProcessByName(exeName: str, killAll: bool = True) -> int:
                 if not killAll:
                     break
     return count
-
-
 
 
 _ClipboardLock = threading.Lock()
@@ -1527,11 +1830,11 @@ def _OpenClipboard(value):
 
 
 def GetClipboardFormats() -> dict[int, str]:
-    '''
+    """
     Get clipboard formats that system clipboard has currently.
     Return Dict[int, str].
     The key is a int value in class `ClipboardFormat` or othes values that apps registered by ctypes.windll.user32.RegisterClipboardFormatW
-    '''
+    """
     formats = {}
     with _ClipboardLock:
         if _OpenClipboard(0):
@@ -1545,7 +1848,9 @@ def GetClipboardFormats() -> dict[int, str]:
                 ctypes.windll.user32.GetClipboardFormatNameW(formatType, values, len(values))
                 formatName = values.value
                 if not formatName:
-                    formatName = _GetDictKeyName(ClipboardFormat.__dict__, formatType, lambda key: key.startswith('CF_'))
+                    formatName = _GetDictKeyName(
+                        ClipboardFormat.__dict__, formatType, lambda key: key.startswith("CF_")
+                    )
                 formats[formatType] = formatName
             ctypes.windll.user32.CloseClipboard()
     return formats
@@ -1555,15 +1860,17 @@ def GetClipboardText() -> str:
     with _ClipboardLock:
         if _OpenClipboard(0):
             if ctypes.windll.user32.IsClipboardFormatAvailable(ClipboardFormat.CF_UNICODETEXT):
-                hClipboardData = ctypes.windll.user32.GetClipboardData(ClipboardFormat.CF_UNICODETEXT)
+                hClipboardData = ctypes.windll.user32.GetClipboardData(
+                    ClipboardFormat.CF_UNICODETEXT
+                )
                 hText = ctypes.windll.kernel32.GlobalLock(ctypes.c_void_p(hClipboardData))
                 text = ctypes.c_wchar_p(hText).value
                 ctypes.windll.kernel32.GlobalUnlock(ctypes.c_void_p(hClipboardData))
                 ctypes.windll.user32.CloseClipboard()
                 if text is None:
-                    return ''
+                    return ""
                 return text
-    return ''
+    return ""
 
 
 def SetClipboardText(text: str) -> bool:
@@ -1577,11 +1884,17 @@ def SetClipboardText(text: str) -> bool:
             textByteLen = (len(text) + 1) * 2
             hClipboardData = ctypes.windll.kernel32.GlobalAlloc(0x2, textByteLen)  # GMEM_MOVEABLE
             hDestText = ctypes.windll.kernel32.GlobalLock(ctypes.c_void_p(hClipboardData))
-            ctypes.cdll.msvcrt.wcsncpy(ctypes.c_wchar_p(hDestText), ctypes.c_wchar_p(text), ctypes.c_size_t(textByteLen // 2))
+            ctypes.cdll.msvcrt.wcsncpy(
+                ctypes.c_wchar_p(hDestText),
+                ctypes.c_wchar_p(text),
+                ctypes.c_size_t(textByteLen // 2),
+            )
             ctypes.windll.kernel32.GlobalUnlock(ctypes.c_void_p(hClipboardData))
             # system owns hClipboardData after calling SetClipboardData,
             # application can not write to or free the data once ownership has been transferred to the system
-            if ctypes.windll.user32.SetClipboardData(ctypes.c_uint(ClipboardFormat.CF_UNICODETEXT), ctypes.c_void_p(hClipboardData)):
+            if ctypes.windll.user32.SetClipboardData(
+                ctypes.c_uint(ClipboardFormat.CF_UNICODETEXT), ctypes.c_void_p(hClipboardData)
+            ):
                 ret = True
             else:
                 ctypes.windll.kernel32.GlobalFree(ctypes.c_void_p(hClipboardData))
@@ -1605,9 +1918,9 @@ def GetClipboardHtml() -> str:
                 ctypes.windll.kernel32.GlobalUnlock(ctypes.c_void_p(hClipboardData))
                 ctypes.windll.user32.CloseClipboard()
                 if v is None:
-                    return ''
-                return v.decode('utf-8')
-    return ''
+                    return ""
+                return v.decode("utf-8")
+    return ""
 
 
 def SetClipboardHtml(htmlText: str) -> bool:
@@ -1616,34 +1929,43 @@ def SetClipboardHtml(htmlText: str) -> bool:
     Return bool, True if succeed otherwise False.
     Refer: https://docs.microsoft.com/en-us/troubleshoot/cpp/add-html-code-clipboard
     """
-    u8Html = htmlText.encode('utf-8')
-    formatBytes = b'Version:0.9\r\nStartHTML:00000000\r\nEndHTML:00000000\r\nStartFragment:00000000\r\nEndFragment:00000000\r\n<html>\r\n<body>\r\n<!--StartFragment-->{}<!--EndFragment-->\r\n</body>\r\n</html>'
-    startHtml = formatBytes.find(b'<html>')
+    u8Html = htmlText.encode("utf-8")
+    formatBytes = b"Version:0.9\r\nStartHTML:00000000\r\nEndHTML:00000000\r\nStartFragment:00000000\r\nEndFragment:00000000\r\n<html>\r\n<body>\r\n<!--StartFragment-->{}<!--EndFragment-->\r\n</body>\r\n</html>"
+    startHtml = formatBytes.find(b"<html>")
     endHtml = len(formatBytes) + len(u8Html) - 2
-    startFragment = formatBytes.find(b'{}')
-    endFragment = formatBytes.find(b'<!--EndFragment-->') + len(u8Html) - 2
-    formatBytes = formatBytes.replace(b'StartHTML:00000000', f'StartHTML:{startHtml:08}'.encode())
-    formatBytes = formatBytes.replace(b'EndHTML:00000000', f'EndHTML:{endHtml:08}'.encode())
-    formatBytes = formatBytes.replace(b'StartFragment:00000000', f'StartFragment:{startFragment:08}'.encode())
-    formatBytes = formatBytes.replace(b'EndFragment:00000000', f'EndFragment:{endFragment:08}'.encode())
-    u8Result = formatBytes.replace(b'{}', u8Html)
+    startFragment = formatBytes.find(b"{}")
+    endFragment = formatBytes.find(b"<!--EndFragment-->") + len(u8Html) - 2
+    formatBytes = formatBytes.replace(b"StartHTML:00000000", f"StartHTML:{startHtml:08}".encode())
+    formatBytes = formatBytes.replace(b"EndHTML:00000000", f"EndHTML:{endHtml:08}".encode())
+    formatBytes = formatBytes.replace(
+        b"StartFragment:00000000", f"StartFragment:{startFragment:08}".encode()
+    )
+    formatBytes = formatBytes.replace(
+        b"EndFragment:00000000", f"EndFragment:{endFragment:08}".encode()
+    )
+    u8Result = formatBytes.replace(b"{}", u8Html)
     ret = False
     with _ClipboardLock:
         if _OpenClipboard(0):
             ctypes.windll.user32.EmptyClipboard()
-            hClipboardData = ctypes.windll.kernel32.GlobalAlloc(0x2002, len(u8Result) + 4)  # GMEM_MOVEABLE |GMEM_DDESHARE
+            hClipboardData = ctypes.windll.kernel32.GlobalAlloc(
+                0x2002, len(u8Result) + 4
+            )  # GMEM_MOVEABLE |GMEM_DDESHARE
             hDestText = ctypes.windll.kernel32.GlobalLock(ctypes.c_void_p(hClipboardData))
-            ctypes.cdll.msvcrt.strncpy(ctypes.c_char_p(hDestText), ctypes.c_char_p(u8Result), len(u8Result))
+            ctypes.cdll.msvcrt.strncpy(
+                ctypes.c_char_p(hDestText), ctypes.c_char_p(u8Result), len(u8Result)
+            )
             ctypes.windll.kernel32.GlobalUnlock(ctypes.c_void_p(hClipboardData))
             # system owns hClipboardData after calling SetClipboardData,
             # application can not write to or free the data once ownership has been transferred to the system
-            if ctypes.windll.user32.SetClipboardData(ctypes.c_uint(ClipboardFormat.CF_HTML), ctypes.c_void_p(hClipboardData)):
+            if ctypes.windll.user32.SetClipboardData(
+                ctypes.c_uint(ClipboardFormat.CF_HTML), ctypes.c_void_p(hClipboardData)
+            ):
                 ret = True
             else:
                 ctypes.windll.kernel32.GlobalFree(ctypes.c_void_p(hClipboardData))
             ctypes.windll.user32.CloseClipboard()
     return ret
-
 
 
 def Input(prompt: str, consoleColor: int = ConsoleColor.Default) -> str:
@@ -1654,6 +1976,8 @@ def Input(prompt: str, consoleColor: int = ConsoleColor.Default) -> str:
 def InputColorfully(prompt: str, consoleColor: int = ConsoleColor.Default) -> str:
     print(prompt, end="")
     return input()
+
+
 class Rect:
     """
     class Rect, like `ctypes.wintypes.RECT`.
@@ -1683,8 +2007,13 @@ class Rect:
     def contains(self, x: int, y: int) -> bool:
         return self.left <= x < self.right and self.top <= y < self.bottom
 
-    def intersect(self, rect: 'Rect') -> 'Rect':
-        left, top, right, bottom = max(self.left, rect.left), max(self.top, rect.top), min(self.right, rect.right), min(self.bottom, rect.bottom)
+    def intersect(self, rect: "Rect") -> "Rect":
+        left, top, right, bottom = (
+            max(self.left, rect.left),
+            max(self.top, rect.top),
+            min(self.right, rect.right),
+            min(self.bottom, rect.bottom),
+        )
         return Rect(left, top, right, bottom)
 
     def offset(self, x: int, y: int) -> None:
@@ -1694,13 +2023,20 @@ class Rect:
         self.bottom += y
 
     def __eq__(self, rect):
-        return self.left == rect.left and self.top == rect.top and self.right == rect.right and self.bottom == rect.bottom
+        return (
+            self.left == rect.left
+            and self.top == rect.top
+            and self.right == rect.right
+            and self.bottom == rect.bottom
+        )
 
     def __str__(self) -> str:
-        return f'({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]'
+        return (
+            f"({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]"
+        )
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]'
+        return f"{self.__class__.__name__}({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]"
 
 
 class ClipboardFormat:
@@ -1728,9 +2064,10 @@ class ClipboardFormat:
 # TODO: Failed to parse structure ACCESSTIMEOUT
 class ExtendedProperty(ctypes.Structure):
     _fields_ = [
-        ('PropertyName', ctypes.c_wchar_p),
-        ('PropertyValue', ctypes.c_wchar_p),
+        ("PropertyName", ctypes.c_wchar_p),
+        ("PropertyValue", ctypes.c_wchar_p),
     ]
+
 
 # TODO: Failed to parse structure FILTERKEYS
 # TODO: Failed to parse structure HIGHCONTRASTA
@@ -1745,218 +2082,244 @@ class ExtendedProperty(ctypes.Structure):
 # TODO: Failed to parse structure TOGGLEKEYS
 class UIAutomationEventInfo(ctypes.Structure):
     _fields_ = [
-        ('guid', ctypes.c_void_p),
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
+        ("guid", ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
     ]
+
 
 class UIAutomationMethodInfo(ctypes.Structure):
     _fields_ = [
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
-        ('doSetFocus', ctypes.wintypes.BOOL),
-        ('cInParameters', ctypes.wintypes.UINT),
-        ('cOutParameters', ctypes.wintypes.UINT),
-        ('pParameterTypes', ctypes.c_void_p),
-        ('pParameterNames', ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
+        ("doSetFocus", ctypes.wintypes.BOOL),
+        ("cInParameters", ctypes.wintypes.UINT),
+        ("cOutParameters", ctypes.wintypes.UINT),
+        ("pParameterTypes", ctypes.c_void_p),
+        ("pParameterNames", ctypes.c_void_p),
     ]
+
 
 class UIAutomationParameter(ctypes.Structure):
     _fields_ = [
-        ('type', ctypes.c_void_p),
-        ('pData', ctypes.c_void_p),
+        ("type", ctypes.c_void_p),
+        ("pData", ctypes.c_void_p),
     ]
+
 
 class UIAutomationPatternInfo(ctypes.Structure):
     _fields_ = [
-        ('guid', ctypes.c_void_p),
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
-        ('providerInterfaceId', ctypes.c_void_p),
-        ('clientInterfaceId', ctypes.c_void_p),
-        ('cProperties', ctypes.wintypes.UINT),
-        ('UIAutomationPropertyInfo', ctypes.c_void_p),
-        ('cMethods', ctypes.wintypes.UINT),
-        ('UIAutomationMethodInfo', ctypes.c_void_p),
-        ('cEvents', ctypes.wintypes.UINT),
-        ('UIAutomationEventInfo', ctypes.c_void_p),
-        ('pPatternHandler', ctypes.c_void_p),
+        ("guid", ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
+        ("providerInterfaceId", ctypes.c_void_p),
+        ("clientInterfaceId", ctypes.c_void_p),
+        ("cProperties", ctypes.wintypes.UINT),
+        ("UIAutomationPropertyInfo", ctypes.c_void_p),
+        ("cMethods", ctypes.wintypes.UINT),
+        ("UIAutomationMethodInfo", ctypes.c_void_p),
+        ("cEvents", ctypes.wintypes.UINT),
+        ("UIAutomationEventInfo", ctypes.c_void_p),
+        ("pPatternHandler", ctypes.c_void_p),
     ]
+
 
 class UIAutomationPropertyInfo(ctypes.Structure):
     _fields_ = [
-        ('guid', ctypes.c_void_p),
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
-        ('type', ctypes.c_void_p),
+        ("guid", ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
+        ("type", ctypes.c_void_p),
     ]
+
 
 class UiaAndOrCondition(ctypes.Structure):
     _fields_ = [
-        ('ConditionType', ctypes.c_void_p),
-        ('ppConditions', ctypes.c_void_p),
-        ('UiaCondition', ctypes.c_void_p),
-        ('cConditions', ctypes.c_int),
+        ("ConditionType", ctypes.c_void_p),
+        ("ppConditions", ctypes.c_void_p),
+        ("UiaCondition", ctypes.c_void_p),
+        ("cConditions", ctypes.c_int),
     ]
 
 
 class UiaAsyncContentLoadedEventArgs(ctypes.Structure):
     _fields_ = [
-        ('Type', ctypes.c_void_p),
-        ('EventId', ctypes.c_int),
-        ('AsyncContentLoadedState', ctypes.c_void_p),
-        ('PercentComplete', ctypes.c_double),
+        ("Type", ctypes.c_void_p),
+        ("EventId", ctypes.c_int),
+        ("AsyncContentLoadedState", ctypes.c_void_p),
+        ("PercentComplete", ctypes.c_double),
     ]
+
 
 class UiaCacheRequest(ctypes.Structure):
     _fields_ = [
-        ('UiaCondition', ctypes.c_void_p),
-        ('Scope', ctypes.c_int),
-        ('pProperties', ctypes.c_void_p),
-        ('cProperties', ctypes.c_int),
-        ('pPatterns', ctypes.c_void_p),
-        ('cPatterns', ctypes.c_int),
-        ('automationElementMode', ctypes.c_int),
+        ("UiaCondition", ctypes.c_void_p),
+        ("Scope", ctypes.c_int),
+        ("pProperties", ctypes.c_void_p),
+        ("cProperties", ctypes.c_int),
+        ("pPatterns", ctypes.c_void_p),
+        ("cPatterns", ctypes.c_int),
+        ("automationElementMode", ctypes.c_int),
     ]
+
 
 class UiaChangeInfo(ctypes.Structure):
     _fields_ = [
-        ('uiaId', ctypes.c_int),
-        ('payload', ctypes.c_void_p),
-        ('extraInfo', ctypes.c_void_p),
+        ("uiaId", ctypes.c_int),
+        ("payload", ctypes.c_void_p),
+        ("extraInfo", ctypes.c_void_p),
     ]
+
 
 class UiaCondition(ctypes.Structure):
     _fields_ = [
-        ('ConditionType', ctypes.c_void_p),
+        ("ConditionType", ctypes.c_void_p),
     ]
+
 
 class UiaEventArgs(ctypes.Structure):
     _fields_ = [
-        ('Type', ctypes.c_void_p),
-        ('EventId', ctypes.c_int),
+        ("Type", ctypes.c_void_p),
+        ("EventId", ctypes.c_int),
     ]
+
 
 class UiaFindParams(ctypes.Structure):
     _fields_ = [
-        ('MaxDepth', ctypes.c_int),
-        ('FindFirst', ctypes.wintypes.BOOL),
-        ('ExcludeRoot', ctypes.wintypes.BOOL),
-        ('UiaCondition', ctypes.c_void_p),
+        ("MaxDepth", ctypes.c_int),
+        ("FindFirst", ctypes.wintypes.BOOL),
+        ("ExcludeRoot", ctypes.wintypes.BOOL),
+        ("UiaCondition", ctypes.c_void_p),
     ]
+
 
 class UiaNotCondition(ctypes.Structure):
     _fields_ = [
-        ('ConditionType', ctypes.c_void_p),
-        ('UiaCondition', ctypes.c_void_p),
+        ("ConditionType", ctypes.c_void_p),
+        ("UiaCondition", ctypes.c_void_p),
     ]
+
 
 class UiaPoint(ctypes.Structure):
     _fields_ = [
-        ('x', ctypes.c_double),
-        ('y', ctypes.c_double),
+        ("x", ctypes.c_double),
+        ("y", ctypes.c_double),
     ]
+
 
 class UiaPropertyChangedEventArgs(ctypes.Structure):
     _fields_ = [
-        ('Type', ctypes.c_void_p),
-        ('EventId', ctypes.c_int),
-        ('PropertyId', ctypes.c_int),
-        ('OldValue', ctypes.c_void_p),
-        ('NewValue', ctypes.c_void_p),
+        ("Type", ctypes.c_void_p),
+        ("EventId", ctypes.c_int),
+        ("PropertyId", ctypes.c_int),
+        ("OldValue", ctypes.c_void_p),
+        ("NewValue", ctypes.c_void_p),
     ]
+
 
 class UiaPropertyCondition(ctypes.Structure):
     _fields_ = [
-        ('ConditionType', ctypes.c_void_p),
-        ('PropertyId', ctypes.c_int),
-        ('Value', ctypes.c_void_p),
-        ('Flags', ctypes.c_void_p),
+        ("ConditionType", ctypes.c_void_p),
+        ("PropertyId", ctypes.c_int),
+        ("Value", ctypes.c_void_p),
+        ("Flags", ctypes.c_void_p),
     ]
+
 
 class UiaRect(ctypes.Structure):
     _fields_ = [
-        ('left', ctypes.c_double),
-        ('top', ctypes.c_double),
-        ('width', ctypes.c_double),
-        ('height', ctypes.c_double),
+        ("left", ctypes.c_double),
+        ("top", ctypes.c_double),
+        ("width", ctypes.c_double),
+        ("height", ctypes.c_double),
     ]
+
 
 class UiaStructureChangedEventArgs(ctypes.Structure):
     _fields_ = [
-        ('Type', ctypes.c_void_p),
-        ('EventId', ctypes.c_int),
-        ('StructureChangeType', ctypes.c_void_p),
-        ('pRuntimeId', ctypes.c_void_p),
-        ('cRuntimeIdLen', ctypes.c_int),
+        ("Type", ctypes.c_void_p),
+        ("EventId", ctypes.c_int),
+        ("StructureChangeType", ctypes.c_void_p),
+        ("pRuntimeId", ctypes.c_void_p),
+        ("cRuntimeIdLen", ctypes.c_int),
     ]
+
 
 class UiaWindowClosedEventArgs(ctypes.Structure):
     _fields_ = [
-        ('Type', ctypes.c_void_p),
-        ('EventId', ctypes.c_int),
-        ('pRuntimeId', ctypes.c_void_p),
-        ('cRuntimeIdLen', ctypes.c_int),
+        ("Type", ctypes.c_void_p),
+        ("EventId", ctypes.c_int),
+        ("pRuntimeId", ctypes.c_void_p),
+        ("cRuntimeIdLen", ctypes.c_int),
     ]
+
 
 class ExtendedProperty(ctypes.Structure):
     _fields_ = [
-        ('PropertyName', ctypes.c_wchar_p),
-        ('PropertyValue', ctypes.c_wchar_p),
+        ("PropertyName", ctypes.c_wchar_p),
+        ("PropertyValue", ctypes.c_wchar_p),
     ]
+
 
 class UIAutomationEventInfo(ctypes.Structure):
     _fields_ = [
-        ('guid', ctypes.c_void_p),
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
+        ("guid", ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
     ]
+
 
 class UIAutomationMethodInfo(ctypes.Structure):
     _fields_ = [
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
-        ('doSetFocus', ctypes.wintypes.BOOL),
-        ('cInParameters', ctypes.wintypes.UINT),
-        ('cOutParameters', ctypes.wintypes.UINT),
-        ('pParameterTypes', ctypes.c_void_p),
-        ('pParameterNames', ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
+        ("doSetFocus", ctypes.wintypes.BOOL),
+        ("cInParameters", ctypes.wintypes.UINT),
+        ("cOutParameters", ctypes.wintypes.UINT),
+        ("pParameterTypes", ctypes.c_void_p),
+        ("pParameterNames", ctypes.c_void_p),
     ]
+
 
 class UIAutomationParameter(ctypes.Structure):
     _fields_ = [
-        ('type', ctypes.c_void_p),
-        ('pData', ctypes.c_void_p),
+        ("type", ctypes.c_void_p),
+        ("pData", ctypes.c_void_p),
     ]
+
 
 class UIAutomationPatternInfo(ctypes.Structure):
     _fields_ = [
-        ('guid', ctypes.c_void_p),
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
-        ('providerInterfaceId', ctypes.c_void_p),
-        ('clientInterfaceId', ctypes.c_void_p),
-        ('cProperties', ctypes.wintypes.UINT),
-        ('UIAutomationPropertyInfo', ctypes.c_void_p),
-        ('cMethods', ctypes.wintypes.UINT),
-        ('UIAutomationMethodInfo', ctypes.c_void_p),
-        ('cEvents', ctypes.wintypes.UINT),
-        ('UIAutomationEventInfo', ctypes.c_void_p),
-        ('pPatternHandler', ctypes.c_void_p),
+        ("guid", ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
+        ("providerInterfaceId", ctypes.c_void_p),
+        ("clientInterfaceId", ctypes.c_void_p),
+        ("cProperties", ctypes.wintypes.UINT),
+        ("UIAutomationPropertyInfo", ctypes.c_void_p),
+        ("cMethods", ctypes.wintypes.UINT),
+        ("UIAutomationMethodInfo", ctypes.c_void_p),
+        ("cEvents", ctypes.wintypes.UINT),
+        ("UIAutomationEventInfo", ctypes.c_void_p),
+        ("pPatternHandler", ctypes.c_void_p),
     ]
+
 
 class UIAutomationPropertyInfo(ctypes.Structure):
     _fields_ = [
-        ('guid', ctypes.c_void_p),
-        ('pProgrammaticName', ctypes.wintypes.LPCWSTR),
-        ('type', ctypes.c_void_p),
+        ("guid", ctypes.c_void_p),
+        ("pProgrammaticName", ctypes.wintypes.LPCWSTR),
+        ("type", ctypes.c_void_p),
     ]
+
 
 class UiaAndOrCondition(ctypes.Structure):
     _fields_ = [
-        ('ConditionType', ctypes.c_void_p),
-        ('ppConditions', ctypes.c_void_p),
-        ('UiaCondition', ctypes.c_void_p),
-        ('cConditions', ctypes.c_int),
+        ("ConditionType", ctypes.c_void_p),
+        ("ppConditions", ctypes.c_void_p),
+        ("UiaCondition", ctypes.c_void_p),
+        ("cConditions", ctypes.c_int),
     ]
+
 
 class CacheRequest:
     """
     Wrapper for IUIAutomationCacheRequest.
     """
+
     def __init__(self, cache_request=None):
         if cache_request:
             self.check_request = cache_request
@@ -2001,12 +2364,13 @@ class CacheRequest:
         """
         self.check_request.AddPattern(patternId)
 
-    def Clone(self) -> 'CacheRequest':
+    def Clone(self) -> "CacheRequest":
         """
         Clones the cache request.
         """
         cloned = self.check_request.Clone()
         return CacheRequest(cloned)
+
 
 def CreateCacheRequest() -> CacheRequest:
     """
@@ -2014,21 +2378,31 @@ def CreateCacheRequest() -> CacheRequest:
     """
     return CacheRequest()
 
+
 # Event Handling Implementations for core.py
+
 
 def AddAutomationEventHandler(eventId: int, element, scope: int, cacheRequest, handler) -> None:
     """
     Registers a method that handles Microsoft UI Automation events.
     """
-    _AutomationClient.instance().IUIAutomation.AddAutomationEventHandler(eventId, element, scope, cacheRequest, handler)
+    _AutomationClient.instance().IUIAutomation.AddAutomationEventHandler(
+        eventId, element, scope, cacheRequest, handler
+    )
+
 
 def RemoveAutomationEventHandler(eventId: int, element, handler) -> None:
     """
     Removes the specified Microsoft UI Automation event handler.
     """
-    _AutomationClient.instance().IUIAutomation.RemoveAutomationEventHandler(eventId, element, handler)
+    _AutomationClient.instance().IUIAutomation.RemoveAutomationEventHandler(
+        eventId, element, handler
+    )
 
-def AddPropertyChangedEventHandler(element, scope: int, cacheRequest, handler, propertyArray: list[int]) -> None:
+
+def AddPropertyChangedEventHandler(
+    element, scope: int, cacheRequest, handler, propertyArray: list[int]
+) -> None:
     """
     Registers a method that handles UI Automation property-changed events.
     """
@@ -2040,7 +2414,10 @@ def AddPropertyChangedEventHandler(element, scope: int, cacheRequest, handler, p
 
     # We might need to manually convert list to SAFEARRAY or rely on comtypes.
     # For now, let's pass a tuple/list and see if comtypes marshals it.
-    _AutomationClient.instance().IUIAutomation.AddPropertyChangedEventHandler(element, scope, cacheRequest, handler, propertyArray)
+    _AutomationClient.instance().IUIAutomation.AddPropertyChangedEventHandler(
+        element, scope, cacheRequest, handler, propertyArray
+    )
+
 
 def RemovePropertyChangedEventHandler(element, handler) -> None:
     """
@@ -2048,11 +2425,15 @@ def RemovePropertyChangedEventHandler(element, handler) -> None:
     """
     _AutomationClient.instance().IUIAutomation.RemovePropertyChangedEventHandler(element, handler)
 
+
 def AddStructureChangedEventHandler(element, scope: int, cacheRequest, handler) -> None:
     """
     Registers a method that handles UI Automation structure-changed events.
     """
-    _AutomationClient.instance().IUIAutomation.AddStructureChangedEventHandler(element, scope, cacheRequest, handler)
+    _AutomationClient.instance().IUIAutomation.AddStructureChangedEventHandler(
+        element, scope, cacheRequest, handler
+    )
+
 
 def RemoveStructureChangedEventHandler(element, handler) -> None:
     """
@@ -2060,17 +2441,20 @@ def RemoveStructureChangedEventHandler(element, handler) -> None:
     """
     _AutomationClient.instance().IUIAutomation.RemoveStructureChangedEventHandler(element, handler)
 
+
 def AddFocusChangedEventHandler(cacheRequest, handler) -> None:
     """
     Registers a method that handles UI Automation focus-changed events.
     """
     _AutomationClient.instance().IUIAutomation.AddFocusChangedEventHandler(cacheRequest, handler)
 
+
 def RemoveFocusChangedEventHandler(handler) -> None:
     """
     Removes the specified focus-changed event handler.
     """
     _AutomationClient.instance().IUIAutomation.RemoveFocusChangedEventHandler(handler)
+
 
 def RemoveAllEventHandlers() -> None:
     """
@@ -2080,6 +2464,7 @@ def RemoveAllEventHandlers() -> None:
 
 
 # Condition creation helper functions
+
 
 def CreateTrueCondition():
     """

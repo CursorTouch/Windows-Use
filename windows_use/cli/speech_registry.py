@@ -74,7 +74,18 @@ TTS_MODELS: dict[str, list[tuple[str, str]]] = {
 }
 
 # OpenAI TTS voices
-OPENAI_TTS_VOICES = ["alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
+OPENAI_TTS_VOICES = [
+    "alloy",
+    "ash",
+    "ballad",
+    "coral",
+    "echo",
+    "fable",
+    "onyx",
+    "nova",
+    "sage",
+    "shimmer",
+]
 
 # Groq TTS voices (Orpheus)
 GROQ_TTS_VOICES = ["autumn", "diana", "hannah", "austin", "daniel", "troy"]
@@ -88,7 +99,9 @@ SPEECH_PROVIDERS_OWN_KEY: set[str] = {"elevenlabs", "deepgram"}
 
 def speech_provider_requires_api_key(provider_key: str) -> bool:
     """Return True if the speech provider needs an API key."""
-    return provider_key in SPEECH_PROVIDERS_SHARING_LLM_KEY or provider_key in SPEECH_PROVIDERS_OWN_KEY
+    return (
+        provider_key in SPEECH_PROVIDERS_SHARING_LLM_KEY or provider_key in SPEECH_PROVIDERS_OWN_KEY
+    )
 
 
 def get_stt_providers() -> list[tuple[str, str]]:

@@ -47,14 +47,19 @@ class TestAgentToolsService:
         response = "Task done"
         assert done_tool.invoke(**{"answer": response}) == response
 
-    @pytest.mark.parametrize("mode, name, loc, size", [
-        ("launch", "notepad", None, None),
-        ("switch", "chrome", None, None),
-        ("resize", None, [0, 0], [100, 100]),
-    ])
+    @pytest.mark.parametrize(
+        "mode, name, loc, size",
+        [
+            ("launch", "notepad", None, None),
+            ("switch", "chrome", None, None),
+            ("resize", None, [0, 0], [100, 100]),
+        ],
+    )
     def test_app_tool(self, mock_desktop, mode, name, loc, size):
         """Test app_tool delegation."""
-        app_tool.invoke(**{"mode": mode, "name": name, "loc": loc, "size": size, "desktop": mock_desktop})
+        app_tool.invoke(
+            **{"mode": mode, "name": name, "loc": loc, "size": size, "desktop": mock_desktop}
+        )
         mock_desktop.app.assert_called_once_with(mode, name, loc, size)
 
     def test_shell_tool(self, mock_desktop):
@@ -67,24 +72,39 @@ class TestAgentToolsService:
 
     def test_click_tool(self, mock_desktop):
         """Test click_tool delegation."""
-        click_tool.invoke(**{"loc": [10, 20], "button": "right", "clicks": 2, "desktop": mock_desktop})
+        click_tool.invoke(
+            **{"loc": [10, 20], "button": "right", "clicks": 2, "desktop": mock_desktop}
+        )
         mock_desktop.click.assert_called_once_with([10, 20], "right", 2)
 
     def test_type_tool(self, mock_desktop):
         """Test type_tool delegation."""
-        type_tool.invoke(**{"loc": [10, 20], "text": "hello", "clear": "true", "caret_position": "start", "press_enter": "true", "desktop": mock_desktop})
+        type_tool.invoke(
+            **{
+                "loc": [10, 20],
+                "text": "hello",
+                "clear": "true",
+                "caret_position": "start",
+                "press_enter": "true",
+                "desktop": mock_desktop,
+            }
+        )
         mock_desktop.type.assert_called_once_with(
-            loc=[10, 20],
-            text="hello",
-            caret_position="start",
-            clear="true",
-            press_enter="true"
+            loc=[10, 20], text="hello", caret_position="start", clear="true", press_enter="true"
         )
 
     def test_scroll_tool(self, mock_desktop):
         """Test scroll_tool delegation."""
         mock_desktop.scroll.return_value = None
-        scroll_tool.invoke(**{"loc": [10, 20], "type": "vertical", "direction": "up", "wheel_times": 3, "desktop": mock_desktop})
+        scroll_tool.invoke(
+            **{
+                "loc": [10, 20],
+                "type": "vertical",
+                "direction": "up",
+                "wheel_times": 3,
+                "desktop": mock_desktop,
+            }
+        )
         mock_desktop.scroll.assert_called_once_with([10, 20], "vertical", "up", 3)
 
     def test_move_tool_drag(self, mock_desktop):
@@ -105,7 +125,9 @@ class TestAgentToolsService:
     def test_multi_select_tool(self, mock_desktop):
         """Test multi_select_tool delegation."""
         elements = [[10, 10], [20, 20]]
-        multi_select_tool.invoke(**{"elements": elements, "press_ctrl": "true", "desktop": mock_desktop})
+        multi_select_tool.invoke(
+            **{"elements": elements, "press_ctrl": "true", "desktop": mock_desktop}
+        )
         mock_desktop.multi_select.assert_called_once_with("true", elements)
 
     def test_multi_edit_tool(self, mock_desktop):
@@ -118,6 +140,7 @@ class TestAgentToolsService:
     def test_wait_tool(self, mock_sleep, mock_desktop):
         """Test wait_tool calls asyncio.sleep."""
         from unittest.mock import AsyncMock
+
         mock_sleep.return_value = AsyncMock()()
         wait_tool.invoke(**{"duration": 5, "desktop": mock_desktop})
         mock_sleep.assert_called_once_with(5)
@@ -128,7 +151,7 @@ class TestAgentToolsService:
         mock_node.text = "Visual Content"
         mock_desktop.desktop_state.tree_state.dom_informative_nodes = [mock_node]
         mock_dom_node = MagicMock()
-        mock_dom_node.metadata = {'vertical_scroll_percent': 0}
+        mock_dom_node.metadata = {"vertical_scroll_percent": 0}
         mock_desktop.desktop_state.tree_state.dom_node = mock_dom_node
 
         result = scrape_tool.invoke(**{"url": "http://test", "desktop": mock_desktop})
@@ -139,7 +162,9 @@ class TestAgentToolsService:
     def test_desktop_tool_create(self, mock_create, mock_desktop):
         """Test desktop_tool create."""
         mock_create.return_value = "NewDesktop"
-        result = desktop_tool.invoke(**{"action": "create", "desktop_name": "NewDesktop", "desktop": mock_desktop})
+        result = desktop_tool.invoke(
+            **{"action": "create", "desktop_name": "NewDesktop", "desktop": mock_desktop}
+        )
         mock_create.assert_called_once_with("NewDesktop")
         assert "Created desktop: 'NewDesktop'" in result
 
@@ -165,7 +190,9 @@ class TestAgentToolsService:
     def test_file_tool_write_read(self, tmp_path):
         """Test file_tool write and read."""
         test_file = tmp_path / "test.txt"
-        write_result = file_tool.invoke(**{"mode": "write", "path": str(test_file), "content": "hello"})
+        write_result = file_tool.invoke(
+            **{"mode": "write", "path": str(test_file), "content": "hello"}
+        )
         assert "Wrote" in write_result
         read_result = file_tool.invoke(**{"mode": "read", "path": str(test_file)})
         assert "hello" in read_result

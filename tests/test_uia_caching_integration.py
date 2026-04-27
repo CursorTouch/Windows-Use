@@ -13,11 +13,11 @@ from windows_use.agent.tree.service import Tree
 
 # Configure logging to see cache performance stats
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 logger = logging.getLogger(__name__)
+
 
 def test_caching_performance():
     """Test Tree.get_state with current API."""
@@ -54,6 +54,7 @@ def test_caching_performance():
     except Exception as e:
         logger.error(f"Error during tree test: {e}")
         raise e
+
 
 if __name__ == "__main__":
     try:

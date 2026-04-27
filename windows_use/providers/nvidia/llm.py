@@ -25,7 +25,9 @@ class ChatNvidia(ChatOpenAI):
         temperature: float | None = None,
         **kwargs,
     ):
-        api_key = api_key or os.environ.get("NVIDIA_NIM_API_KEY") or os.environ.get("NVIDIA_API_KEY")
+        api_key = (
+            api_key or os.environ.get("NVIDIA_NIM_API_KEY") or os.environ.get("NVIDIA_API_KEY")
+        )
         base_url = base_url or os.environ.get("NVIDIA_NIM_API_BASE") or NVIDIA_NIM_BASE_URL
         super().__init__(
             model=model,

@@ -158,7 +158,8 @@ class Agent(BaseAgent):
             query=self.state.task,
             step=self.state.step,
             max_steps=self.state.max_steps,
-            desktop=self.desktop)
+            desktop=self.desktop,
+        )
 
     def loop(self) -> AgentResult:
         """Run the main agent loop.
@@ -178,8 +179,8 @@ class Agent(BaseAgent):
             self.state.step = step
 
             if self.context.need_compaction:
-                messages=self.state.messages+self.state.error_messages
-                if content:=self.context.compact(messages):
+                messages = self.state.messages + self.state.error_messages
+                if content := self.context.compact(messages):
                     self.state.messages = [self.system_message, HumanMessage(content=content)]
                 self.state.error_messages.clear()
 
@@ -194,7 +195,10 @@ class Agent(BaseAgent):
             )
             if nudge:
                 self.event.emit(
-                    AgentEvent(type=EventType.ERROR, data={"step": step, "error": f"Loop detected: {nudge}"})
+                    AgentEvent(
+                        type=EventType.ERROR,
+                        data={"step": step, "error": f"Loop detected: {nudge}"},
+                    )
                 )
             self.state.messages.append(state_msg)
 
@@ -236,9 +240,7 @@ class Agent(BaseAgent):
                                 "error_type": type(llm_event).__name__,
                                 "error": str(llm_event),
                             }
-                            self.event.emit(
-                                AgentEvent(type=EventType.ERROR, data=llm_error_data)
-                            )
+                            self.event.emit(AgentEvent(type=EventType.ERROR, data=llm_error_data))
                             llm_errors.append(llm_error_data)
                             continue
                 except Exception as e:
@@ -252,9 +254,7 @@ class Agent(BaseAgent):
                         "error_type": type(e).__name__,
                         "error": str(e),
                     }
-                    self.event.emit(
-                        AgentEvent(type=EventType.ERROR, data=llm_error_data)
-                    )
+                    self.event.emit(AgentEvent(type=EventType.ERROR, data=llm_error_data))
                     llm_errors.append(llm_error_data)
 
                     if attempt < self.state.max_consecutive_failures - 1:
@@ -282,7 +282,7 @@ class Agent(BaseAgent):
                             "error": error,
                             "llm_errors": llm_errors,
                             "error_source": "llm_exhausted_retries",
-                        }
+                        },
                     )
                 )
                 return AgentResult(is_done=False, error=error)
@@ -308,16 +308,16 @@ class Agent(BaseAgent):
                             "step": step,
                             "tool_name": tool_name,
                             "tool_params": {
-                                k: v
-                                for k, v in tool_params.items()
-                                if k not in _NON_TOOL_PARAMS
+                                k: v for k, v in tool_params.items() if k not in _NON_TOOL_PARAMS
                             },
                         },
                     )
                 )
 
             # Act: execute tool via registry
-            tool_result = self.registry.execute(tool_name=tool_name, tool_params=tool_params, desktop=self.desktop)
+            tool_result = self.registry.execute(
+                tool_name=tool_name, tool_params=tool_params, desktop=self.desktop
+            )
 
             # Record action for loop detection
             if not self.disable_loop_detection:
@@ -380,17 +380,19 @@ class Agent(BaseAgent):
                 self.watchdog.set_focus_callback(self.desktop.tree.on_focus_change)
                 with self.watchdog:
                     result = self.loop()
-            self.telemetry.capture(AgentTelemetryEvent(
-                query=task,
-                steps=self.state.step,
-                max_steps=self.state.max_steps,
-                model=self.llm.model_name,
-                provider=self.llm.provider,
-                use_vision=self.desktop.use_vision,
-                answer=result.content,
-                error=result.error,
-                is_success=result.is_done,
-            ))
+            self.telemetry.capture(
+                AgentTelemetryEvent(
+                    query=task,
+                    steps=self.state.step,
+                    max_steps=self.state.max_steps,
+                    model=self.llm.model_name,
+                    provider=self.llm.provider,
+                    use_vision=self.desktop.use_vision,
+                    answer=result.content,
+                    error=result.error,
+                    is_success=result.is_done,
+                )
+            )
             self.telemetry.flush()
             return result
         except Exception as e:
@@ -400,21 +402,24 @@ class Agent(BaseAgent):
                     data={"step": self.state.step, "error": str(e)},
                 )
             )
-            self.telemetry.capture(AgentTelemetryEvent(
-                query=task,
-                steps=self.state.step,
-                max_steps=self.state.max_steps,
-                model=self.llm.model_name,
-                provider=self.llm.provider,
-                use_vision=self.desktop.use_vision,
-                error=str(e),
-                is_success=False,
-            ))
+            self.telemetry.capture(
+                AgentTelemetryEvent(
+                    query=task,
+                    steps=self.state.step,
+                    max_steps=self.state.max_steps,
+                    model=self.llm.model_name,
+                    provider=self.llm.provider,
+                    use_vision=self.desktop.use_vision,
+                    error=str(e),
+                    is_success=False,
+                )
+            )
             self.telemetry.flush()
 
     async def aloop(self) -> AgentResult:
         """Run the main agent loop asynchronously."""
         import asyncio
+
         self.state.messages.insert(0, self.system_message)
         self.state.messages.append(self.task_message)
         consecutive_failures = 0
@@ -424,8 +429,8 @@ class Agent(BaseAgent):
             self.state.step = step
 
             if self.context.need_compaction:
-                messages=self.state.messages+self.state.error_messages
-                if content:=self.context.compact(messages):
+                messages = self.state.messages + self.state.error_messages
+                if content := self.context.compact(messages):
                     self.state.messages = [self.system_message, HumanMessage(content=content)]
                 self.state.error_messages.clear()
 
@@ -440,7 +445,10 @@ class Agent(BaseAgent):
             )
             if nudge:
                 self.event.emit(
-                    AgentEvent(type=EventType.ERROR, data={"step": step, "error": f"Loop detected: {nudge}"})
+                    AgentEvent(
+                        type=EventType.ERROR,
+                        data={"step": step, "error": f"Loop detected: {nudge}"},
+                    )
                 )
             self.state.messages.append(state_msg)
 
@@ -515,16 +523,16 @@ class Agent(BaseAgent):
                             "step": step,
                             "tool_name": tool_name,
                             "tool_params": {
-                                k: v
-                                for k, v in tool_params.items()
-                                if k not in _NON_TOOL_PARAMS
+                                k: v for k, v in tool_params.items() if k not in _NON_TOOL_PARAMS
                             },
                         },
                     )
                 )
 
             # Act: execute tool via registry asynchronously
-            tool_result = await self.registry.aexecute(tool_name=tool_name, tool_params=tool_params, desktop=self.desktop)
+            tool_result = await self.registry.aexecute(
+                tool_name=tool_name, tool_params=tool_params, desktop=self.desktop
+            )
 
             # Record action for loop detection
             if not self.disable_loop_detection:
@@ -587,17 +595,19 @@ class Agent(BaseAgent):
                 self.watchdog.set_focus_callback(self.desktop.tree.on_focus_change)
                 with self.watchdog:
                     result = await self.aloop()
-            self.telemetry.capture(AgentTelemetryEvent(
-                query=task,
-                steps=self.state.step,
-                max_steps=self.state.max_steps,
-                model=self.llm.model_name,
-                provider=self.llm.provider,
-                use_vision=self.desktop.use_vision,
-                answer=result.content,
-                error=result.error,
-                is_success=result.is_done,
-            ))
+            self.telemetry.capture(
+                AgentTelemetryEvent(
+                    query=task,
+                    steps=self.state.step,
+                    max_steps=self.state.max_steps,
+                    model=self.llm.model_name,
+                    provider=self.llm.provider,
+                    use_vision=self.desktop.use_vision,
+                    answer=result.content,
+                    error=result.error,
+                    is_success=result.is_done,
+                )
+            )
             self.telemetry.flush()
             return result
         except Exception as e:
@@ -607,14 +617,16 @@ class Agent(BaseAgent):
                     data={"step": self.state.step, "error": str(e)},
                 )
             )
-            self.telemetry.capture(AgentTelemetryEvent(
-                query=task,
-                steps=self.state.step,
-                max_steps=self.state.max_steps,
-                model=self.llm.model_name,
-                provider=self.llm.provider,
-                use_vision=self.desktop.use_vision,
-                error=str(e),
-                is_success=False,
-            ))
+            self.telemetry.capture(
+                AgentTelemetryEvent(
+                    query=task,
+                    steps=self.state.step,
+                    max_steps=self.state.max_steps,
+                    model=self.llm.model_name,
+                    provider=self.llm.provider,
+                    use_vision=self.desktop.use_vision,
+                    error=str(e),
+                    is_success=False,
+                )
+            )
             self.telemetry.flush()

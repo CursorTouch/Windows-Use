@@ -29,6 +29,7 @@ from windows_use.tools import Tool
 
 logger = logging.getLogger(__name__)
 
+
 class ChatGroq(BaseChatLLM):
     """
     Groq LLM implementation following the BaseChatLLM protocol.
@@ -47,7 +48,7 @@ class ChatGroq(BaseChatLLM):
         timeout: float = 60.0,
         max_retries: int = 2,
         temperature: float | None = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the Groq LLM.
@@ -90,9 +91,7 @@ class ChatGroq(BaseChatLLM):
     def _is_reasoning_model(self) -> bool:
         """Check if the model supports reasoning (gpt-oss, qwen3, etc.)."""
         m = self._model.lower()
-        return any(
-            p in m for p in ("gpt-oss", "qwen3-32b", "qwen/qwen3")
-        )
+        return any(p in m for p in ("gpt-oss", "qwen3-32b", "qwen/qwen3"))
 
     def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """
@@ -112,10 +111,12 @@ class ChatGroq(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content_list.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"}
-                    })
+                    content_list.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
+                        }
+                    )
                 groq_messages.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 msg_dict: dict = {"role": "assistant", "content": msg.content or ""}
@@ -127,34 +128,21 @@ class ChatGroq(BaseChatLLM):
                 tool_call = {
                     "id": msg.id,
                     "type": "function",
-                    "function": {
-                        "name": msg.name,
-                        "arguments": json.dumps(msg.params)
-                    }
+                    "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
-                groq_messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [tool_call]
-                })
-                groq_messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.id,
-                    "content": msg.content or ""
-                })
+                groq_messages.append(
+                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                )
+                groq_messages.append(
+                    {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
+                )
         return groq_messages
 
     def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to Groq-compatible tool definitions.
         """
-        return [
-            {
-                "type": "function",
-                "function": tool.json_schema
-            }
-            for tool in tools
-        ]
+        return [{"type": "function", "function": tool.json_schema} for tool in tools]
 
     def _process_response(self, response: Any) -> LLMEvent:
         """Process Groq API response into AIMessage or ToolMessage."""
@@ -170,14 +158,17 @@ class ChatGroq(BaseChatLLM):
                 getattr(usage_data, "completion_tokens_details", None),
                 "reasoning_tokens",
                 None,
-            ) or getattr(
+            )
+            or getattr(
                 getattr(usage_data, "completion_tokens_details", None),
                 "thinking_tokens",
                 None,
             ),
         )
 
-        thinking = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None)
+        thinking = getattr(message, "reasoning", None) or getattr(
+            message, "reasoning_content", None
+        )
         thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
 
         if hasattr(message, "tool_calls") and message.tool_calls:
@@ -189,28 +180,36 @@ class ChatGroq(BaseChatLLM):
                 params = {}
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                usage=usage,
             )
-        return LLMEvent(type=LLMEventType.TEXT, content=message.content or "", thinking=thinking_obj, usage=usage)
+        return LLMEvent(
+            type=LLMEventType.TEXT,
+            content=message.content or "",
+            thinking=thinking_obj,
+            usage=usage,
+        )
 
     @overload
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": groq_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": groq_messages, **self.kwargs}
 
         # Only add tools if they exist
         if groq_tools:
@@ -245,19 +244,25 @@ class ChatGroq(BaseChatLLM):
 
                 content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
                 thinking_tokens = None
-                if response.usage and hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+                if (
+                    response.usage
+                    and hasattr(response.usage, "completion_tokens_details")
+                    and response.usage.completion_tokens_details
+                ):
                     thinking_tokens = getattr(
                         response.usage.completion_tokens_details, "reasoning_tokens", None
-                    ) or getattr(
-                        response.usage.completion_tokens_details, "thinking_tokens", None
-                    )
+                    ) or getattr(response.usage.completion_tokens_details, "thinking_tokens", None)
                 usage = TokenUsage(
                     prompt_tokens=response.usage.prompt_tokens if response.usage else 0,
                     completion_tokens=response.usage.completion_tokens if response.usage else 0,
                     total_tokens=response.usage.total_tokens if response.usage else 0,
                     thinking_tokens=thinking_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content) if isinstance(content, dict) else content,
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 # Fall through to normal response processing
@@ -265,18 +270,25 @@ class ChatGroq(BaseChatLLM):
         return self._process_response(response)
 
     @overload
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": groq_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": groq_messages, **self.kwargs}
 
         if groq_tools:
             params["tools"] = groq_tools
@@ -306,38 +318,50 @@ class ChatGroq(BaseChatLLM):
 
                 content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
                 thinking_tokens = None
-                if response.usage and hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+                if (
+                    response.usage
+                    and hasattr(response.usage, "completion_tokens_details")
+                    and response.usage.completion_tokens_details
+                ):
                     thinking_tokens = getattr(
                         response.usage.completion_tokens_details, "reasoning_tokens", None
-                    ) or getattr(
-                        response.usage.completion_tokens_details, "thinking_tokens", None
-                    )
+                    ) or getattr(response.usage.completion_tokens_details, "thinking_tokens", None)
                 usage = TokenUsage(
                     prompt_tokens=response.usage.prompt_tokens if response.usage else 0,
                     completion_tokens=response.usage.completion_tokens if response.usage else 0,
                     total_tokens=response.usage.total_tokens if response.usage else 0,
                     thinking_tokens=thinking_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content) if isinstance(content, dict) else content,
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
 
         return self._process_response(response)
 
     @overload
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
-        ...
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]: ...
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": groq_messages,
-            "stream": True,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": groq_messages, "stream": True, **self.kwargs}
 
         if groq_tools:
             params["tools"] = groq_tools
@@ -386,7 +410,9 @@ class ChatGroq(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            reasoning_delta = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None)
+            reasoning_delta = getattr(delta, "reasoning", None) or getattr(
+                delta, "reasoning_content", None
+            )
             if reasoning_delta:
                 if not think_started:
                     think_started = True
@@ -421,12 +447,8 @@ class ChatGroq(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -435,19 +457,25 @@ class ChatGroq(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_END, usage=usage)
 
     @overload
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
-        ...
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]: ...
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": groq_messages,
-            "stream": True,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": groq_messages, "stream": True, **self.kwargs}
 
         if groq_tools:
             params["tools"] = groq_tools
@@ -496,7 +524,9 @@ class ChatGroq(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            reasoning_delta = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None)
+            reasoning_delta = getattr(delta, "reasoning", None) or getattr(
+                delta, "reasoning_content", None
+            )
             if reasoning_delta:
                 if not think_started:
                     think_started = True
@@ -531,12 +561,8 @@ class ChatGroq(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -555,8 +581,4 @@ class ChatGroq(BaseChatLLM):
         elif "gemma-2" in self._model:
             context_window = 8192
 
-        return Metadata(
-            name=self._model,
-            context_window=context_window,
-            owned_by="groq"
-        )
+        return Metadata(name=self._model, context_window=context_window, owned_by="groq")

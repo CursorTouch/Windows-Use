@@ -423,9 +423,7 @@ class IVirtualDesktopManagerInternal(IUnknown):
                 (["out"], POINTER(POINTER(IVirtualDesktop)), "pDesktop"),
             ),
             # 11: MoveDesktop(desktop, hMon, index)
-            STDMETHOD(
-                HRESULT, "MoveDesktop", (POINTER(IVirtualDesktop), HWND, UINT)
-            ),
+            STDMETHOD(HRESULT, "MoveDesktop", (POINTER(IVirtualDesktop), HWND, UINT)),
             # 12: RemoveDesktop
             COMMETHOD(
                 [],
@@ -526,9 +524,7 @@ class IVirtualDesktopManagerInternal(IUnknown):
                 (["out"], POINTER(POINTER(IVirtualDesktop)), "pDesktop"),
             ),
             # 12: MoveDesktop(desktop, hMon, index)
-            STDMETHOD(
-                HRESULT, "MoveDesktop", (POINTER(IVirtualDesktop), HWND, UINT)
-            ),
+            STDMETHOD(HRESULT, "MoveDesktop", (POINTER(IVirtualDesktop), HWND, UINT)),
             # 13: RemoveDesktop
             COMMETHOD(
                 [],
@@ -777,13 +773,9 @@ class VirtualDesktopManager:
                     byref(CLSID_VirtualDesktopManagerInternal),
                     byref(IVirtualDesktopManagerInternal._iid_),
                 )
-                self._internal_manager = unk.QueryInterface(
-                    IVirtualDesktopManagerInternal
-                )
+                self._internal_manager = unk.QueryInterface(IVirtualDesktopManagerInternal)
             except Exception as e:
-                logger.warning(
-                    f"Failed to initialize VirtualDesktopManagerInternal: {e}"
-                )
+                logger.warning(f"Failed to initialize VirtualDesktopManagerInternal: {e}")
                 self._internal_manager = None
 
         except Exception as e:

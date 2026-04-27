@@ -10,11 +10,14 @@ try:
 
     from windows_use.agent.views import Action, AgentData  # noqa: F401
     from windows_use.messages import AIMessage
+
     _UTILS_AVAILABLE = True
 except ImportError:
     _UTILS_AVAILABLE = False
 
-pytestmark = pytest.mark.skipif(not _UTILS_AVAILABLE, reason="agent.utils and AgentData/Action not in current codebase")
+pytestmark = pytest.mark.skipif(
+    not _UTILS_AVAILABLE, reason="agent.utils and AgentData/Action not in current codebase"
+)
 
 import json  # noqa: E402
 from unittest.mock import MagicMock, patch  # noqa: E402
@@ -40,7 +43,7 @@ class TestAgentUtils:
         """Test json_parser with valid JSON."""
         data = {
             "thought": "I will click here.",
-            "action": {"name": "click_tool", "params": {"loc": [100, 200]}}
+            "action": {"name": "click_tool", "params": {"loc": [100, 200]}},
         }
         message = AIMessage(content=json.dumps(data))
         agent_data = json_parser(message)
@@ -53,7 +56,7 @@ class TestAgentUtils:
         """Test json_parser with markdown-wrapped JSON."""
         data = {
             "thought": "Thinking...",
-            "action": {"name": "done_tool", "params": {"answer": "Done"}}
+            "action": {"name": "done_tool", "params": {"answer": "Done"}},
         }
         content = f"Here is the JSON:\n```json\n{json.dumps(data)}\n```"
         message = AIMessage(content=content)

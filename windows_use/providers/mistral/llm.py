@@ -56,7 +56,7 @@ class ChatMistral(BaseChatLLM):
         base_url: str | None = None,
         timeout: int | None = None,
         temperature: float | None = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the Mistral LLM.
@@ -100,15 +100,19 @@ class ChatMistral(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
-                    })
+                    content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
+                        }
+                    )
                 mistral_messages.append({"role": "user", "content": content})
             elif isinstance(msg, AIMessage):
                 if getattr(msg, "thinking", None):
                     # Magistral models: pass thinking as content chunks for multi-turn continuity
-                    content = [{"type": "thinking", "thinking": [{"type": "text", "text": msg.thinking}]}]
+                    content = [
+                        {"type": "thinking", "thinking": [{"type": "text", "text": msg.thinking}]}
+                    ]
                     if msg.content:
                         content.append({"type": "text", "text": msg.content})
                     mistral_messages.append({"role": "assistant", "content": content})
@@ -118,37 +122,34 @@ class ChatMistral(BaseChatLLM):
                 # Mistral requires assistant message with tool_calls followed by tool message
                 # API expects 9 alphanumeric chars; model returns long IDs (toolu_...)
                 tool_id = _mistral_tool_call_id(msg.id)
-                mistral_messages.append({
-                    "role": "assistant",
-                    "content": "",
-                    "tool_calls": [{
-                        "id": tool_id,
-                        "type": "function",
-                        "function": {
-                            "name": msg.name,
-                            "arguments": json.dumps(msg.params)
-                        }
-                    }]
-                })
-                mistral_messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_id,
-                    "name": msg.name,
-                    "content": msg.content or ""
-                })
+                mistral_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_calls": [
+                            {
+                                "id": tool_id,
+                                "type": "function",
+                                "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
+                            }
+                        ],
+                    }
+                )
+                mistral_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_id,
+                        "name": msg.name,
+                        "content": msg.content or "",
+                    }
+                )
         return mistral_messages
 
     def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to Mistral-compatible tool definitions.
         """
-        return [
-            {
-                "type": "function",
-                "function": tool.json_schema
-            }
-            for tool in tools
-        ]
+        return [{"type": "function", "function": tool.json_schema} for tool in tools]
 
     def _extract_content(self, raw_content: Any) -> tuple[str, str | None]:
         """
@@ -198,12 +199,13 @@ class ChatMistral(BaseChatLLM):
         # Mistral API doesn't expose thinking_tokens; check usage.prompt_tokens_details
         # or estimate from thinking content when available
         thinking_tokens = None
-        if hasattr(usage_data, "completion_tokens_details") and usage_data.completion_tokens_details:
+        if (
+            hasattr(usage_data, "completion_tokens_details")
+            and usage_data.completion_tokens_details
+        ):
             thinking_tokens = getattr(
                 usage_data.completion_tokens_details, "reasoning_tokens", None
-            ) or getattr(
-                usage_data.completion_tokens_details, "thinking_tokens", None
-            )
+            ) or getattr(usage_data.completion_tokens_details, "thinking_tokens", None)
         if hasattr(usage_data, "prompt_tokens_details") and usage_data.prompt_tokens_details:
             thinking_tokens = thinking_tokens or getattr(
                 usage_data.prompt_tokens_details, "reasoning_tokens", None
@@ -219,7 +221,7 @@ class ChatMistral(BaseChatLLM):
         content = None
         thinking = None
 
-        if hasattr(message, 'tool_calls') and message.tool_calls:
+        if hasattr(message, "tool_calls") and message.tool_calls:
             # Extract thinking from content if present (Magistral thinking models)
             if message.content:
                 _, thinking = self._extract_content(message.content)
@@ -239,12 +241,8 @@ class ChatMistral(BaseChatLLM):
 
             content = LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                usage=usage,
             )
         else:
             text, thinking = self._extract_content(message.content)
@@ -257,23 +255,32 @@ class ChatMistral(BaseChatLLM):
                     total_tokens=usage.total_tokens,
                     thinking_tokens=max(1, len(thinking) // 4),  # ~4 chars per token
                 )
-            content = LLMEvent(type=LLMEventType.TEXT, content=text or "", thinking=thinking_obj, usage=usage)
+            content = LLMEvent(
+                type=LLMEventType.TEXT, content=text or "", thinking=thinking_obj, usage=usage
+            )
 
         return content
 
     @overload
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         mistral_messages = self._convert_messages(messages)
         mistral_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": mistral_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": mistral_messages, **self.kwargs}
 
         # Only add tools if they exist
         if mistral_tools:
@@ -298,19 +305,24 @@ class ChatMistral(BaseChatLLM):
 
                 content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
                 thinking_tokens = None
-                if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+                if (
+                    hasattr(response.usage, "completion_tokens_details")
+                    and response.usage.completion_tokens_details
+                ):
                     thinking_tokens = getattr(
                         response.usage.completion_tokens_details, "reasoning_tokens", None
-                    ) or getattr(
-                        response.usage.completion_tokens_details, "thinking_tokens", None
-                    )
+                    ) or getattr(response.usage.completion_tokens_details, "thinking_tokens", None)
                 usage = TokenUsage(
                     prompt_tokens=response.usage.prompt_tokens,
                     completion_tokens=response.usage.completion_tokens,
                     total_tokens=response.usage.total_tokens,
                     thinking_tokens=thinking_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content) if isinstance(content, dict) else content,
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 # Fall through to normal processing
@@ -318,18 +330,25 @@ class ChatMistral(BaseChatLLM):
         return self._process_response(response)
 
     @overload
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         mistral_messages = self._convert_messages(messages)
         mistral_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": mistral_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": mistral_messages, **self.kwargs}
 
         if mistral_tools:
             params["tools"] = mistral_tools
@@ -352,37 +371,49 @@ class ChatMistral(BaseChatLLM):
 
                 content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
                 thinking_tokens = None
-                if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+                if (
+                    hasattr(response.usage, "completion_tokens_details")
+                    and response.usage.completion_tokens_details
+                ):
                     thinking_tokens = getattr(
                         response.usage.completion_tokens_details, "reasoning_tokens", None
-                    ) or getattr(
-                        response.usage.completion_tokens_details, "thinking_tokens", None
-                    )
+                    ) or getattr(response.usage.completion_tokens_details, "thinking_tokens", None)
                 usage = TokenUsage(
                     prompt_tokens=response.usage.prompt_tokens,
                     completion_tokens=response.usage.completion_tokens,
                     total_tokens=response.usage.total_tokens,
                     thinking_tokens=thinking_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content) if isinstance(content, dict) else content,
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
 
         return self._process_response(response)
 
     @overload
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
-        ...
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]: ...
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]:
         mistral_messages = self._convert_messages(messages)
         mistral_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": mistral_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": mistral_messages, **self.kwargs}
 
         if mistral_tools:
             params["tools"] = mistral_tools
@@ -405,9 +436,9 @@ class ChatMistral(BaseChatLLM):
         think_started = False
 
         for chunk in response:
-            if hasattr(chunk, 'data') and hasattr(chunk.data, 'choices') and chunk.data.choices:
+            if hasattr(chunk, "data") and hasattr(chunk.data, "choices") and chunk.data.choices:
                 delta = chunk.data.choices[0].delta
-                if hasattr(delta, 'content') and delta.content:
+                if hasattr(delta, "content") and delta.content:
                     text, thinking = self._extract_content(delta.content)
                     if thinking:
                         if not think_started:
@@ -424,26 +455,27 @@ class ChatMistral(BaseChatLLM):
                         yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=text)
 
                 # Accumulate tool call deltas
-                if hasattr(delta, 'tool_calls') and delta.tool_calls:
+                if hasattr(delta, "tool_calls") and delta.tool_calls:
                     tc_delta = delta.tool_calls[0]
-                    if hasattr(tc_delta, 'id') and tc_delta.id:
+                    if hasattr(tc_delta, "id") and tc_delta.id:
                         tool_call_id = tc_delta.id
-                    if hasattr(tc_delta, 'function') and tc_delta.function:
+                    if hasattr(tc_delta, "function") and tc_delta.function:
                         if tc_delta.function.name:
                             tool_call_name = tc_delta.function.name
                         if tc_delta.function.arguments:
                             tool_call_args += tc_delta.function.arguments
 
             # Track usage
-            if hasattr(chunk, 'data') and hasattr(chunk.data, 'usage') and chunk.data.usage:
+            if hasattr(chunk, "data") and hasattr(chunk.data, "usage") and chunk.data.usage:
                 usage_data = chunk.data.usage
                 thinking_tokens = None
-                if hasattr(usage_data, "completion_tokens_details") and usage_data.completion_tokens_details:
+                if (
+                    hasattr(usage_data, "completion_tokens_details")
+                    and usage_data.completion_tokens_details
+                ):
                     thinking_tokens = getattr(
                         usage_data.completion_tokens_details, "reasoning_tokens", None
-                    ) or getattr(
-                        usage_data.completion_tokens_details, "thinking_tokens", None
-                    )
+                    ) or getattr(usage_data.completion_tokens_details, "thinking_tokens", None)
                 usage = TokenUsage(
                     prompt_tokens=usage_data.prompt_tokens,
                     completion_tokens=usage_data.completion_tokens,
@@ -460,12 +492,8 @@ class ChatMistral(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -474,18 +502,25 @@ class ChatMistral(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_END, usage=usage)
 
     @overload
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
-        ...
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]: ...
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]:
         mistral_messages = self._convert_messages(messages)
         mistral_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": mistral_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": mistral_messages, **self.kwargs}
 
         if mistral_tools:
             params["tools"] = mistral_tools
@@ -508,9 +543,9 @@ class ChatMistral(BaseChatLLM):
         think_started = False
 
         async for chunk in response:
-            if hasattr(chunk, 'data') and hasattr(chunk.data, 'choices') and chunk.data.choices:
+            if hasattr(chunk, "data") and hasattr(chunk.data, "choices") and chunk.data.choices:
                 delta = chunk.data.choices[0].delta
-                if hasattr(delta, 'content') and delta.content:
+                if hasattr(delta, "content") and delta.content:
                     text, thinking = self._extract_content(delta.content)
                     if thinking:
                         if not think_started:
@@ -527,26 +562,27 @@ class ChatMistral(BaseChatLLM):
                         yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=text)
 
                 # Accumulate tool call deltas
-                if hasattr(delta, 'tool_calls') and delta.tool_calls:
+                if hasattr(delta, "tool_calls") and delta.tool_calls:
                     tc_delta = delta.tool_calls[0]
-                    if hasattr(tc_delta, 'id') and tc_delta.id:
+                    if hasattr(tc_delta, "id") and tc_delta.id:
                         tool_call_id = tc_delta.id
-                    if hasattr(tc_delta, 'function') and tc_delta.function:
+                    if hasattr(tc_delta, "function") and tc_delta.function:
                         if tc_delta.function.name:
                             tool_call_name = tc_delta.function.name
                         if tc_delta.function.arguments:
                             tool_call_args += tc_delta.function.arguments
 
             # Track usage
-            if hasattr(chunk, 'data') and hasattr(chunk.data, 'usage') and chunk.data.usage:
+            if hasattr(chunk, "data") and hasattr(chunk.data, "usage") and chunk.data.usage:
                 usage_data = chunk.data.usage
                 thinking_tokens = None
-                if hasattr(usage_data, "completion_tokens_details") and usage_data.completion_tokens_details:
+                if (
+                    hasattr(usage_data, "completion_tokens_details")
+                    and usage_data.completion_tokens_details
+                ):
                     thinking_tokens = getattr(
                         usage_data.completion_tokens_details, "reasoning_tokens", None
-                    ) or getattr(
-                        usage_data.completion_tokens_details, "thinking_tokens", None
-                    )
+                    ) or getattr(usage_data.completion_tokens_details, "thinking_tokens", None)
                 usage = TokenUsage(
                     prompt_tokens=usage_data.prompt_tokens,
                     completion_tokens=usage_data.completion_tokens,
@@ -563,11 +599,7 @@ class ChatMistral(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                )
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
             )
         else:
             if think_started:
@@ -588,8 +620,4 @@ class ChatMistral(BaseChatLLM):
         elif "codestral" in self._model:
             context_window = 32000
 
-        return Metadata(
-            name=self._model,
-            context_window=context_window,
-            owned_by="mistral"
-        )
+        return Metadata(name=self._model, context_window=context_window, owned_by="mistral")

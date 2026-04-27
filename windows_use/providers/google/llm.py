@@ -66,7 +66,9 @@ class ChatGoogle(BaseChatLLM):
             **kwargs: Additional arguments for GenerateContentConfig.
         """
         self._model = model
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        self.api_key = (
+            api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        )
         self.base_url = base_url or os.environ.get("GOOGLE_BASE_URL")
         self.temperature = temperature
         self.thinking_budget = thinking_budget
@@ -124,9 +126,7 @@ class ChatGoogle(BaseChatLLM):
 
                 img_bytes_list = msg.convert_images(format="bytes")
                 for img_bytes in img_bytes_list:
-                    parts.append(
-                        types.Part.from_bytes(data=img_bytes, mime_type=msg.mime_type)
-                    )
+                    parts.append(types.Part.from_bytes(data=img_bytes, mime_type=msg.mime_type))
                 raw_contents.append(types.Content(role="user", parts=parts))
             elif isinstance(msg, AIMessage):
                 parts = []
@@ -141,9 +141,7 @@ class ChatGoogle(BaseChatLLM):
                 model_parts: list[types.Part] = []
                 if msg.thinking:
                     model_parts.append(types.Part(thought=True, text=msg.thinking))
-                model_parts.append(
-                    types.Part.from_function_call(name=msg.name, args=msg.params)
-                )
+                model_parts.append(types.Part.from_function_call(name=msg.name, args=msg.params))
                 raw_contents.append(types.Content(role="model", parts=model_parts))
 
                 # Function response
@@ -225,8 +223,8 @@ class ChatGoogle(BaseChatLLM):
 
         if tools:
             config_params["tools"] = tools
-            config_params["automatic_function_calling"] = (
-                types.AutomaticFunctionCallingConfig(disable=True)
+            config_params["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(
+                disable=True
             )
 
         if self.temperature is not None:
@@ -326,12 +324,8 @@ class ChatGoogle(BaseChatLLM):
             fc_id = getattr(fc, "id", None) or f"call_{uuid.uuid4().hex[:8]}"
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=fc_id,
-                    name=fc.name,
-                    params=dict(fc.args) if fc.args else {}
-                ),
-                usage=usage
+                tool_call=ToolCall(id=fc_id, name=fc.name, params=dict(fc.args) if fc.args else {}),
+                usage=usage,
             )
 
         # Handle regular text response (use _extract_text to avoid SDK warning
@@ -339,8 +333,12 @@ class ChatGoogle(BaseChatLLM):
         text_content = self._extract_text(response)
 
         thinking_content = self._extract_thinking(response)
-        thinking_obj = Thinking(content=thinking_content, signature=None) if thinking_content else None
-        return LLMEvent(type=LLMEventType.TEXT, content=text_content, thinking=thinking_obj, usage=usage)
+        thinking_obj = (
+            Thinking(content=thinking_content, signature=None) if thinking_content else None
+        )
+        return LLMEvent(
+            type=LLMEventType.TEXT, content=text_content, thinking=thinking_obj, usage=usage
+        )
 
     @overload
     def invoke(
@@ -373,7 +371,11 @@ class ChatGoogle(BaseChatLLM):
             parsed = structured_output.model_validate_json(text)
             usage = self._extract_usage(response.usage_metadata)
             content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
-            return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+            return LLMEvent(
+                type=LLMEventType.TEXT,
+                content=json.dumps(content) if isinstance(content, dict) else content,
+                usage=usage,
+            )
 
         return self._process_response(response)
 
@@ -408,7 +410,11 @@ class ChatGoogle(BaseChatLLM):
             parsed = structured_output.model_validate_json(text)
             usage = self._extract_usage(response.usage_metadata)
             content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
-            return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+            return LLMEvent(
+                type=LLMEventType.TEXT,
+                content=json.dumps(content) if isinstance(content, dict) else content,
+                usage=usage,
+            )
 
         return self._process_response(response)
 
@@ -450,21 +456,23 @@ class ChatGoogle(BaseChatLLM):
                             if not think_started:
                                 think_started = True
                                 yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                            yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=part.text)
+                            yield LLMStreamEvent(
+                                type=LLMStreamEventType.THINK_DELTA, content=part.text
+                            )
                         # Detect function calls in stream
                         fc = getattr(part, "function_call", None)
                         if fc:
                             fc_id = f"call_{uuid.uuid4().hex[:8]}"
                             tool_params = dict(fc.args) if fc.args else {}
-                            chunk_usage = self._extract_usage(chunk.usage_metadata) if hasattr(chunk, "usage_metadata") and chunk.usage_metadata else usage
+                            chunk_usage = (
+                                self._extract_usage(chunk.usage_metadata)
+                                if hasattr(chunk, "usage_metadata") and chunk.usage_metadata
+                                else usage
+                            )
                             yield LLMStreamEvent(
                                 type=LLMStreamEventType.TOOL_CALL,
-                                tool_call=ToolCall(
-                                    id=fc_id,
-                                    name=fc.name,
-                                    params=tool_params
-                                ),
-                                usage=chunk_usage
+                                tool_call=ToolCall(id=fc_id, name=fc.name, params=tool_params),
+                                usage=chunk_usage,
                             )
             except (AttributeError, IndexError):
                 pass
@@ -526,21 +534,23 @@ class ChatGoogle(BaseChatLLM):
                             if not think_started:
                                 think_started = True
                                 yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                            yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=part.text)
+                            yield LLMStreamEvent(
+                                type=LLMStreamEventType.THINK_DELTA, content=part.text
+                            )
                         # Detect function calls in stream
                         fc = getattr(part, "function_call", None)
                         if fc:
                             fc_id = f"call_{uuid.uuid4().hex[:8]}"
                             tool_params = dict(fc.args) if fc.args else {}
-                            chunk_usage = self._extract_usage(chunk.usage_metadata) if hasattr(chunk, "usage_metadata") and chunk.usage_metadata else usage
+                            chunk_usage = (
+                                self._extract_usage(chunk.usage_metadata)
+                                if hasattr(chunk, "usage_metadata") and chunk.usage_metadata
+                                else usage
+                            )
                             yield LLMStreamEvent(
                                 type=LLMStreamEventType.TOOL_CALL,
-                                tool_call=ToolCall(
-                                    id=fc_id,
-                                    name=fc.name,
-                                    params=tool_params
-                                ),
-                                usage=chunk_usage
+                                tool_call=ToolCall(id=fc_id, name=fc.name, params=tool_params),
+                                usage=chunk_usage,
                             )
             except (AttributeError, IndexError):
                 pass

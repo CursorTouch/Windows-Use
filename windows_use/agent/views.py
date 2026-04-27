@@ -12,7 +12,7 @@ class AgentResult:
 
 @dataclass
 class AgentState:
-    task: str|None = None
+    task: str | None = None
     messages: list[BaseMessage] = field(default_factory=list)
     error_messages: list[BaseMessage] = field(default_factory=list)
     step: int = 0

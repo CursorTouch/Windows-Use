@@ -12,11 +12,9 @@ from windows_use.tools import Tool
 class DummyToolModel(BaseModel):
     dummy: str
 
-dummy_tool = Tool(
-    name="dummy_tool",
-    description="A dummy tool for testing",
-    model=DummyToolModel
-)
+
+dummy_tool = Tool(name="dummy_tool", description="A dummy tool for testing", model=DummyToolModel)
+
 
 @pytest.mark.asyncio
 async def test_streaming_text():
@@ -25,6 +23,7 @@ async def test_streaming_text():
 
     # MOCK OPENAI STREAM
     from unittest.mock import MagicMock
+
     class MockDelta:
         def __init__(self, content=None, reasoning_content=None, tool_calls=None):
             self.content = content
@@ -55,7 +54,9 @@ async def test_streaming_text():
     messages = [HumanMessage(content="Explain what a computer is in 2 short sentences.")]
 
     for chunk in llm.stream(messages=messages):
-        assert isinstance(chunk, LLMStreamEvent), f"Expected LLMStreamEvent, got {type(chunk).__name__}"
+        assert isinstance(chunk, LLMStreamEvent), (
+            f"Expected LLMStreamEvent, got {type(chunk).__name__}"
+        )
         print(f"[EVENT] {chunk.type.value}: {chunk.content}")
         events_received.append(chunk.type)
 
@@ -72,6 +73,7 @@ async def test_streaming_tools():
 
     # MOCK OPENAI STREAM
     from unittest.mock import MagicMock
+
     class MockToolFunction:
         def __init__(self, name=None, arguments=None):
             self.name = name
@@ -97,7 +99,9 @@ async def test_streaming_tools():
             self.usage = usage
 
     def mock_stream(*args, **kwargs):
-        t1 = MockToolCall(id="call_abc", function=MockToolFunction(name="dummy_tool", arguments='{"dum'))
+        t1 = MockToolCall(
+            id="call_abc", function=MockToolFunction(name="dummy_tool", arguments='{"dum')
+        )
         t2 = MockToolCall(function=MockToolFunction(arguments='my": "hello"}'))
         yield MockChunk([MockChoice(MockDelta(tool_calls=[t1]))])
         yield MockChunk([MockChoice(MockDelta(tool_calls=[t2]))])
@@ -111,7 +115,9 @@ async def test_streaming_tools():
     messages = [HumanMessage(content="Call the dummy tool with the argument 'hello'.")]
 
     for chunk in llm.stream(messages=messages, tools=[dummy_tool]):
-        assert isinstance(chunk, LLMStreamEvent), f"Expected LLMStreamEvent, got {type(chunk).__name__}"
+        assert isinstance(chunk, LLMStreamEvent), (
+            f"Expected LLMStreamEvent, got {type(chunk).__name__}"
+        )
         print(f"[EVENT] {chunk.type.value}: {chunk.tool_call}")
         events_received.append(chunk.type)
 
@@ -126,6 +132,7 @@ async def test_invoke_text():
 
     # MOCK OPENAI INVOKE
     from unittest.mock import MagicMock
+
     class MockMessage:
         def __init__(self, content=None, tool_calls=None):
             self.content = content
@@ -141,7 +148,10 @@ async def test_invoke_text():
             self.usage = usage
 
     def mock_create(*args, **kwargs):
-        return MockResponse([MockChoice(MockMessage(content="Invoke Hello!"))], usage=MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        return MockResponse(
+            [MockChoice(MockMessage(content="Invoke Hello!"))],
+            usage=MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
 
     llm.client.chat.completions.create = mock_create
     llm._is_reasoning_model = lambda: False
@@ -149,11 +159,14 @@ async def test_invoke_text():
     messages = [HumanMessage(content="Say Hello via invoke")]
     result = llm.invoke(messages=messages)
 
-    assert isinstance(result, LLMEvent), f"Expected LLMEvent from invoke, got {type(result).__name__}"
+    assert isinstance(result, LLMEvent), (
+        f"Expected LLMEvent from invoke, got {type(result).__name__}"
+    )
     assert result.type == LLMEventType.TEXT
     assert result.content == "Invoke Hello!"
     print(f"[INVOKE EVENT] {result.type.value}: {result.content}")
     print("SUCCESS: Invoke text generated TEXT_END LLMEvent.")
+
 
 @pytest.mark.asyncio
 async def test_ainvoke_tools():
@@ -162,6 +175,7 @@ async def test_ainvoke_tools():
 
     # MOCK OPENAI AINVOKE
     from unittest.mock import MagicMock
+
     class MockToolFunction:
         def __init__(self, name=None, arguments=None):
             self.name = name
@@ -187,8 +201,14 @@ async def test_ainvoke_tools():
             self.usage = usage
 
     async def mock_acreate(*args, **kwargs):
-        t1 = MockToolCall(id="call_123", function=MockToolFunction(name="dummy_tool", arguments='{"dummy": "world"}'))
-        return MockResponse([MockChoice(MockMessage(tool_calls=[t1]))], usage=MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        t1 = MockToolCall(
+            id="call_123",
+            function=MockToolFunction(name="dummy_tool", arguments='{"dummy": "world"}'),
+        )
+        return MockResponse(
+            [MockChoice(MockMessage(tool_calls=[t1]))],
+            usage=MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
 
     llm.aclient.chat.completions.create = mock_acreate
     llm._is_reasoning_model = lambda: False
@@ -196,18 +216,22 @@ async def test_ainvoke_tools():
     messages = [HumanMessage(content="Call the dummy tool with 'world'")]
     result = await llm.ainvoke(messages=messages, tools=[dummy_tool])
 
-    assert isinstance(result, LLMEvent), f"Expected LLMEvent from ainvoke, got {type(result).__name__}"
+    assert isinstance(result, LLMEvent), (
+        f"Expected LLMEvent from ainvoke, got {type(result).__name__}"
+    )
     assert result.type == LLMEventType.TOOL_CALL
     assert result.tool_call.name == "dummy_tool"
     assert result.tool_call.params.get("dummy") == "world"
     print(f"[AINVOKE EVENT] {result.type.value}: {result.tool_call.name} {result.tool_call.params}")
     print("SUCCESS: Ainvoke tools generated TOOL_CALL_END LLMEvent.")
 
+
 async def main():
     await test_streaming_text()
     await test_streaming_tools()
     await test_invoke_text()
     await test_ainvoke_tools()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

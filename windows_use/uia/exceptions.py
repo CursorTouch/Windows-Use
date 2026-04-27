@@ -9,7 +9,9 @@ class UIAException(Exception):
     def __init__(self, code: int, original: Exception | None = None):
         self.code = code
         self.original = original
-        name = UIAError(code).name if code in UIAError._value2member_map_ else hex(code & 0xFFFFFFFF)
+        name = (
+            UIAError(code).name if code in UIAError._value2member_map_ else hex(code & 0xFFFFFFFF)
+        )
         super().__init__(f"{name} ({code})")
 
     @property
@@ -86,32 +88,28 @@ _RETRYABLE_CODES = {
 }
 
 _CODE_TO_EXCEPTION: dict[int, type[UIAException]] = {
-    UIAError.UIA_E_ELEMENTNOTAVAILABLE:   UIADeadElementError,
-    UIAError.RO_E_CLOSED:                 UIADeadElementError,
-    UIAError.RPC_E_DISCONNECTED:          UIADeadElementError,
-    UIAError.RPC_E_SERVER_DIED:           UIADeadElementError,
-    UIAError.RPC_E_SERVER_DIED_DNE:       UIADeadElementError,
+    UIAError.UIA_E_ELEMENTNOTAVAILABLE: UIADeadElementError,
+    UIAError.RO_E_CLOSED: UIADeadElementError,
+    UIAError.RPC_E_DISCONNECTED: UIADeadElementError,
+    UIAError.RPC_E_SERVER_DIED: UIADeadElementError,
+    UIAError.RPC_E_SERVER_DIED_DNE: UIADeadElementError,
     UIAError.RPC_E_CONNECTION_TERMINATED: UIADeadElementError,
-    UIAError.CO_E_OBJNOTCONNECTED:        UIADeadElementError,
-    UIAError.CO_E_RELEASED:               UIADeadElementError,
-
-    UIAError.RPC_E_CALL_REJECTED:         UIARetryableError,
+    UIAError.CO_E_OBJNOTCONNECTED: UIADeadElementError,
+    UIAError.CO_E_RELEASED: UIADeadElementError,
+    UIAError.RPC_E_CALL_REJECTED: UIARetryableError,
     UIAError.RPC_E_SERVERCALL_RETRYLATER: UIARetryableError,
-    UIAError.RPC_E_SERVERCALL_REJECTED:   UIARetryableError,
-
-    UIAError.UIA_E_ELEMENTNOTENABLED:     UIANotEnabledError,
-    UIAError.UIA_E_NOTSUPPORTED:          UIANotSupportedError,
-    UIAError.UIA_E_NOCLICKABLEPOINT:      UIANoClickablePointError,
-    UIAError.UIA_E_TIMEOUT:               UIATimeoutError,
-    UIAError.RPC_E_TIMEOUT:               UIATimeoutError,
-    UIAError.UIA_E_INVALIDOPERATION:      UIAInvalidOperationError,
-
-    UIAError.RPC_E_WRONG_THREAD:          UIAThreadError,
-    UIAError.RPC_E_THREAD_NOT_INIT:       UIAThreadError,
-    UIAError.RPC_E_CHANGED_MODE:          UIAThreadError,
-
-    UIAError.E_ACCESSDENIED:              UIAAccessDeniedError,
-    UIAError.RPC_E_ACCESS_DENIED:         UIAAccessDeniedError,
+    UIAError.RPC_E_SERVERCALL_REJECTED: UIARetryableError,
+    UIAError.UIA_E_ELEMENTNOTENABLED: UIANotEnabledError,
+    UIAError.UIA_E_NOTSUPPORTED: UIANotSupportedError,
+    UIAError.UIA_E_NOCLICKABLEPOINT: UIANoClickablePointError,
+    UIAError.UIA_E_TIMEOUT: UIATimeoutError,
+    UIAError.RPC_E_TIMEOUT: UIATimeoutError,
+    UIAError.UIA_E_INVALIDOPERATION: UIAInvalidOperationError,
+    UIAError.RPC_E_WRONG_THREAD: UIAThreadError,
+    UIAError.RPC_E_THREAD_NOT_INIT: UIAThreadError,
+    UIAError.RPC_E_CHANGED_MODE: UIAThreadError,
+    UIAError.E_ACCESSDENIED: UIAAccessDeniedError,
+    UIAError.RPC_E_ACCESS_DENIED: UIAAccessDeniedError,
 }
 
 

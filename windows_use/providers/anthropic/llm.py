@@ -29,6 +29,7 @@ from windows_use.tools import Tool
 
 logger = logging.getLogger(__name__)
 
+
 class ChatAnthropic(BaseChatLLM):
     """
     Anthropic LLM implementation following the BaseChatLLM protocol.
@@ -48,7 +49,7 @@ class ChatAnthropic(BaseChatLLM):
         cache_system_prompt: bool = True,
         cache_tools: bool = True,
         cache_recent_messages: int = 2,  # Number of recent messages to cache
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the Anthropic LLM with prompt caching and extended thinking support.
@@ -125,7 +126,9 @@ class ChatAnthropic(BaseChatLLM):
     def provider(self) -> str:
         return "anthropic"
 
-    def _convert_messages(self, messages: list[BaseMessage]) -> tuple[str | list[dict] | None, list[dict]]:
+    def _convert_messages(
+        self, messages: list[BaseMessage]
+    ) -> tuple[str | list[dict] | None, list[dict]]:
         """
         Convert BaseMessage objects to Anthropic-compatible message dictionaries.
         Returns (system_prompt, messages).
@@ -147,86 +150,85 @@ class ChatAnthropic(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content.append({
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": msg.mime_type,
-                            "data": b64
+                    content.append(
+                        {
+                            "type": "image",
+                            "source": {"type": "base64", "media_type": msg.mime_type, "data": b64},
                         }
-                    })
+                    )
                 anthropic_messages.append({"role": "user", "content": content})
             elif isinstance(msg, AIMessage):
                 content = []
                 if msg.thinking:
-                    content.append({
-                        "type": "thinking",
-                        "thinking": msg.thinking,
-                        "signature": msg.thinking_signature
-                    })
+                    content.append(
+                        {
+                            "type": "thinking",
+                            "thinking": msg.thinking,
+                            "signature": msg.thinking_signature,
+                        }
+                    )
                 if msg.content:
                     content.append({"type": "text", "text": msg.content})
-                anthropic_messages.append({"role": "assistant", "content": content if content else ""})
+                anthropic_messages.append(
+                    {"role": "assistant", "content": content if content else ""}
+                )
             elif isinstance(msg, ToolMessage):
                 # Build content blocks for the assistant turn
                 content_blocks = []
                 if msg.thinking:
-                    content_blocks.append({
-                        "type": "thinking",
-                        "thinking": msg.thinking,
-                        "signature": msg.thinking_signature
-                    })
-                content_blocks.append({
-                    "type": "tool_use",
-                    "id": msg.id,
-                    "name": msg.name,
-                    "input": msg.params
-                })
+                    content_blocks.append(
+                        {
+                            "type": "thinking",
+                            "thinking": msg.thinking,
+                            "signature": msg.thinking_signature,
+                        }
+                    )
+                content_blocks.append(
+                    {"type": "tool_use", "id": msg.id, "name": msg.name, "input": msg.params}
+                )
 
                 # Anthropic requires a tool_use block followed by a tool_result block
                 if anthropic_messages and anthropic_messages[-1]["role"] == "assistant":
                     last_content = anthropic_messages[-1]["content"]
                     if isinstance(last_content, str):
-                        last_content = [{"type": "text", "text": last_content}] if last_content else []
+                        last_content = (
+                            [{"type": "text", "text": last_content}] if last_content else []
+                        )
                     if isinstance(last_content, list):
                         last_content.extend(content_blocks)
                     anthropic_messages[-1]["content"] = last_content
                 else:
-                    anthropic_messages.append({
-                        "role": "assistant",
-                        "content": content_blocks
-                    })
+                    anthropic_messages.append({"role": "assistant", "content": content_blocks})
 
                 # Add the tool result
-                anthropic_messages.append({
-                    "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": msg.id,
-                        "content": msg.content or ""
-                    }]
-                })
+                anthropic_messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": msg.id,
+                                "content": msg.content or "",
+                            }
+                        ],
+                    }
+                )
 
         # Apply prompt caching to system prompt
         if system_prompt and self.enable_prompt_caching and self.cache_system_prompt:
             system_prompt = [
-                {
-                    "type": "text",
-                    "text": system_prompt,
-                    "cache_control": {"type": "ephemeral"}
-                }
+                {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
             ]
 
         # Apply prompt caching to recent messages
         if self.enable_prompt_caching and self.cache_recent_messages > 0 and anthropic_messages:
             # Cache the last N user messages (caching works best on user turns)
             user_message_indices = [
-                i for i, msg in enumerate(anthropic_messages)
-                if msg["role"] == "user"
+                i for i, msg in enumerate(anthropic_messages) if msg["role"] == "user"
             ]
 
             # Get the indices to cache (last N user messages)
-            indices_to_cache = user_message_indices[-self.cache_recent_messages:]
+            indices_to_cache = user_message_indices[-self.cache_recent_messages :]
 
             for idx in indices_to_cache:
                 msg = anthropic_messages[idx]
@@ -244,13 +246,15 @@ class ChatAnthropic(BaseChatLLM):
 
         return system_prompt, anthropic_messages
 
-    def _build_params(self, anthropic_messages: list[dict], system_prompt: Any, anthropic_tools: list[dict] | None) -> dict:
+    def _build_params(
+        self, anthropic_messages: list[dict], system_prompt: Any, anthropic_tools: list[dict] | None
+    ) -> dict:
         """Build the common API parameters for all invoke/stream methods."""
         params = {
             "model": self._model,
             "messages": anthropic_messages,
             "max_tokens": self.max_tokens,
-            **self.kwargs
+            **self.kwargs,
         }
 
         if system_prompt is not None:
@@ -280,7 +284,7 @@ class ChatAnthropic(BaseChatLLM):
             {
                 "name": tool.name,
                 "description": tool.description,
-                "input_schema": tool.json_schema["parameters"]
+                "input_schema": tool.json_schema["parameters"],
             }
             for tool in tools
         ]
@@ -300,8 +304,8 @@ class ChatAnthropic(BaseChatLLM):
         usage_data = response.usage
 
         # Extract cache metrics
-        cache_creation_tokens = getattr(usage_data, 'cache_creation_input_tokens', None) or 0
-        cache_read_tokens = getattr(usage_data, 'cache_read_input_tokens', None) or 0
+        cache_creation_tokens = getattr(usage_data, "cache_creation_input_tokens", None) or 0
+        cache_read_tokens = getattr(usage_data, "cache_read_input_tokens", None) or 0
 
         usage = TokenUsage(
             prompt_tokens=usage_data.input_tokens,
@@ -316,7 +320,9 @@ class ChatAnthropic(BaseChatLLM):
         if cache_creation_tokens > 0:
             logger.debug(f"Cache created: {cache_creation_tokens} tokens")
         if cache_read_tokens > 0:
-            logger.debug(f"Cache hit: {cache_read_tokens} tokens (saved ~{cache_read_tokens * 0.9:.0f} tokens worth of cost)")
+            logger.debug(
+                f"Cache hit: {cache_read_tokens} tokens (saved ~{cache_read_tokens * 0.9:.0f} tokens worth of cost)"
+            )
 
         text_content = ""
         thinking_parts: list[str] = []
@@ -333,32 +339,49 @@ class ChatAnthropic(BaseChatLLM):
                 # Take the first tool use as per Agent logic
                 if not tool_message:
                     tool_message = True
-                    thinking = Thinking(
-                        content="\n".join(thinking_parts) if thinking_parts else None,
-                        signature=thinking_signature,
-                    ) if thinking_parts or thinking_signature else None
+                    thinking = (
+                        Thinking(
+                            content="\n".join(thinking_parts) if thinking_parts else None,
+                            signature=thinking_signature,
+                        )
+                        if thinking_parts or thinking_signature
+                        else None
+                    )
                     return LLMEvent(
                         type=LLMEventType.TOOL_CALL,
-                        tool_call=ToolCall(
-                            id=block.id,
-                            name=block.name,
-                            params=block.input
-                        ),
+                        tool_call=ToolCall(id=block.id, name=block.name, params=block.input),
                         thinking=thinking,
-                        usage=usage
+                        usage=usage,
                     )
 
-        thinking = Thinking(
-            content="\n".join(thinking_parts) if thinking_parts else None,
-            signature=thinking_signature,
-        ) if thinking_parts or thinking_signature else None
-        return LLMEvent(type=LLMEventType.TEXT, content=text_content, thinking=thinking, usage=usage)
+        thinking = (
+            Thinking(
+                content="\n".join(thinking_parts) if thinking_parts else None,
+                signature=thinking_signature,
+            )
+            if thinking_parts or thinking_signature
+            else None
+        )
+        return LLMEvent(
+            type=LLMEventType.TEXT, content=text_content, thinking=thinking, usage=usage
+        )
 
     @overload
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
@@ -368,7 +391,7 @@ class ChatAnthropic(BaseChatLLM):
             structured_tool = {
                 "name": "record_result",
                 "description": f"Record the structured result: {structured_output.__name__}",
-                "input_schema": structured_output.model_json_schema()
+                "input_schema": structured_output.model_json_schema(),
             }
 
             # Add cache control to structured output tool if caching enabled
@@ -385,8 +408,10 @@ class ChatAnthropic(BaseChatLLM):
             parsed = structured_output(**tool_use.input)
 
             # Extract cache metrics
-            cache_creation_tokens = getattr(response.usage, 'cache_creation_input_tokens', None) or 0
-            cache_read_tokens = getattr(response.usage, 'cache_read_input_tokens', None) or 0
+            cache_creation_tokens = (
+                getattr(response.usage, "cache_creation_input_tokens", None) or 0
+            )
+            cache_read_tokens = getattr(response.usage, "cache_read_input_tokens", None) or 0
 
             usage = TokenUsage(
                 prompt_tokens=response.usage.input_tokens,
@@ -398,16 +423,31 @@ class ChatAnthropic(BaseChatLLM):
             )
 
             content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
-            return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+            return LLMEvent(
+                type=LLMEventType.TEXT,
+                content=json.dumps(content) if isinstance(content, dict) else content,
+                usage=usage,
+            )
 
         response = self.client.messages.create(**params)
         return self._process_response(response)
 
     @overload
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
@@ -416,7 +456,7 @@ class ChatAnthropic(BaseChatLLM):
             structured_tool = {
                 "name": "record_result",
                 "description": f"Record the structured result: {structured_output.__name__}",
-                "input_schema": structured_output.model_json_schema()
+                "input_schema": structured_output.model_json_schema(),
             }
 
             if self.enable_prompt_caching and self.cache_tools:
@@ -431,8 +471,10 @@ class ChatAnthropic(BaseChatLLM):
             tool_use = next(b for b in response.content if b.type == "tool_use")
             parsed = structured_output(**tool_use.input)
 
-            cache_creation_tokens = getattr(response.usage, 'cache_creation_input_tokens', None) or 0
-            cache_read_tokens = getattr(response.usage, 'cache_read_input_tokens', None) or 0
+            cache_creation_tokens = (
+                getattr(response.usage, "cache_creation_input_tokens", None) or 0
+            )
+            cache_read_tokens = getattr(response.usage, "cache_read_input_tokens", None) or 0
 
             usage = TokenUsage(
                 prompt_tokens=response.usage.input_tokens,
@@ -444,16 +486,31 @@ class ChatAnthropic(BaseChatLLM):
             )
 
             content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
-            return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+            return LLMEvent(
+                type=LLMEventType.TEXT,
+                content=json.dumps(content) if isinstance(content, dict) else content,
+                usage=usage,
+            )
 
         response = await self.aclient.messages.create(**params)
         return self._process_response(response)
 
     @overload
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
-        ...
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]: ...
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]:
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
@@ -468,7 +525,9 @@ class ChatAnthropic(BaseChatLLM):
                     if not think_started:
                         think_started = True
                         yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                    yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=event.thinking)
+                    yield LLMStreamEvent(
+                        type=LLMStreamEventType.THINK_DELTA, content=event.thinking
+                    )
                 elif event.type == "text":
                     if think_started:
                         yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
@@ -484,12 +543,15 @@ class ChatAnthropic(BaseChatLLM):
             # Extract usage and thinking (with signature) from final message
             final_message = stream.get_final_message()
             if final_message.usage:
-                cache_creation = getattr(final_message.usage, 'cache_creation_input_tokens', None) or 0
-                cache_read = getattr(final_message.usage, 'cache_read_input_tokens', None) or 0
+                cache_creation = (
+                    getattr(final_message.usage, "cache_creation_input_tokens", None) or 0
+                )
+                cache_read = getattr(final_message.usage, "cache_read_input_tokens", None) or 0
                 usage = TokenUsage(
                     prompt_tokens=final_message.usage.input_tokens,
                     completion_tokens=final_message.usage.output_tokens,
-                    total_tokens=final_message.usage.input_tokens + final_message.usage.output_tokens,
+                    total_tokens=final_message.usage.input_tokens
+                    + final_message.usage.output_tokens,
                     thinking_tokens=getattr(final_message.usage, "thinking_tokens", None),
                     cache_creation_input_tokens=cache_creation or None,
                     cache_read_input_tokens=cache_read or None,
@@ -501,20 +563,29 @@ class ChatAnthropic(BaseChatLLM):
                     type=LLMStreamEventType.TOOL_CALL,
                     tool_call=final_content.tool_call,
                     thinking=final_content.thinking,
-                    usage=final_content.usage
+                    usage=final_content.usage,
                 )
             elif text_started:
                 yield LLMStreamEvent(
-                    type=LLMStreamEventType.TEXT_END,
-                    thinking=final_content.thinking,
-                    usage=usage
+                    type=LLMStreamEventType.TEXT_END, thinking=final_content.thinking, usage=usage
                 )
 
     @overload
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
-        ...
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]: ...
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]:
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
@@ -529,7 +600,9 @@ class ChatAnthropic(BaseChatLLM):
                     if not think_started:
                         think_started = True
                         yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                    yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=event.thinking)
+                    yield LLMStreamEvent(
+                        type=LLMStreamEventType.THINK_DELTA, content=event.thinking
+                    )
                 elif event.type == "text":
                     if think_started:
                         yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
@@ -545,12 +618,15 @@ class ChatAnthropic(BaseChatLLM):
             # Extract usage from final message
             final_message = await stream.get_final_message()
             if final_message.usage:
-                cache_creation = getattr(final_message.usage, 'cache_creation_input_tokens', None) or 0
-                cache_read = getattr(final_message.usage, 'cache_read_input_tokens', None) or 0
+                cache_creation = (
+                    getattr(final_message.usage, "cache_creation_input_tokens", None) or 0
+                )
+                cache_read = getattr(final_message.usage, "cache_read_input_tokens", None) or 0
                 usage = TokenUsage(
                     prompt_tokens=final_message.usage.input_tokens,
                     completion_tokens=final_message.usage.output_tokens,
-                    total_tokens=final_message.usage.input_tokens + final_message.usage.output_tokens,
+                    total_tokens=final_message.usage.input_tokens
+                    + final_message.usage.output_tokens,
                     thinking_tokens=getattr(final_message.usage, "thinking_tokens", None),
                     cache_creation_input_tokens=cache_creation or None,
                     cache_read_input_tokens=cache_read or None,
@@ -562,21 +638,15 @@ class ChatAnthropic(BaseChatLLM):
                     type=LLMStreamEventType.TOOL_CALL,
                     tool_call=final_content.tool_call,
                     thinking=final_content.thinking,
-                    usage=final_content.usage
+                    usage=final_content.usage,
                 )
             elif text_started:
                 yield LLMStreamEvent(
-                    type=LLMStreamEventType.TEXT_END,
-                    thinking=final_content.thinking,
-                    usage=usage
+                    type=LLMStreamEventType.TEXT_END, thinking=final_content.thinking, usage=usage
                 )
 
     def get_metadata(self) -> Metadata:
-        return Metadata(
-            name=self._model,
-            context_window=200000,
-            owned_by="anthropic"
-        )
+        return Metadata(name=self._model, context_window=200000, owned_by="anthropic")
 
     def get_cache_stats(self) -> dict:
         """
@@ -590,5 +660,5 @@ class ChatAnthropic(BaseChatLLM):
             "cache_system_prompt": self.cache_system_prompt,
             "cache_tools": self.cache_tools,
             "cache_recent_messages": self.cache_recent_messages,
-            "model": self._model
+            "model": self._model,
         }

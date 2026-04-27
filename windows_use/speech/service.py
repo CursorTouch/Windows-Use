@@ -171,7 +171,9 @@ class STT:
     def process_audio(self) -> str:
         """Process the recorded audio through the STT provider."""
         if self.audio_bytes is None:
-            raise RuntimeError("[STT] No audio recorded. Call start_recording/stop_recording first.")
+            raise RuntimeError(
+                "[STT] No audio recorded. Call start_recording/stop_recording first."
+            )
         if self.provider is None:
             raise RuntimeError("[STT] No STT provider configured.")
 
@@ -188,7 +190,9 @@ class STT:
     async def aprocess_audio(self) -> str:
         """Asynchronously process the recorded audio through the STT provider."""
         if self.audio_bytes is None:
-            raise RuntimeError("[STT] No audio recorded. Call start_recording/stop_recording first.")
+            raise RuntimeError(
+                "[STT] No audio recorded. Call start_recording/stop_recording first."
+            )
         if self.provider is None:
             raise RuntimeError("[STT] No STT provider configured.")
 
