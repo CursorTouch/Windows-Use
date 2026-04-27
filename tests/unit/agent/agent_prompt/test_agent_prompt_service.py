@@ -11,7 +11,8 @@ class TestContext:
 
     @pytest.fixture
     def context(self):
-        return Context()
+        from unittest.mock import MagicMock
+        return Context(llm=MagicMock())
 
     @pytest.fixture
     def mock_desktop(self):
@@ -78,10 +79,10 @@ class TestContext:
         mock_desktop.use_accessibility = True
         mock_desktop.use_vision = False
         mock_load_template.return_value = (
-            "Human: {steps} {max_steps} {active_window} {windows} {cursor_location} "
+            "Human: {steps} {max_steps} {loop_warning} {active_window} {windows} {cursor_location} "
             "{interactive_elements} {scrollable_elements} {active_desktop} {desktops} {query}"
         )
-        msg = context.human(
+        msg = context.state(
             query="test query",
             step=2,
             max_steps=10,

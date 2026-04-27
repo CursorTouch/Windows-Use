@@ -113,20 +113,23 @@ class TestAgentToolsService:
         multi_edit_tool.invoke(**{"elements": elements, "desktop": mock_desktop})
         mock_desktop.multi_edit.assert_called_once_with(elements)
 
-    @patch("windows_use.agent.tools.service.sleep")
+    @patch("asyncio.sleep")
     def test_wait_tool(self, mock_sleep, mock_desktop):
-        """Test wait_tool calls sleep."""
+        """Test wait_tool calls asyncio.sleep."""
+        from unittest.mock import AsyncMock
+        mock_sleep.return_value = AsyncMock()()
         wait_tool.invoke(**{"duration": 5, "desktop": mock_desktop})
         mock_sleep.assert_called_once_with(5)
 
     def test_scrape_tool(self, mock_desktop):
         """Test scrape_tool fetches text from visual tree."""
-        # Setup mock tree state
         mock_node = MagicMock()
         mock_node.text = "Visual Content"
         mock_desktop.desktop_state.tree_state.dom_informative_nodes = [mock_node]
-        mock_desktop.desktop_state.tree_state.dom_node = MagicMock(vertical_scroll_percent=0)
-        
+        mock_dom_node = MagicMock()
+        mock_dom_node.metadata = {'vertical_scroll_percent': 0}
+        mock_desktop.desktop_state.tree_state.dom_node = mock_dom_node
+
         result = scrape_tool.invoke(**{"url": "http://test", "desktop": mock_desktop})
         assert "Visual Content" in result
         assert "Reached top" in result
