@@ -1,14 +1,31 @@
-import os
 import json
 import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, overload
-from cerebras.cloud.sdk import Cerebras, AsyncCerebras
+import os
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
+from cerebras.cloud.sdk import AsyncCerebras, Cerebras
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +33,15 @@ class ChatCerebras(BaseChatLLM):
     """
     Cerebras LLM implementation following the BaseChatLLM protocol.
     """
-    
+
     def __init__(
         self,
         model: str = "llama-3.3-70b",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs
     ):
         """
@@ -42,7 +59,7 @@ class ChatCerebras(BaseChatLLM):
         self._model = model
         self.api_key = api_key or os.environ.get("CEREBRAS_API_KEY")
         self.temperature = temperature
-        
+
         self.client = Cerebras(
             api_key=self.api_key,
             base_url=base_url,
@@ -80,7 +97,7 @@ class ChatCerebras(BaseChatLLM):
             return f"{thinking} {text}".strip() if text else thinking
         return f"<think>{thinking}</think>{text}" if text else f"<think>{thinking}</think>"
 
-    def _convert_messages(self, messages: List[BaseMessage]) -> List[dict]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """
         Convert BaseMessage objects to Cerebras-compatible message dictionaries.
         """
@@ -95,7 +112,7 @@ class ChatCerebras(BaseChatLLM):
                 content_list = []
                 if msg.content:
                     content_list.append({"type": "text", "text": msg.content})
-                
+
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
                     content_list.append({
@@ -129,7 +146,7 @@ class ChatCerebras(BaseChatLLM):
                 })
         return cerebras_messages
 
-    def _convert_tools(self, tools: List[Tool]) -> List[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to Cerebras-compatible tool definitions.
         """
@@ -196,13 +213,13 @@ class ChatCerebras(BaseChatLLM):
     def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": cerebras_messages,
             **self.kwargs
         }
-        
+
         # Only add tools if they exist
         if cerebras_tools:
             params["tools"] = cerebras_tools
@@ -210,15 +227,15 @@ class ChatCerebras(BaseChatLLM):
             params["reasoning_format"] = "parsed"
             if "gpt-oss" in self._model.lower():
                 params["reasoning_effort"] = params.get("reasoning_effort", "medium")
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if structured_output or json_mode:
             params["response_format"] = {"type": "json_object"}
-            
+
         response = self.client.chat.completions.create(**params)
-        
+
         if structured_output:
             try:
                 parsed = structured_output.model_validate_json(response.choices[0].message.content)
@@ -252,28 +269,28 @@ class ChatCerebras(BaseChatLLM):
     async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": cerebras_messages,
             **self.kwargs
         }
-        
+
         if cerebras_tools:
             params["tools"] = cerebras_tools
         if self._is_reasoning_model():
             params["reasoning_format"] = "parsed"
             if "gpt-oss" in self._model.lower():
                 params["reasoning_effort"] = params.get("reasoning_effort", "medium")
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if structured_output or json_mode:
             params["response_format"] = {"type": "json_object"}
-            
+
         response = await self.aclient.chat.completions.create(**params)
-        
+
         if structured_output:
             try:
                 parsed = structured_output.model_validate_json(response.choices[0].message.content)
@@ -296,35 +313,35 @@ class ChatCerebras(BaseChatLLM):
     def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": cerebras_messages,
             "stream": True,
             **self.kwargs
         }
-        
+
         if cerebras_tools:
             params["tools"] = cerebras_tools
         if self._is_reasoning_model():
             params["reasoning_format"] = "parsed"
             if "gpt-oss" in self._model.lower():
                 params["reasoning_effort"] = params.get("reasoning_effort", "medium")
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if structured_output or json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         response = self.client.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -347,9 +364,9 @@ class ChatCerebras(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
-            
+
             reasoning_delta = getattr(delta, "reasoning", None)
             if reasoning_delta:
                 if not think_started:
@@ -382,7 +399,7 @@ class ChatCerebras(BaseChatLLM):
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -405,35 +422,35 @@ class ChatCerebras(BaseChatLLM):
     async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": cerebras_messages,
             "stream": True,
             **self.kwargs
         }
-        
+
         if cerebras_tools:
             params["tools"] = cerebras_tools
         if self._is_reasoning_model():
             params["reasoning_format"] = "parsed"
             if "gpt-oss" in self._model.lower():
                 params["reasoning_effort"] = params.get("reasoning_effort", "medium")
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if structured_output or json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         response = await self.aclient.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -456,7 +473,7 @@ class ChatCerebras(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
 
             reasoning_delta = getattr(delta, "reasoning", None)
@@ -491,7 +508,7 @@ class ChatCerebras(BaseChatLLM):
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(

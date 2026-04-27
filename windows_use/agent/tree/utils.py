@@ -1,5 +1,7 @@
 import random
+
 from windows_use.uia import Control
+
 
 def random_point_within_bounding_box(node: Control, scale_factor: float = 1.0) -> tuple[int, int]:
     """

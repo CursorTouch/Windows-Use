@@ -1,8 +1,7 @@
-import os
 import logging
-from typing import Optional
+import os
 
-from elevenlabs.client import ElevenLabs, AsyncElevenLabs
+from elevenlabs.client import AsyncElevenLabs, ElevenLabs
 
 from windows_use.providers.base import BaseSTT
 
@@ -42,8 +41,8 @@ class STTElevenLabs(BaseSTT):
     def __init__(
         self,
         model: str = "scribe_v2",
-        api_key: Optional[str] = None,
-        language_code: Optional[str] = None,
+        api_key: str | None = None,
+        language_code: str | None = None,
         diarize: bool = False,
         tag_audio_events: bool = False,
         timeout: float = 120.0,

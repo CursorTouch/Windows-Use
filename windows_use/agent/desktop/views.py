@@ -1,9 +1,11 @@
-from windows_use.agent.tree.views import TreeState, BoundingBox
 from dataclasses import dataclass
-from tabulate import tabulate
-from typing import Optional
-from PIL.Image import Image
 from enum import Enum
+
+from PIL.Image import Image
+from tabulate import tabulate
+
+from windows_use.agent.tree.views import BoundingBox, TreeState
+
 
 class Browser(Enum):
     CHROME='chrome'
@@ -32,7 +34,7 @@ class Window:
     bounding_box:BoundingBox
     handle: int
     process_id:int
-    
+
     def to_row(self):
         return [self.name, self.depth, self.status.value, self.bounding_box.width, self.bounding_box.height, self.handle]
 
@@ -49,9 +51,9 @@ class DesktopState:
     active_desktop:dict
     all_desktops:list[dict]
     windows:list[Window]
-    active_window:Optional[Window]
-    screenshot:Optional[Image]=None
-    tree_state:Optional[TreeState]=None
+    active_window:Window | None
+    screenshot:Image | None=None
+    tree_state:TreeState | None=None
 
     def active_desktop_to_string(self):
         desktop_name=self.active_desktop.get('name')

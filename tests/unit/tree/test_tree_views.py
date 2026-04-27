@@ -1,10 +1,15 @@
 # tests/unit/tree/test_tree_views.py
 
 import pytest
+
 from windows_use.agent.tree.views import (
-    TreeElementNode, TextElementNode, ScrollElementNode, 
-    Center, BoundingBox, TreeState
+    BoundingBox,
+    Center,
+    ScrollElementNode,
+    TreeElementNode,
+    TreeState,
 )
+
 
 @pytest.fixture
 def sample_center():

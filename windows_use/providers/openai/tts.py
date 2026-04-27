@@ -1,8 +1,7 @@
-import os
 import logging
-from typing import Optional
+import os
 
-from openai import OpenAI, AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 
 from windows_use.providers.base import BaseTTS
 
@@ -42,8 +41,8 @@ class TTSOpenAI(BaseTTS):
         self,
         model: str = "tts-1",
         voice: str = "alloy",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         speed: float = 1.0,
         response_format: str = "wav",
         timeout: float = 120.0,

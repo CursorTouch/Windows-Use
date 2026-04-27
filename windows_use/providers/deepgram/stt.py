@@ -1,6 +1,5 @@
-import os
 import logging
-from typing import Optional
+import os
 
 from deepgram import DeepgramClient, PrerecordedOptions
 
@@ -46,8 +45,8 @@ class STTDeepgram(BaseSTT):
     def __init__(
         self,
         model: str = "nova-2",
-        api_key: Optional[str] = None,
-        language: Optional[str] = None,
+        api_key: str | None = None,
+        language: str | None = None,
         smart_format: bool = True,
         diarize: bool = False,
     ):

@@ -6,8 +6,9 @@
 import pytest
 
 try:
-    from windows_use.agent.utils import read_file, json_parser
-    from windows_use.agent.views import AgentData, Action
+    from windows_use.agent.utils import json_parser, read_file
+
+    from windows_use.agent.views import Action, AgentData  # noqa: F401
     from windows_use.messages import AIMessage
     _UTILS_AVAILABLE = True
 except ImportError:
@@ -15,8 +16,8 @@ except ImportError:
 
 pytestmark = pytest.mark.skipif(not _UTILS_AVAILABLE, reason="agent.utils and AgentData/Action not in current codebase")
 
-import json
-from unittest.mock import MagicMock, patch
+import json  # noqa: E402
+from unittest.mock import MagicMock, patch  # noqa: E402
 
 
 class TestAgentUtils:
@@ -43,7 +44,7 @@ class TestAgentUtils:
         }
         message = AIMessage(content=json.dumps(data))
         agent_data = json_parser(message)
-        
+
         assert agent_data.thought == data["thought"]
         assert agent_data.action.name == data["action"]["name"]
         assert agent_data.action.params == data["action"]["params"]
@@ -57,7 +58,7 @@ class TestAgentUtils:
         content = f"Here is the JSON:\n```json\n{json.dumps(data)}\n```"
         message = AIMessage(content=content)
         agent_data = json_parser(message)
-        
+
         assert agent_data.action.name == "done_tool"
 
     def test_json_parser_invalid_json(self):

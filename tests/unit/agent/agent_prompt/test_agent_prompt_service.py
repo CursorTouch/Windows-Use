@@ -1,9 +1,11 @@
 # tests/unit/agent/agent_prompt/test_agent_prompt_service.py
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from windows_use.agent.context.service import Context
-from windows_use.agent.desktop.views import DesktopState, Browser
+from windows_use.agent.desktop.views import Browser, DesktopState
 
 
 class TestContext:

@@ -1,10 +1,12 @@
-from windows_use.telemetry.views import BaseTelemetryEvent
-from uuid_extensions import uuid7str
+import atexit
+import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 from posthog import Posthog
-from pathlib import Path
-import os
-import atexit
+from uuid_extensions import uuid7str
+
+from windows_use.telemetry.views import BaseTelemetryEvent
 
 load_dotenv()
 
@@ -42,31 +44,31 @@ class ProductTelemetry:
     def user_id(self):
         if self._user_id is not None:
             return self._user_id
-        
+
         import tempfile
         temp_dir = Path(os.path.join(tempfile.gettempdir(), '.windows-use'))
         temp_dir.mkdir(parents=True, exist_ok=True)
         user_id_file = temp_dir / '.windows-use-user-id'
-        
+
         if user_id_file.exists():
             try:
                 self._user_id = user_id_file.read_text(encoding='utf-8').strip()
             except Exception:
                 pass
-                
+
         if not self._user_id:
             self._user_id = uuid7str()
             try:
                 user_id_file.write_text(self._user_id, encoding='utf-8')
             except Exception:
                 pass
-                
+
         return self._user_id
 
     def capture(self, event:BaseTelemetryEvent):
         client = self.client
         if not client:
-            return 
+            return
         try:
             client.capture(
                 distinct_id=self.user_id,

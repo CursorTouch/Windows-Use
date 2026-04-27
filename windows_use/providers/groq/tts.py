@@ -1,8 +1,7 @@
-import os
 import logging
-from typing import Optional
+import os
 
-from groq import Groq, AsyncGroq
+from groq import AsyncGroq, Groq
 
 from windows_use.providers.base import BaseTTS
 
@@ -50,7 +49,7 @@ class TTSGroq(BaseTTS):
         self,
         model: str = "canopylabs/orpheus-v1-english",
         voice: str = "troy",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         speed: float = 1.0,
         response_format: str = "wav",
         timeout: float = 120.0,

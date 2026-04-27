@@ -1,6 +1,5 @@
-import os
 import logging
-from typing import Optional
+import os
 
 from deepgram import DeepgramClient, SpeakOptions
 
@@ -49,7 +48,7 @@ class TTSDeepgram(BaseTTS):
     def __init__(
         self,
         model: str = "aura-2-thalia-en",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         encoding: str = "linear16",
         sample_rate: int = 24000,
     ):

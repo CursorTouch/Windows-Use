@@ -1,8 +1,7 @@
-import os
 import logging
-from typing import Optional
+import os
 
-from groq import Groq, AsyncGroq
+from groq import AsyncGroq, Groq
 
 from windows_use.providers.base import BaseSTT
 
@@ -41,8 +40,8 @@ class STTGroq(BaseSTT):
     def __init__(
         self,
         model: str = "whisper-large-v3-turbo",
-        api_key: Optional[str] = None,
-        language: Optional[str] = None,
+        api_key: str | None = None,
+        language: str | None = None,
         temperature: float = 0.0,
         timeout: float = 120.0,
     ):

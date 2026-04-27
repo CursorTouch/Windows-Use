@@ -1,7 +1,6 @@
+import logging
 import os
 import wave
-import logging
-from typing import Optional
 
 from google import genai
 from google.genai import types
@@ -66,7 +65,7 @@ class TTSGoogle(BaseTTS):
         self,
         model: str = "gemini-2.5-flash-preview-tts",
         voice: str = "Kore",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         sample_rate: int = 24000,
     ):
         self._model = model

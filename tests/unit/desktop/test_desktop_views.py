@@ -1,8 +1,10 @@
 # tests/unit/desktop/test_desktop_views.py
 
 import pytest
-from windows_use.agent.desktop.views import Window, DesktopState, Status, Size
+
+from windows_use.agent.desktop.views import DesktopState, Size, Status, Window
 from windows_use.agent.tree.views import BoundingBox
+
 
 @pytest.fixture
 def sample_window():
@@ -32,12 +34,12 @@ class TestDesktopViews:
             windows=[sample_window],
             active_window=sample_window
         )
-        
+
         assert "Desktop 1" in state.active_desktop_to_string()
         assert "Desktop 2" in state.desktops_to_string()
         assert "Notepad" in state.active_window_to_string()
         assert "Notepad" in state.windows_to_string()
-        
+
         # Test tabulate output roughly
         assert "Name" in state.windows_to_string()
         assert "Handle" in state.windows_to_string()

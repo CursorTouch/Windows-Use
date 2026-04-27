@@ -2,13 +2,14 @@
 Unified WatchDog Service for monitoring UI Automation events.
 Allows single instantiation to handle multiple monitors (Focus, Structure) safely in one STA thread.
 """
+import logging
+from threading import Event, Thread
+
+import comtypes
+import comtypes.client
+
 from windows_use.uia.core import _AutomationClient
 from windows_use.uia.enums import TreeScope
-from threading import Thread, Event
-import comtypes.client
-import comtypes
-import logging
-import weakref
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -27,7 +28,7 @@ class WatchDog:
         self._property_callback = None
         self._property_element = None
         self._property_ids = None
-        
+
         # Internal state for tracking active handlers
         self._focus_handler = None
         self._structure_handler = None
@@ -49,7 +50,7 @@ class WatchDog:
             return
         self.is_running.set()
         self.thread = Thread(target=self._run, name="WatchDogThread")
-        self.thread.daemon = True 
+        self.thread.daemon = True
         self.thread.start()
 
     def stop(self):
@@ -75,7 +76,7 @@ class WatchDog:
 
     def set_property_callback(self, callback, element=None, property_ids=None):
         """Set the callback for property changes. Pass None to disable.
-        Optionally specify an element to watch (defaults to RootElement) 
+        Optionally specify an element to watch (defaults to RootElement)
         and a list of property IDs to monitor."""
         self._property_callback = callback
         self._property_element = element
@@ -159,8 +160,8 @@ class WatchDog:
         try:
             from .event_handlers import (
                 FocusChangedEventHandler,
+                PropertyChangedEventHandler,
                 StructureChangedEventHandler,
-                PropertyChangedEventHandler
             )
             # Initialize UIA inside the thread
             uia_client = _AutomationClient.instance()
@@ -179,12 +180,12 @@ class WatchDog:
             # Cleanup handlers on exit
             if self.uia:
                 if self._focus_handler:
-                    try: 
+                    try:
                         self.uia.RemoveFocusChangedEventHandler(self._focus_handler)
                     except Exception:
                         pass
                     self._focus_handler = None
-                
+
                 if self._structure_handler:
                     try:
                         target = self._active_structure_element if self._active_structure_element else self.uia.GetRootElement()
@@ -203,5 +204,5 @@ class WatchDog:
                     self._property_handler = None
                     self._active_property_element = None
                     self._active_property_ids = None
-            
+
             comtypes.CoUninitialize()

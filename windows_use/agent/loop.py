@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter, deque
+
 from windows_use.agent.desktop.views import DesktopState
 
 _EXEMPT = {'done_tool', 'wait_tool'}

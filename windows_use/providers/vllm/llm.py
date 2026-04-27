@@ -1,14 +1,31 @@
-import os
 import json
 import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, overload
-from openai import OpenAI, AsyncOpenAI
+import os
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
+from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +51,11 @@ class ChatVLLM(BaseChatLLM):
     def __init__(
         self,
         model: str,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 600.0,
         max_retries: int = 2,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs,
     ):
         """
@@ -82,7 +99,7 @@ class ChatVLLM(BaseChatLLM):
     def provider(self) -> str:
         return "vllm"
 
-    def _convert_messages(self, messages: List[BaseMessage]) -> List[dict]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """Convert BaseMessage objects to OpenAI-compatible message dictionaries."""
         openai_messages = []
         for msg in messages:
@@ -128,7 +145,7 @@ class ChatVLLM(BaseChatLLM):
                 })
         return openai_messages
 
-    def _convert_tools(self, tools: List[Tool]) -> List[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """Convert Tool objects to OpenAI-compatible tool definitions."""
         return [
             {
@@ -385,7 +402,7 @@ class ChatVLLM(BaseChatLLM):
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -442,7 +459,7 @@ class ChatVLLM(BaseChatLLM):
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -500,7 +517,7 @@ class ChatVLLM(BaseChatLLM):
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -557,7 +574,7 @@ class ChatVLLM(BaseChatLLM):
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -585,7 +602,7 @@ class ChatVLLM(BaseChatLLM):
                 owned_by=owned_by,
             )
         except Exception:
-            logger.debug(f"Could not retrieve model metadata from vLLM server, using defaults")
+            logger.debug("Could not retrieve model metadata from vLLM server, using defaults")
             return Metadata(
                 name=self._model,
                 context_window=32768,

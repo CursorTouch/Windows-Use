@@ -15,7 +15,7 @@ from ctypes import HRESULT, POINTER, byref, c_void_p
 from ctypes.wintypes import BOOL, HWND, UINT
 
 import comtypes.client
-from comtypes import COMMETHOD, GUID, IUnknown, STDMETHOD
+from comtypes import COMMETHOD, GUID, STDMETHOD, IUnknown
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
+from .controls import *
+from .core import *
 from .enums import *
 from .exceptions import *
-from .core import *
 from .patterns import *
-from .controls import *

@@ -1,17 +1,30 @@
-import os
 import json
 import logging
-from typing import Optional, Any, List, Iterator, AsyncIterator
+import os
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 import httpx
 from pydantic import BaseModel
 
-from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
-from windows_use.tools import Tool
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    ToolCall,
+)
 from windows_use.providers.perplexity.view import get_model_info
+from windows_use.providers.views import Metadata, TokenUsage
+from windows_use.tools import Tool
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +43,7 @@ class ChatPerplexity:
     def __init__(
         self,
         model: str = "sonar-pro",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://api.perplexity.ai",
         timeout: float = 600.0,
         temperature: float = 0.5,
@@ -63,7 +76,7 @@ class ChatPerplexity:
 
     # ── Message conversion ──────────────────────────────────────────
 
-    def _convert_messages(self, messages: list[BaseMessage]) -> tuple[Optional[str], list[dict]]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> tuple[str | None, list[dict]]:
         """Convert internal messages to Perplexity Agent API format.
 
         Returns (instructions, input_messages).
@@ -121,7 +134,7 @@ class ChatPerplexity:
 
     # ── Tool conversion ─────────────────────────────────────────────
 
-    def _convert_tools(self, tools: List[Tool]) -> list[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """Convert Tool objects to Perplexity Agent API (Responses API) format.
 
         Responses API uses a flat structure (no `function` wrapper):

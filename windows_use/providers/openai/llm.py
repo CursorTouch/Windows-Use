@@ -1,21 +1,38 @@
-import os
 import json
 import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, Union, overload
-from openai import OpenAI, AsyncOpenAI
+import os
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
+from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
 class ChatOpenAI(BaseChatLLM):
     """
     OpenAI LLM implementation following the BaseChatLLM protocol.
-    
+
     Supports:
     - Standard chat completions
     - Tool/function calling
@@ -24,15 +41,15 @@ class ChatOpenAI(BaseChatLLM):
     - Vision (image inputs)
     - Reasoning models (o1-preview, o1-mini)
     """
-    
+
     def __init__(
         self,
         model: str = "gpt-4o",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 600.0,
         max_retries: int = 2,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs
     ):
         """
@@ -51,7 +68,7 @@ class ChatOpenAI(BaseChatLLM):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.base_url = base_url or os.environ.get("OPENAI_BASE_URL")
         self.temperature = temperature
-        
+
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=self.base_url,
@@ -73,12 +90,12 @@ class ChatOpenAI(BaseChatLLM):
     @property
     def provider(self) -> str:
         return "openai"
-    
+
     def _is_reasoning_model(self) -> bool:
         """Check if the model is a reasoning model (o-series: o1, o3, o4, etc.)."""
         return self._model.startswith(("o1", "o3", "o4"))
 
-    def _convert_messages(self, messages: List[BaseMessage]) -> List[dict]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """
         Convert BaseMessage objects to OpenAI-compatible message dictionaries.
         """
@@ -92,7 +109,7 @@ class ChatOpenAI(BaseChatLLM):
                 content_list = []
                 if msg.content:
                     content_list.append({"type": "text", "text": msg.content})
-                
+
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
                     content_list.append({
@@ -131,7 +148,7 @@ class ChatOpenAI(BaseChatLLM):
                 })
         return openai_messages
 
-    def _convert_tools(self, tools: List[Tool]) -> List[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to OpenAI-compatible tool definitions.
         """
@@ -203,21 +220,21 @@ class ChatOpenAI(BaseChatLLM):
     def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
             **self.kwargs
         }
-        
+
         # Only add tools if they exist
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         # Temperature handling - o1 models don't support temperature
         if self.temperature is not None and not self._is_reasoning_model():
             params["temperature"] = self.temperature
-        
+
         if structured_output:
             # Use beta parse endpoint for structured outputs
             response = self.client.beta.chat.completions.parse(
@@ -233,7 +250,7 @@ class ChatOpenAI(BaseChatLLM):
                     response.usage.completion_tokens_details, "thinking_tokens", None
                 )
 
-            usage = TokenUsage(
+            TokenUsage(
                 prompt_tokens=response.usage.prompt_tokens,
                 completion_tokens=response.usage.completion_tokens,
                 total_tokens=response.usage.total_tokens,
@@ -245,7 +262,7 @@ class ChatOpenAI(BaseChatLLM):
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-            
+
         response = self.client.chat.completions.create(**params)
         return self._process_response(response)
 
@@ -256,19 +273,19 @@ class ChatOpenAI(BaseChatLLM):
     async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
             **self.kwargs
         }
-        
+
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         if self.temperature is not None and not self._is_reasoning_model():
             params["temperature"] = self.temperature
-        
+
         if structured_output:
             response = await self.aclient.beta.chat.completions.parse(
                 **params,
@@ -295,7 +312,7 @@ class ChatOpenAI(BaseChatLLM):
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-            
+
         response = await self.aclient.chat.completions.create(**params)
         return self._process_response(response)
 
@@ -306,7 +323,7 @@ class ChatOpenAI(BaseChatLLM):
     def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
@@ -314,28 +331,28 @@ class ChatOpenAI(BaseChatLLM):
             "stream_options": {"include_usage": True},
             **self.kwargs
         }
-        
+
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         if self.temperature is not None and not self._is_reasoning_model():
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
 
         response = self.client.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
         usage = None
-        
+
         for chunk in response:
             if not chunk.choices:
                 # Final chunk with usage
@@ -355,9 +372,9 @@ class ChatOpenAI(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
-            
+
             if self._is_reasoning_model() and hasattr(delta, "reasoning_content") and delta.reasoning_content:
                 if not think_started:
                     think_started = True
@@ -378,7 +395,7 @@ class ChatOpenAI(BaseChatLLM):
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
-                
+
                 if tc_delta.function:
                     if tc_delta.function.name:
                         tool_call_name = tc_delta.function.name
@@ -389,14 +406,14 @@ class ChatOpenAI(BaseChatLLM):
             yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
         if text_started:
             yield LLMStreamEvent(type=LLMStreamEventType.TEXT_END, usage=usage)
-        
+
         # Yield accumulated tool call as final response
         if tool_call_id and tool_call_name:
             try:
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -414,7 +431,7 @@ class ChatOpenAI(BaseChatLLM):
     async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
@@ -422,27 +439,27 @@ class ChatOpenAI(BaseChatLLM):
             "stream_options": {"include_usage": True},
             **self.kwargs
         }
-        
+
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         if self.temperature is not None and not self._is_reasoning_model():
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
 
         response = await self.aclient.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
-        
+
         async for chunk in response:
             if not chunk.choices:
                 # Final chunk with usage
@@ -462,9 +479,9 @@ class ChatOpenAI(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
-            
+
             if self._is_reasoning_model() and hasattr(delta, "reasoning_content") and delta.reasoning_content:
                 if not think_started:
                     think_started = True
@@ -485,7 +502,7 @@ class ChatOpenAI(BaseChatLLM):
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
-                
+
                 if tc_delta.function:
                     if tc_delta.function.name:
                         tool_call_name = tc_delta.function.name
@@ -496,14 +513,14 @@ class ChatOpenAI(BaseChatLLM):
             yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
         if text_started:
             yield LLMStreamEvent(type=LLMStreamEventType.TEXT_END, usage=usage)
-        
+
         # Yield accumulated tool call as final response
         if tool_call_id and tool_call_name:
             try:
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -517,7 +534,7 @@ class ChatOpenAI(BaseChatLLM):
     def get_metadata(self) -> Metadata:
         # Determine context window based on model
         context_window = 128000  # Default for GPT-4o and newer models
-        
+
         if self._model.startswith("gpt-4-turbo"):
             context_window = 128000
         elif self._model.startswith("gpt-4"):
@@ -526,7 +543,7 @@ class ChatOpenAI(BaseChatLLM):
             context_window = 16385
         elif self._model.startswith("o1"):
             context_window = 200000  # o1 models have larger context
-            
+
         return Metadata(
             name=self._model,
             context_window=context_window,

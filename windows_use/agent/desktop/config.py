@@ -1,4 +1,3 @@
-from typing import Set
 
 # Key name aliases for shortcut keys that differ from UIA SpecialKeyNames
 KEY_ALIASES: dict[str, str] = {
@@ -10,11 +9,11 @@ KEY_ALIASES: dict[str, str] = {
     "option": "Alt",
 }
 
-AVOIDED_APPS: Set[str] = set([
+AVOIDED_APPS: set[str] = set([
     'AgentUI'
 ])
 
-EXCLUDED_APPS:Set[str]=set([
+EXCLUDED_APPS:set[str]=set([
     'Progman',
     'Shell_TrayWnd',
     'Shell_SecondaryTrayWnd',

@@ -1,11 +1,11 @@
 # tests/unit/tree/test_tree_config.py
 
-import pytest
 from windows_use.agent.tree.config import (
-    INTERACTIVE_CONTROL_TYPE_NAMES,
     DEFAULT_ACTIONS,
     INFORMATIVE_CONTROL_TYPE_NAMES,
+    INTERACTIVE_CONTROL_TYPE_NAMES,
 )
+
 
 class TestTreeConfig:
     def test_interactive_control_type_names_type(self):

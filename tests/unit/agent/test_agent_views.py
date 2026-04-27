@@ -1,7 +1,7 @@
 # tests/unit/agent/test_agent_views.py
 
-import pytest
 from windows_use.agent.views import AgentResult
+
 
 class TestAgentViews:
     """

@@ -1,5 +1,6 @@
-from windows_use.messages import BaseMessage
 from dataclasses import dataclass, field
+
+from windows_use.messages import BaseMessage
 
 
 @dataclass

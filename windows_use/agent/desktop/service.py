@@ -1,30 +1,32 @@
-from windows_use.vdm.core import get_all_desktops, get_current_desktop, is_window_on_current_desktop
-from windows_use.agent.desktop.views import DesktopState, Window, Browser, Status, Size
-from windows_use.agent.tree.views import BoundingBox, TreeElementNode, TreeState
-from windows_use.agent.desktop.utils import escape_text_for_sendkeys
-from windows_use.agent.desktop.config import KEY_ALIASES
-from PIL import ImageGrab, ImageFont, ImageDraw, Image
-from windows_use.agent.tree.service import Tree
-import windows_use.uia as uia
-from contextlib import contextmanager
-from typing import Optional,Literal
-from time import sleep,perf_counter
-from markdownify import markdownify
-from fuzzywuzzy import process
-from psutil import Process
-import win32process
-import subprocess
-import win32gui
-import win32con
-import requests
-import logging
 import base64
-import random
-import ctypes
 import csv
-import re
-import os
+import ctypes
 import io
+import logging
+import os
+import random
+import re
+import subprocess
+from contextlib import contextmanager
+from time import perf_counter, sleep
+from typing import Literal
+
+import requests
+import win32con
+import win32gui
+import win32process
+from fuzzywuzzy import process
+from markdownify import markdownify
+from PIL import Image, ImageDraw, ImageFont, ImageGrab
+from psutil import Process
+
+import windows_use.uia as uia
+from windows_use.agent.desktop.config import KEY_ALIASES
+from windows_use.agent.desktop.utils import escape_text_for_sendkeys
+from windows_use.agent.desktop.views import Browser, DesktopState, Size, Status, Window
+from windows_use.agent.tree.service import Tree
+from windows_use.agent.tree.views import BoundingBox, TreeElementNode, TreeState
+from windows_use.vdm.core import get_all_desktops, get_current_desktop, is_window_on_current_desktop
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -62,7 +64,7 @@ class Desktop:
             executor.submit(self.get_default_language)
             executor.submit(self.get_user_account_type)
             executor.submit(_warm_uia)
-        
+
     def get_state(self,as_bytes:bool=False)->DesktopState:
         start_time = perf_counter()
 
@@ -83,7 +85,7 @@ class Desktop:
 
         logger.debug(f"Active window: {active_window or 'No Active Window Found'}")
         logger.debug(f"Windows: {windows}")
-        
+
         #Preparing handles for Tree
         other_windows_handles=list(controls_handles-windows_handles)
 
@@ -103,7 +105,7 @@ class Desktop:
                 screenshot=self.get_screenshot(as_bytes=as_bytes)
         else:
             screenshot=None
-            
+
         self.desktop_state=DesktopState(
             active_window=active_window,
             windows=windows,
@@ -116,7 +118,7 @@ class Desktop:
         end_time = perf_counter()
         logger.debug(f"[Desktop] Desktop State capture took {end_time - start_time:.2f} seconds")
         return self.desktop_state
-    
+
     def get_window_status(self,control:uia.Control)->Status:
         if uia.IsIconic(control.NativeWindowHandle):
             return Status.MINIMIZED
@@ -126,17 +128,17 @@ class Desktop:
             return Status.NORMAL
         else:
             return Status.HIDDEN
-    
+
     def get_cursor_location(self)->tuple[int,int]:
         return uia.GetCursorPos()
-    
+
     def get_element_under_cursor(self)->uia.Control:
         return uia.ControlFromCursor()
-    
+
     def get_apps_from_start_menu(self)->dict[str,str]:
         command='Get-StartApps | ConvertTo-Csv -NoTypeInformation'
         apps_info, status = self.execute_command(command)
-        
+
         if status != 0 or not apps_info:
             logger.error(f"Failed to get apps from start menu: {apps_info}")
             return {}
@@ -144,14 +146,14 @@ class Desktop:
         try:
             reader = csv.DictReader(io.StringIO(apps_info.strip()))
             return {
-                row.get('Name').lower(): row.get('AppID') 
-                for row in reader 
+                row.get('Name').lower(): row.get('AppID')
+                for row in reader
                 if row.get('Name') and row.get('AppID')
             }
         except Exception as e:
             logger.error(f"Error parsing start menu apps: {e}")
             return {}
-    
+
     def execute_command(self, command: str,timeout:int=10) -> tuple[str, int]:
         try:
             utf8_command = '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ' + command
@@ -169,12 +171,12 @@ class Desktop:
             return ('Command execution timed out', 1)
         except Exception as e:
             return (f'Command execution failed: {type(e).__name__}: {e}', 1)
-        
+
     def is_window_browser(self,node:uia.Control):
         '''Give any node of the app and it will return True if the app is a browser, False otherwise.'''
         process=Process(node.ProcessId)
         return Browser.has_process(process.name())
-    
+
     def get_default_language(self)->str:
         if self._cached_default_language is not None:
             return self._cached_default_language
@@ -184,7 +186,7 @@ class Desktop:
         result = "".join([row.get('DisplayName') for row in reader])
         self._cached_default_language = result
         return result
-    
+
     def _find_window_by_name(self, name: str) -> tuple['Window | None', str]:
         """Find a window by fuzzy name match. Returns (window, error_msg).
         If the returned window is None, error_msg describes the failure reason.
@@ -227,26 +229,26 @@ class Desktop:
             width, height = size
             app_control.MoveWindow(x, y, width, height)
             return (f'{target_app.name} resized to {width}x{height} at {x},{y}.', 0)
-    
+
     def is_app_running(self,name:str)->bool:
         apps, _ = self.get_windows()
         apps_dict = {app.name: app for app in apps}
         return process.extractOne(name,list(apps_dict.keys()),score_cutoff=60) is not None
-    
-    def app(self,mode:Literal['launch','switch','resize'],name:Optional[str]=None,loc:Optional[tuple[int,int]]=None,size:Optional[tuple[int,int]]=None):
+
+    def app(self,mode:Literal['launch','switch','resize'],name:str | None=None,loc:tuple[int, int] | None=None,size:tuple[int, int] | None=None):
         match mode:
             case 'launch':
                 response,status,pid=self.launch_app(name)
                 if status!=0:
                     return response
-                
+
                 # Smart wait using UIA Exists (avoids manual Python loops)
                 launched = False
                 try:
                     if pid > 0:
                         if uia.WindowControl(ProcessId=pid).Exists(maxSearchSeconds=10):
                             launched = True
-                    
+
                     if not launched:
                         # Fallback: Regex search for the window title
                         safe_name = re.escape(name)
@@ -254,7 +256,7 @@ class Desktop:
                             launched = True
                 except Exception as e:
                     logger.warning(f"Error verifying app launch (likely transient COM error): {e}")
-                    # Assume launched if we got this far without launch_app failing, 
+                    # Assume launched if we got this far without launch_app failing,
                     # as the subprocess call succeeded.
                     launched = True
 
@@ -273,7 +275,7 @@ class Desktop:
                     return response
                 else:
                     return response
-        
+
     def launch_app(self,name:str)->tuple[str,int,int]:
         apps_map=self.get_apps_from_start_menu()
         matched_app=process.extractOne(name,apps_map.keys(),score_cutoff=70)
@@ -283,7 +285,7 @@ class Desktop:
         appid=apps_map.get(app_name)
         if appid is None:
             return (name,f'{name.title()} not found in start menu.',1,0)
-        
+
         pid = 0
         if os.path.exists(appid) or "\\" in appid:
             # It's a file path, we can try to get the PID using PassThru
@@ -295,9 +297,9 @@ class Desktop:
             # It's an AUMID (Store App)
             command = f'Start-Process "shell:AppsFolder\\{appid}"'
             response, status = self.execute_command(command)
-            
+
         return response, status, pid
-    
+
     def switch_app(self, name: str):
         app, error = self._find_window_by_name(name)
         if app is None:
@@ -311,7 +313,7 @@ class Desktop:
         else:
             content = f'Switched to {app.name.title()} window.'
         return content, 0
-    
+
     def bring_window_to_top(self, target_handle: int):
         if not win32gui.IsWindow(target_handle):
             raise ValueError("Invalid window handle")
@@ -352,7 +354,7 @@ class Desktop:
 
         except Exception as e:
             logger.exception(f"Failed to bring window to top: {e}")
-    
+
     def get_element_handle_from_label(self,label:int)->uia.Control:
         tree_state=self.desktop_state.tree_state
         selector=tree_state.build_selector_map()
@@ -365,12 +367,12 @@ class Desktop:
         if element_node.hwnd:
             return uia.ControlFromHandle(element_node.hwnd)
         raise ValueError(f'No live control available for label {label}')
-    
+
     def get_coordinates_from_label(self,label:int)->tuple[int,int]:
         element_handle=self.get_element_handle_from_label(label)
         bounding_rectangle=element_handle.BoundingRectangle
         return bounding_rectangle.xcenter(),bounding_rectangle.ycenter()
-        
+
     def click(self,loc:tuple[int,int],button:str='left',clicks:int=2):
         x,y=loc
         if clicks == 0:
@@ -428,7 +430,7 @@ class Desktop:
             case _:
                 return 'Invalid type. Use "horizontal" or "vertical".'
         return None
-    
+
     def drag(self,loc:tuple[int,int]):
         x,y=loc
         cx, cy = uia.GetCursorPos()
@@ -460,25 +462,25 @@ class Desktop:
             uia.Click(x, y, waitTime=0.2)
             sleep(0.5)
         uia.ReleaseKey(uia.Keys.VK_CONTROL, waitTime=0.05)
-    
+
     def multi_edit(self,elements:list[tuple[int,int,str]|tuple[int,str]]):
         for element in elements:
             x,y,text=element
             self.type((x,y),text=text,clear='true')
-    
+
     def scrape(self,url:str)->str:
         response=requests.get(url,timeout=10)
         html=response.text
         content=markdownify(html=html)
         return content
-    
+
     def is_window_visible(self,window:uia.Control)->bool:
         is_minimized=self.get_window_status(window)!=Status.MINIMIZED
         size=window.BoundingRectangle
         area=size.width()*size.height()
         is_overlay=self.is_overlay_window(window)
         return not is_overlay and is_minimized and area>10
-    
+
     def is_overlay_window(self,element:uia.Control) -> bool:
         no_children = element.GetFirstChildControl() is None
         is_name = "Overlay" in element.Name.strip()
@@ -541,13 +543,13 @@ class Desktop:
     def get_window_from_element_handle(self, element_handle: int) -> uia.Control:
         current = uia.ControlFromHandle(element_handle)
         root_handle = uia.GetRootControl().NativeWindowHandle
-        
+
         while True:
             parent = current.GetParentControl()
             if parent is None or parent.NativeWindowHandle == root_handle:
                 return current
             current = parent
-        
+
     def get_windows(self,controls_handles:set[int]|None=None) -> tuple[list[Window],set[int]]:
         try:
             windows = []
@@ -558,7 +560,7 @@ class Desktop:
                     child = uia.ControlFromHandle(hwnd)
                 except Exception:
                     continue
-                
+
                 # Filter out Overlays (e.g. NVIDIA, Steam)
                 if self.is_overlay_window(child):
                     continue
@@ -567,10 +569,10 @@ class Desktop:
                     window_pattern=child.GetPattern(uia.PatternId.WindowPattern)
                     if (window_pattern is None):
                         continue
-                        
+
                     if window_pattern.CanMinimize and window_pattern.CanMaximize:
                         status = self.get_window_status(child)
-                        
+
                         bounding_rect=child.BoundingRectangle
                         if bounding_rect.isempty() and status!=Status.MINIMIZED:
                             continue
@@ -596,7 +598,7 @@ class Desktop:
             logger.error(f"Error in get_windows: {ex}")
             windows = []
         return windows,window_handles
-    
+
     def get_windows_version(self)->str:
         if self._cached_windows_version is not None:
             return self._cached_windows_version
@@ -604,7 +606,7 @@ class Desktop:
         result = response.strip() if status == 0 else "Windows"
         self._cached_windows_version = result
         return result
-    
+
     def get_user_account_type(self)->str:
         if self._cached_user_account_type is not None:
             return self._cached_user_account_type
@@ -612,12 +614,12 @@ class Desktop:
         result = "Local Account" if response.strip()=='Local' else "Microsoft Account" if status==0 else "Local Account"
         self._cached_user_account_type = result
         return result
-    
+
     def get_dpi_scaling(self):
         user32 = ctypes.windll.user32
         dpi = user32.GetDpiForSystem()
         return dpi / 96.0
-    
+
     def get_screen_size(self)->Size:
         width, height = uia.GetVirtualScreenSize()
         return Size(width=width,height=height)
@@ -625,8 +627,8 @@ class Desktop:
     def get_screenshot(self,as_bytes:bool=False)->bytes|Image.Image:
         try:
             screenshot = ImageGrab.grab(all_screens=True)
-        except Exception as e:
-            logger.warning(f"Failed to capture virtual screen, using primary screen")
+        except Exception:
+            logger.warning("Failed to capture virtual screen, using primary screen")
             screenshot = ImageGrab.grab()
         if as_bytes:
             buffered = io.BytesIO()
@@ -648,11 +650,11 @@ class Desktop:
         font_size = 12
         try:
             font = ImageFont.truetype('arial.ttf', font_size)
-        except IOError:
+        except OSError:
             font = ImageFont.load_default()
 
         def get_random_color():
-            return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+            return f"#{random.randint(0, 0xFFFFFF):06x}"
 
         left_offset, top_offset, _, _ = uia.GetVirtualScreenRect()
 
@@ -688,14 +690,14 @@ class Desktop:
 
         for label,node in enumerate(nodes):
             draw_annotation(label, node)
-            
+
         if as_bytes:
             buffered = io.BytesIO()
             padded_screenshot.save(buffered, format="PNG")
             padded_screenshot = buffered.getvalue()
             buffered.close()
         return padded_screenshot
-    
+
     @contextmanager
     def auto_minimize(self):
         try:

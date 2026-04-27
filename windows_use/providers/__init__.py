@@ -12,29 +12,26 @@ Shared base protocols and data models:
 """
 
 # Base protocols & data models
-from windows_use.providers.base import BaseChatLLM, BaseSTT, BaseTTS
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.providers.events import Thinking, LLMEvent, LLMStreamEvent, ToolCall
-
 # LLM providers
 from windows_use.providers.anthropic import ChatAnthropic
-from windows_use.providers.google import ChatGoogle
-from windows_use.providers.openai import ChatOpenAI
-from windows_use.providers.ollama import ChatOllama
-from windows_use.providers.groq import ChatGroq
-from windows_use.providers.mistral import ChatMistral
-from windows_use.providers.cerebras import ChatCerebras
-from windows_use.providers.open_router import ChatOpenRouter
 from windows_use.providers.azure_openai import ChatAzureOpenAI
-from windows_use.providers.litellm import ChatLiteLLM
-from windows_use.providers.vllm import ChatVLLM
-from windows_use.providers.nvidia import ChatNvidia
+from windows_use.providers.base import BaseChatLLM, BaseSTT, BaseTTS
+from windows_use.providers.cerebras import ChatCerebras
 from windows_use.providers.deepseek import ChatDeepSeek
+from windows_use.providers.events import LLMEvent, LLMStreamEvent, Thinking, ToolCall
+from windows_use.providers.google import ChatGoogle, STTGoogle
+from windows_use.providers.groq import ChatGroq, STTGroq
+from windows_use.providers.litellm import ChatLiteLLM
+from windows_use.providers.mistral import ChatMistral
+from windows_use.providers.nvidia import ChatNvidia
+from windows_use.providers.ollama import ChatOllama
+from windows_use.providers.open_router import ChatOpenRouter
 
 # STT providers
-from windows_use.providers.openai import STTOpenAI
-from windows_use.providers.google import STTGoogle
-from windows_use.providers.groq import STTGroq
+from windows_use.providers.openai import ChatOpenAI, STTOpenAI
+from windows_use.providers.views import Metadata, TokenUsage
+from windows_use.providers.vllm import ChatVLLM
+
 try:
     from windows_use.providers.elevenlabs import STTElevenLabs
 except ImportError:
@@ -46,9 +43,9 @@ except ImportError:
     pass
 
 # TTS providers
-from windows_use.providers.openai import TTSOpenAI
 from windows_use.providers.google import TTSGoogle
 from windows_use.providers.groq import TTSGroq
+from windows_use.providers.openai import TTSOpenAI
 
 try:
     from windows_use.providers.elevenlabs import TTSElevenLabs

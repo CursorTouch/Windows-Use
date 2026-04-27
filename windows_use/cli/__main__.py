@@ -4,13 +4,11 @@ import logging
 import os
 import re
 import sys
-import time
 import threading
-
-from dotenv import load_dotenv
+import time
 
 import typer
-
+from dotenv import load_dotenv
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion
 
@@ -193,10 +191,15 @@ def _clear_screen() -> None:
 
 def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = False) -> None:
     """Run the interactive task loop."""
-    from windows_use.cli.setup import create_llm, run_llm_switch, run_speech_setup
-    from windows_use.cli.setup import create_stt_provider, create_tts_provider
-    from windows_use.cli.config import get_active_config
     from windows_use.agent import Agent, Browser
+    from windows_use.cli.config import get_active_config
+    from windows_use.cli.setup import (
+        create_llm,
+        create_stt_provider,
+        create_tts_provider,
+        run_llm_switch,
+        run_speech_setup,
+    )
     from windows_use.cli.subscriber import CLIEventSubscriber
 
     agent = None
@@ -315,7 +318,11 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
 
         if task.lower() in ("speech", "\\speech"):
             try:
-                from windows_use.cli.setup import run_speech_setup, create_stt_provider, create_tts_provider
+                from windows_use.cli.setup import (
+                    create_stt_provider,
+                    create_tts_provider,
+                    run_speech_setup,
+                )
                 run_speech_setup(initial_setup=False)
                 stt_provider = create_stt_provider()
                 tts_provider = create_tts_provider()
@@ -399,8 +406,8 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
                 task = _prompt_task(default=task)
                 if not task:
                     continue
-            except ImportError as e:
-                typer.secho(f"Voice input requires pyaudio: uv add windows-use[speech]", fg="yellow")
+            except ImportError:
+                typer.secho("Voice input requires pyaudio: uv add windows-use[speech]", fg="yellow")
                 continue
             except Exception as e:
                 typer.secho(f"Voice input failed: {e}", fg="red")

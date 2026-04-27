@@ -1,12 +1,31 @@
-from windows_use.agent.tools.views import Click, Type, Scroll, Move, Shortcut, Wait, Scrape, Done, Shell, Memory, App, MultiSelect, MultiEdit, Desktop, File
-from windows_use.vdm.core import create_desktop as vdm_create, remove_desktop as vdm_remove, rename_desktop as vdm_rename, switch_desktop as vdm_switch
-from windows_use.agent.desktop.service import Desktop as _Desktop
-from windows_use.tools import Tool
-from typing import Literal,Optional
+import shutil
 from datetime import datetime
 from pathlib import Path
-from time import sleep
-import shutil
+from typing import Literal
+
+from windows_use.agent.desktop.service import Desktop as _Desktop
+from windows_use.agent.tools.views import (
+    App,
+    Click,
+    Desktop,
+    Done,
+    File,
+    Memory,
+    Move,
+    MultiEdit,
+    MultiSelect,
+    Scrape,
+    Scroll,
+    Shell,
+    Shortcut,
+    Type,
+    Wait,
+)
+from windows_use.tools import Tool
+from windows_use.vdm.core import create_desktop as vdm_create
+from windows_use.vdm.core import remove_desktop as vdm_remove
+from windows_use.vdm.core import rename_desktop as vdm_rename
+from windows_use.vdm.core import switch_desktop as vdm_switch
 
 MAX_FILE_READ_SIZE = 1 * 1024 * 1024  # 1 MB
 
@@ -46,7 +65,7 @@ async def done_tool(answer:str,**kwargs):
     return answer
 
 @Tool('app_tool',model=App)
-async def app_tool(mode:Literal['launch','resize','switch']='launch',name:Optional[str]=None,loc:Optional[list[int]]=None,size:Optional[list[int]]=None,**kwargs)->str:
+async def app_tool(mode:Literal['launch','resize','switch']='launch',name:str | None=None,loc:list[int] | None=None,size:list[int] | None=None,**kwargs)->str:
     '''
     Manages application windows: launch new apps, switch between open windows, or resize/reposition the active window.
 
@@ -60,10 +79,10 @@ async def app_tool(mode:Literal['launch','resize','switch']='launch',name:Option
 
 
 @Tool('memory_tool', model=Memory)
-async def memory_tool(mode: Literal['view', 'read', 'write', 'delete', 'update'], path: Optional[str] = None,
-    content: Optional[str] = None, operation: Optional[Literal['replace', 'insert']] = 'replace',
-    old_str: Optional[str] = None, new_str: Optional[str] = None, line_number: Optional[int] = None,
-    read_range: Optional[list[int]] = None, **kwargs) -> str:
+async def memory_tool(mode: Literal['view', 'read', 'write', 'delete', 'update'], path: str | None = None,
+    content: str | None = None, operation: Literal['replace', 'insert'] | None = 'replace',
+    old_str: str | None = None, new_str: str | None = None, line_number: int | None = None,
+    read_range: list[int] | None = None, **kwargs) -> str:
     '''
     Persistent file-based storage for saving and retrieving information across steps. Files are stored as markdown in the .windows-use/memories directory (user home).
 
@@ -187,8 +206,8 @@ def _resolve_file_path(path: str) -> Path:
 async def file_tool(
     mode: Literal["read", "write", "list", "delete", "move", "copy", "exists"],
     path: str,
-    destination: Optional[str] = None,
-    content: Optional[str] = None,
+    destination: str | None = None,
+    content: str | None = None,
     encoding: str = "utf-8",
     **kwargs,
 ) -> str:
@@ -288,7 +307,7 @@ async def file_tool(
             if not destination:
                 return "Error: destination is required for copy action."
             if resolved.is_dir():
-                return f"Error: copy does not support directories. Use move for directories."
+                return "Error: copy does not support directories. Use move for directories."
             try:
                 dest = _resolve_file_path(destination)
                 shutil.copy2(str(resolved), str(dest))
@@ -301,7 +320,7 @@ async def file_tool(
         case "exists":
             return f"Path exists: {resolved.exists()}"
 
-    return f"Error: Unknown action '{action}'."
+    return f"Error: Unknown action '{mode}'."
 
 
 @Tool('shell_tool',model=Shell)
@@ -316,7 +335,7 @@ async def shell_tool(command: str,timeout:int=10,**kwargs) -> str:
     return f'Response: {response}\nStatus Code: {status}'
 
 @Tool('click_tool',model=Click)
-async def click_tool(loc:Optional[list[int]]=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
+async def click_tool(loc:list[int] | None=None,button:Literal['left','right','middle']='left',clicks:int=1,**kwargs)->str:
     '''
     Clicks at the specified pixel coordinates on screen.
 
@@ -334,7 +353,7 @@ async def click_tool(loc:Optional[list[int]]=None,button:Literal['left','right',
     return f'{num_clicks.get(clicks)} {button} clicked at ({x},{y}).'
 
 @Tool('type_tool',model=Type)
-async def type_tool(loc:Optional[list[int]]=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
+async def type_tool(loc:list[int] | None=None,text:str='',clear:Literal['true','false']='false',caret_position:Literal['start','idle','end']='idle',press_enter:Literal['true','false']='false',**kwargs):
     '''
     Clicks an input field and types text into it. Do NOT pre-click with click_tool — this tool handles focusing automatically.
 
@@ -350,7 +369,7 @@ async def type_tool(loc:Optional[list[int]]=None,text:str='',clear:Literal['true
     return f'Typed {text} at ({x},{y}).'
 
 @Tool('scroll_tool',model=Scroll)
-async def scroll_tool(loc:Optional[list[int]]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
+async def scroll_tool(loc:list[int] | None=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1,**kwargs)->str:
     '''
     Scrolls content at the specified location or at the current cursor position.
 
@@ -450,7 +469,7 @@ async def scrape_tool(url:str,**kwargs)->str:
     return f'URL:{url}\nContent:\n{header_status}\n{content}\n{footer_status}'
 
 @Tool('desktop_tool', model=Desktop)
-async def desktop_tool(action: Literal['create', 'remove', 'rename', 'switch'], desktop_name: Optional[str] = None, new_name: Optional[str] = None, **kwargs) -> str:
+async def desktop_tool(action: Literal['create', 'remove', 'rename', 'switch'], desktop_name: str | None = None, new_name: str | None = None, **kwargs) -> str:
     '''
     Manages Windows virtual desktops for workspace organization.
 
@@ -459,7 +478,7 @@ async def desktop_tool(action: Literal['create', 'remove', 'rename', 'switch'], 
     - rename: Renames desktop_name to new_name.
     - switch: Activates the desktop specified by desktop_name. Verify success in the next Desktop State.
     '''
-    try:        
+    try:
         match action:
             case 'create':
                 # create_desktop(name) returns the name

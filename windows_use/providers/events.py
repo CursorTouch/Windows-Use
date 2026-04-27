@@ -1,8 +1,9 @@
 from enum import Enum
+
 from pydantic import BaseModel
-from typing import Optional, Any
 
 from windows_use.providers.views import TokenUsage
+
 
 class LLMStreamEventType(str, Enum):
     TEXT_START = "text_start"

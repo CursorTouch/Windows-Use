@@ -1,16 +1,33 @@
+import json
+import logging
 import os
 import uuid
-import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, overload
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-import json
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +48,10 @@ class ChatGoogle(BaseChatLLM):
     def __init__(
         self,
         model: str = "gemini-2.5-flash",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        temperature: Optional[float] = None,
-        thinking_budget: Optional[int] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        temperature: float | None = None,
+        thinking_budget: int | None = None,
         **kwargs,
     ):
         """
@@ -74,8 +91,8 @@ class ChatGoogle(BaseChatLLM):
         return "2.5" in self._model
 
     def _convert_messages(
-        self, messages: List[BaseMessage]
-    ) -> tuple[Optional[str], list[types.Content]]:
+        self, messages: list[BaseMessage]
+    ) -> tuple[str | None, list[types.Content]]:
         """
         Convert BaseMessage objects to Google Gemini-compatible content list.
 
@@ -88,7 +105,7 @@ class ChatGoogle(BaseChatLLM):
             A tuple of (system_instruction, contents).
         """
         raw_contents: list[types.Content] = []
-        system_instruction: Optional[str] = None
+        system_instruction: str | None = None
 
         for msg in messages:
             if isinstance(msg, SystemMessage):
@@ -175,7 +192,7 @@ class ChatGoogle(BaseChatLLM):
                 merged.append(content)
         return merged
 
-    def _convert_tools(self, tools: List[Tool]) -> list[types.Tool]:
+    def _convert_tools(self, tools: list[Tool]) -> list[types.Tool]:
         """
         Convert Tool objects to Google Gemini-compatible tool definitions.
         """
@@ -193,9 +210,9 @@ class ChatGoogle(BaseChatLLM):
 
     def _build_config(
         self,
-        system_instruction: Optional[str],
-        tools: Optional[list[types.Tool]],
-        structured_output: Optional[type[BaseModel]] = None,
+        system_instruction: str | None,
+        tools: list[types.Tool] | None,
+        structured_output: type[BaseModel] | None = None,
         json_mode: bool = False,
     ) -> types.GenerateContentConfig:
         """
@@ -245,7 +262,7 @@ class ChatGoogle(BaseChatLLM):
             thinking_tokens=thinking_tokens,
         )
 
-    def _extract_thinking(self, response: Any) -> Optional[str]:
+    def _extract_thinking(self, response: Any) -> str | None:
         """
         Extract thinking/reasoning content from the response parts.
         """
@@ -465,7 +482,7 @@ class ChatGoogle(BaseChatLLM):
                     text_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.TEXT_START)
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=text_content)
-        
+
         if think_started:
             yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
         if text_started:
@@ -541,7 +558,7 @@ class ChatGoogle(BaseChatLLM):
                     text_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.TEXT_START)
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=text_content)
-        
+
         if think_started:
             yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
         if text_started:

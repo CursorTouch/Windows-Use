@@ -11,14 +11,13 @@ uiautomation is shared under the Apache Licene 2.0.
 This means that the code can be freely copied and distributed, and costs nothing to use.
 """
 
+import ctypes
+import ctypes.wintypes
 import os
 import sys
 import time
-import ctypes
-import ctypes.wintypes
 from enum import IntEnum, IntFlag
 from typing import Any
-
 
 METRO_WINDOW_CLASS_NAME = 'Windows.UI.Core.CoreWindow'  # for Windows 8 and 8.1
 SEARCH_INTERVAL = 0.5  # search control interval seconds
@@ -642,7 +641,7 @@ class AccessibleRole:
 AccessibleRoleNames = {v: k for k, v in AccessibleRole.__dict__.items() if not k.startswith('_')}
 
 
-class AccessibleState():
+class AccessibleState:
     """
     AccessibleState from IUIAutomation.
     Refer https://docs.microsoft.com/en-us/dotnet/api/system.windows.forms.accessiblestates?view=netframework-4.8
@@ -1594,7 +1593,7 @@ class INPUT(ctypes.Structure):
                 ('union', INPUTUnion))
 
 
-class Rect():
+class Rect:
     """
     class Rect, like `ctypes.wintypes.RECT`.
     """
@@ -1637,10 +1636,10 @@ class Rect():
         return self.left == rect.left and self.top == rect.top and self.right == rect.right and self.bottom == rect.bottom
 
     def __str__(self) -> str:
-        return '({},{},{},{})[{}x{}]'.format(self.left, self.top, self.right, self.bottom, self.width(), self.height())
+        return f'({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]'
 
     def __repr__(self) -> str:
-        return '{}({},{},{},{})[{}x{}]'.format(self.__class__.__name__, self.left, self.top, self.right, self.bottom, self.width(), self.height())
+        return f'{self.__class__.__name__}({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]'
 
 
 class ClipboardFormat:

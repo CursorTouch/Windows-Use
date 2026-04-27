@@ -1,6 +1,7 @@
-import sys
 import time
+
 import pytest
+
 
 def check_import(module_name, from_list=None):
     print(f"Importing {module_name}...", end=" ", flush=True)

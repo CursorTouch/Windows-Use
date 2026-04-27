@@ -4,12 +4,13 @@ CLI-specific event subscriber for simple terminal output.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
-from windows_use.agent.events.views import AgentEvent, EventType
-from windows_use.agent.events.subscriber import BaseEventSubscriber
-from rich.markdown import Markdown
 from rich.console import Console
+from rich.markdown import Markdown
+
+from windows_use.agent.events.subscriber import BaseEventSubscriber
+from windows_use.agent.events.views import AgentEvent, EventType
 
 
 def _format_tool_name(tool_name: str) -> str:
