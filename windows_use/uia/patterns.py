@@ -15,7 +15,7 @@ import ctypes
 import os
 import sys
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from .core import *
 from .core import _AutomationClient
@@ -1634,7 +1634,7 @@ class TextEditPattern:
         """Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nn-uiautomationclient-iuiautomationtexteditpattern"""
         self.pattern = pattern
 
-    def GetActiveComposition(self) -> Optional[TextRange]:
+    def GetActiveComposition(self) -> TextRange | None:
         """
         Call IUIAutomationTextEditPattern::GetActiveComposition.
         Return `TextRange` or None, the active composition.
@@ -1645,7 +1645,7 @@ class TextEditPattern:
             return TextRange(textRange=textRange)
         return None
 
-    def GetConversionTarget(self) -> Optional[TextRange]:
+    def GetConversionTarget(self) -> TextRange | None:
         """
         Call IUIAutomationTextEditPattern::GetConversionTarget.
         Return `TextRange` or None, the current conversion target range..
@@ -1713,7 +1713,7 @@ class TextPattern:
             return textRanges
         return []
 
-    def RangeFromChild(self, child) -> Optional[TextRange]:
+    def RangeFromChild(self, child) -> TextRange | None:
         """
         Call IUIAutomationTextPattern::RangeFromChild.
         child: `Control` or its subclass.
@@ -1726,7 +1726,7 @@ class TextPattern:
             return TextRange(textRange=textRange)
         return None
 
-    def RangeFromPoint(self, x: int, y: int) -> Optional[TextRange]:
+    def RangeFromPoint(self, x: int, y: int) -> TextRange | None:
         """
         Call IUIAutomationTextPattern::RangeFromPoint.
         child: `Control` or its subclass.
