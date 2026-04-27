@@ -57,14 +57,14 @@ As with other [IAccessible](/en-us/windows/desktop/api/oleacc/nn-oleacc-iaccessi
 The following example code shows a possible implementation of this method for a custom single-selection list box. If the control does not have the focus, VT\_EMPTY is returned in the variant by the standard accessible object for the HWND. If the control does have the focus, and an item is selected, the child ID of that item is returned; if there is no selection, CHILDID\_SELF is returned.
 
 ```
-// m_pControl is the control object that is served by this implementation. 
-// m_pStdAccessibleObject is the object returned by CreateStdAccessibleObject. 
+// m_pControl is the control object that is served by this implementation.
+// m_pStdAccessibleObject is the object returned by CreateStdAccessibleObject.
 
 HRESULT STDMETHODCALLTYPE AccServer::get_accFocus(VARIANT *pvarChild)
 {
-    FAIL_IF_NO_CONTROL;  // Macro that checks for existence of control. 
+    FAIL_IF_NO_CONTROL;  // Macro that checks for existence of control.
 
-    HRESULT hr = m_pStdAccessibleObject->get_accFocus(pvarChild);  
+    HRESULT hr = m_pStdAccessibleObject->get_accFocus(pvarChild);
     if (pvarChild->vt != VT_I4)
     {
         return hr;
@@ -78,7 +78,7 @@ HRESULT STDMETHODCALLTYPE AccServer::get_accFocus(VARIANT *pvarChild)
         }
         else
         {
-            // Convert to 1-based index for child ID. 
+            // Convert to 1-based index for child ID.
             pvarChild->lVal = index + 1;
         }
     }

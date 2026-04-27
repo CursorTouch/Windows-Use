@@ -610,7 +610,7 @@ class Desktop:
                 if self.is_overlay_window(child):
                     continue
 
-                if isinstance(child, (uia.WindowControl, uia.PaneControl)):
+                if isinstance(child, uia.WindowControl | uia.PaneControl):
                     window_pattern = child.GetPattern(uia.PatternId.WindowPattern)
                     if window_pattern is None:
                         continue

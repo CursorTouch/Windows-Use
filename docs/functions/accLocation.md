@@ -74,11 +74,11 @@ This method retrieves the object's bounding rectangle. If the object has a non-r
 The following example shows a possible implementation of the method for a custom list box whose list items are child elements. For the list box itself, the call is passed to the standard accessible object, which returns the screen coordinates of the window.
 
 ```
-// m_pStdAccessibleObject is the standard accessible object for the control window. 
-// m_pControl is the object that represents the control. Its GetItemRect method  
-//   retrieves the screen coordinates of the specified item in a zero-based collection. 
-// 
-HRESULT STDMETHODCALLTYPE AccServer::accLocation( 
+// m_pStdAccessibleObject is the standard accessible object for the control window.
+// m_pControl is the object that represents the control. Its GetItemRect method
+//   retrieves the screen coordinates of the specified item in a zero-based collection.
+//
+HRESULT STDMETHODCALLTYPE AccServer::accLocation(
     long *pxLeft,
     long *pyTop,
     long *pcxWidth,
@@ -110,7 +110,7 @@ HRESULT STDMETHODCALLTYPE AccServer::accLocation(
             *pyTop = rect.top;
             *pcxWidth = rect.right - rect.left;
             *pcyHeight = rect.bottom - rect.top;
-            return S_OK;        
+            return S_OK;
         }
     }
 };

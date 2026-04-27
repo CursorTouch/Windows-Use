@@ -566,7 +566,7 @@ class Tree:
                             except Exception:
                                 pass
 
-                            if isinstance(node, (ButtonControl, CheckBoxControl)):
+                            if isinstance(node, ButtonControl | CheckBoxControl):
                                 try:
                                     toggle_state = node.GetCachedPropertyValue(
                                         PropertyId.ToggleToggleStateProperty

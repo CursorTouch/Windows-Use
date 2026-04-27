@@ -48,11 +48,11 @@ Also, while **accDoDefaultAction** is supposed to return immediately, some imple
 The following example shows a possible implementation for a custom list control whose default action is a double-click a child item. To prevent blocking, the method posts a custom message that, when received by the control window, triggers an action, such as displaying item properties.
 
 ```
-// Assume a previous definition such as this: 
-// #define CUSTOMLB_DEFERDOUBLECLICK   (WM_USER + 1) 
+// Assume a previous definition such as this:
+// #define CUSTOMLB_DEFERDOUBLECLICK   (WM_USER + 1)
 
-HRESULT STDMETHODCALLTYPE AccServer::accDoDefaultAction( 
-    VARIANT varChild) 
+HRESULT STDMETHODCALLTYPE AccServer::accDoDefaultAction(
+    VARIANT varChild)
 {
     if (varChild.vt != VT_I4)
     {
@@ -60,7 +60,7 @@ HRESULT STDMETHODCALLTYPE AccServer::accDoDefaultAction(
     }
     if (varChild.lVal != CHILDID_SELF)
     {
-        // It is assumed that the control does its own checking to see which 
+        // It is assumed that the control does its own checking to see which
         // item has the focus when it receives this message.
         PostMessage(m_hwnd, CUSTOMLB_DEFERDOUBLECLICK, 0, 0);
     }

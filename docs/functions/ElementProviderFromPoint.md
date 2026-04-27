@@ -59,7 +59,7 @@ the UI Automation provider for that item.
 ```
 HRESULT STDMETHODCALLTYPE ListProvider::ElementProviderFromPoint(double x, double y, IRawElementProviderFragment** pRetVal)
 {
-    if (pRetVal == NULL) 
+    if (pRetVal == NULL)
     {
         return E_INVALIDARG;
     }
@@ -68,13 +68,13 @@ HRESULT STDMETHODCALLTYPE ListProvider::ElementProviderFromPoint(double x, doubl
     pt.y = (LONG)y;
     ScreenToClient(m_controlHwnd, &pt);
     int itemIndex = this->m_pControl->IndexFromY(m_controlHwnd, pt.y);
-    ListItemProvider* pItem = GetItemByIndex(itemIndex);  
+    ListItemProvider* pItem = GetItemByIndex(itemIndex);
     if (pItem != NULL)
     {
         *pRetVal = (IRawElementProviderFragment*)pItem;
         pItem->AddRef();
     }
-    else 
+    else
     {
         pRetVal = (IRawElementProviderFragment*)this;
         pItem->AddRef();

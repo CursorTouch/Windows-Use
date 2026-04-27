@@ -49,8 +49,8 @@ The following example function creates an object that implements [IUIAutomationF
 
 ```
 HRESULT AddFocusHandler(IUIAutomation* pAutomation)
-{ 
-    // CFocusHandler is a class that implements IUIAutomationFocusChangedEventHandler. 
+{
+    // CFocusHandler is a class that implements IUIAutomationFocusChangedEventHandler.
     CFocusHandler* pFocusHandler = new CFocusHandler();
     if (!pFocusHandler)
     {

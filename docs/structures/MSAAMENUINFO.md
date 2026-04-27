@@ -49,9 +49,9 @@ The **MSAAMENUINFO** structure cannot be a member in a class that contains virtu
 The following code fragment shows the declaration of an application-specific owner-drawn menu information structure that includes **MSAAMENUINFO**:
 
 ```
-// Application-specific owner-drawn menu info struct. Owner-drawn data 
-// is a pointer to one of these. MSAAMENUINFO must be the first 
-// member. 
+// Application-specific owner-drawn menu info struct. Owner-drawn data
+// is a pointer to one of these. MSAAMENUINFO must be the first
+// member.
 struct MenuEntry
 {
     MSAAMENUINFO m_MSAA;       // MSAA info - must be first element.

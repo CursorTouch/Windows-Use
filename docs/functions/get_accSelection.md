@@ -56,16 +56,16 @@ As with other [IAccessible](/en-us/windows/desktop/api/oleacc/nn-oleacc-iaccessi
 The following example code shows a possible implementation of this method for a custom single-selection list box. Its **GetSelectedIndex** method returns -1 if no item is selected.
 
 ```
-// m_pControl is the control that returns this accessible object. 
+// m_pControl is the control that returns this accessible object.
 
 HRESULT STDMETHODCALLTYPE AccServer::get_accSelection(VARIANT *pvarChildren)
 {
-    int childID = m_pControl->GetSelectedIndex() + 1; // Convert from 0-based. 
+    int childID = m_pControl->GetSelectedIndex() + 1; // Convert from 0-based.
     if (childID <= 0)
     {
         pvarChildren->vt = VT_EMPTY;
     }
-    else 
+    else
     {
         pvarChildren->vt = VT_I4;
         pvarChildren->lVal = childID;

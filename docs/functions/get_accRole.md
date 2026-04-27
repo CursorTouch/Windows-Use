@@ -52,7 +52,7 @@ Clients call [GetRoleText](/en-us/windows/desktop/api/oleacc/nf-oleacc-getrolete
 The following example code is a possible implementation of this method for a custom list box that maintains its own list items.
 
 ```
-HRESULT STDMETHODCALLTYPE AccServer::get_accRole( 
+HRESULT STDMETHODCALLTYPE AccServer::get_accRole(
     VARIANT varChild,
     VARIANT *pvarRole)
 {
@@ -86,7 +86,7 @@ HRESULT PrintRole(IAccessible* pAcc, long childId)
     DWORD roleId;
     if (pAcc == NULL)
     {
-        return E_INVALIDARG;    
+        return E_INVALIDARG;
     }
     VARIANT varChild;
     varChild.vt = VT_I4;
@@ -99,26 +99,26 @@ HRESULT PrintRole(IAccessible* pAcc, long childId)
         UINT   roleLength;
         LPTSTR lpszRoleString;
 
-        // Get the length of the string. 
+        // Get the length of the string.
         roleLength = GetRoleText(roleId, NULL, 0);
 
-        // Allocate memory for the string. Add one character to 
-        // the length you got in the previous call to make room 
-        // for the null character. 
+        // Allocate memory for the string. Add one character to
+        // the length you got in the previous call to make room
+        // for the null character.
         lpszRoleString = (LPTSTR)malloc((roleLength+1) * sizeof(TCHAR));
         if (lpszRoleString != NULL)
         {
-            // Get the string. 
+            // Get the string.
             GetRoleText(roleId, lpszRoleString, roleLength + 1);
 #ifdef UNICODE
             printf("Role: %S\n", lpszRoleString);
 #else
             printf(("Role: %s\n", lpszRoleString);
 #endif
-            // Free the allocated memory 
+            // Free the allocated memory
             free(lpszRoleString);
         }
-        else 
+        else
         {
             return E_OUTOFMEMORY;
         }

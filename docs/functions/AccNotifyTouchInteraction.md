@@ -47,16 +47,16 @@ When an AT is consuming touch data (such as when using the [RegisterPointerInput
 This code example shows how to call the **AccNotifyTouchInteraction** function.
 
 ```
-// pTargetElement is the element being interacted with by the user, hwndApp 
+// pTargetElement is the element being interacted with by the user, hwndApp
 // represents an HWND owned by the AT.
-HRESULT PerformTouchBasedInteraction(IUIAutomationElement *pTargetElement, 
+HRESULT PerformTouchBasedInteraction(IUIAutomationElement *pTargetElement,
         HWND hwndApp)
 {
     HRESULT hr = S_OK;
 
-    // Set the focus to the element and then notify the system that the 
-    // interaction is occurring due to a touch gesture. This would also apply 
-    // to pattern-based interactions (such as calls to 
+    // Set the focus to the element and then notify the system that the
+    // interaction is occurring due to a touch gesture. This would also apply
+    // to pattern-based interactions (such as calls to
     // IUIAutomationInvokePattern::Invoke)
     hr = pTargetElement->SetFocus();
     if (SUCCEEDED(hr))
@@ -65,14 +65,14 @@ HRESULT PerformTouchBasedInteraction(IUIAutomationElement *pTargetElement,
         POINT ptTarget;
         BOOL fGotClickablePoint;
 
-        // If the current element does not have a native window handle, an 
-        // alternate method (such as walking up the parent chain) is required 
+        // If the current element does not have a native window handle, an
+        // alternate method (such as walking up the parent chain) is required
         // to get the nearest valid HWND.
         hr = pTargetElement->get_CurrentNativeWindowHandle((UIA_HWND *)(&hwndTarget));
         if (SUCCEEDED(hr))
         {
-            // If the provider doesn't return a clickable point, an alternate 
-            // method (such as using the bounding rectangle) will be required 
+            // If the provider doesn't return a clickable point, an alternate
+            // method (such as using the bounding rectangle) will be required
             // to get the center point of the current element.
             hr = pTargetElement->GetClickablePoint(&ptTarget, &fGotClickablePoint);
         }

@@ -53,7 +53,7 @@ Servers expose elements as either elements (child IDs) or full objects ([IAccess
 The following example code shows an implementation for an object that does not have any children, or whose children are elements rather than objects.
 
 ```
-HRESULT STDMETHODCALLTYPE AccServer::get_accChild( 
+HRESULT STDMETHODCALLTYPE AccServer::get_accChild(
     VARIANT varChild,
     IDispatch **ppdispChild)
 {
@@ -62,8 +62,8 @@ HRESULT STDMETHODCALLTYPE AccServer::get_accChild(
         *ppdispChild = NULL;
         return E_INVALIDARG;
     }
-    *ppdispChild = NULL;    
-    return S_FALSE;     
+    *ppdispChild = NULL;
+    return S_FALSE;
 };
 ```
 

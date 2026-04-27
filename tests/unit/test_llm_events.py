@@ -6,8 +6,9 @@ from windows_use.providers.openai.llm import ChatOpenAI
 
 
 def make_provider(model: str) -> ChatOpenAI:
-    with patch("windows_use.providers.openai.llm.OpenAI"), patch(
-        "windows_use.providers.openai.llm.AsyncOpenAI"
+    with (
+        patch("windows_use.providers.openai.llm.OpenAI"),
+        patch("windows_use.providers.openai.llm.AsyncOpenAI"),
     ):
         return ChatOpenAI(model=model, api_key="test-key")
 

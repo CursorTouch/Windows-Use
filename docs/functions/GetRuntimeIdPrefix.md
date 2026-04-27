@@ -43,10 +43,10 @@ A provider typically calls this method as part of handling the [GetRuntimeId](/e
 The following C++ code example shows how to implement the **GetRuntimeIdPrefix** method.
 
 ```
-IFACEMETHODIMP CProviderWindowlessSite::GetRuntimeIdPrefix(   
-     SAFEARRAY **ppsaPrefix)   
-{   
-    if (ppsaPrefix == NULL) 
+IFACEMETHODIMP CProviderWindowlessSite::GetRuntimeIdPrefix(
+     SAFEARRAY **ppsaPrefix)
+{
+    if (ppsaPrefix == NULL)
     {
         return E_INVALIDARG;
     }
@@ -54,7 +54,7 @@ IFACEMETHODIMP CProviderWindowlessSite::GetRuntimeIdPrefix(
     // m_siteIndex is the index of the windowless control's
     // site. It is defined by the control container.
     int rId[] = { UiaAppendRuntimeId, m_siteIndex };
-    SAFEARRAY *psa = SafeArrayCreateVector(VT_I4, 0, 2);  
+    SAFEARRAY *psa = SafeArrayCreateVector(VT_I4, 0, 2);
     if (psa == NULL)
     {
         return E_OUTOFMEMORY;
@@ -65,8 +65,8 @@ IFACEMETHODIMP CProviderWindowlessSite::GetRuntimeIdPrefix(
         SafeArrayPutElement(psa, &i, (void*)&(rId[i]));
     }
 
-    *ppsaPrefix = psa;  
-    return S_OK;  
+    *ppsaPrefix = psa;
+    return S_OK;
 }
 ```
 

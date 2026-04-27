@@ -54,10 +54,10 @@ The actual state of a child often depends on the state of its ancestors. For exa
 The following example code shows a possible implementation of this method for a custom list box that maintains its own child elements (list items), only one of which can be selected at a time. If the client requests the state of the list box itself, the method passes the call to the standard accessible object that serves the control window. For child items, different flags are returned depending on whether the item is selected or not.
 
 ```
-// m_pStdAccessibleObject is the standard accessible object returned by CreateAccessibleObject. 
-// m_pControl is the custom control instance that returns this accessible object. 
+// m_pStdAccessibleObject is the standard accessible object returned by CreateAccessibleObject.
+// m_pControl is the custom control instance that returns this accessible object.
 
-HRESULT STDMETHODCALLTYPE AccServer::get_accState( 
+HRESULT STDMETHODCALLTYPE AccServer::get_accState(
     VARIANT varChild,
     VARIANT *pvarState)
 {
@@ -70,7 +70,7 @@ HRESULT STDMETHODCALLTYPE AccServer::get_accState(
     {
         return m_pStdAccessibleObject->get_accState(varChild, pvarState);
     }
-    else  // For list items. 
+    else  // For list items.
     {
         DWORD flags = STATE_SYSTEM_SELECTABLE;
         int index = (int)varChild.lVal - 1;
@@ -79,7 +79,7 @@ HRESULT STDMETHODCALLTYPE AccServer::get_accState(
             flags |= STATE_SYSTEM_SELECTED;
         }
         pvarState->vt = VT_I4;
-        pvarState->lVal = flags; 
+        pvarState->lVal = flags;
     }
     return S_OK;
 };
@@ -94,7 +94,7 @@ HRESULT PrintState(IAccessible* pAcc, long childId)
 {
     if (pAcc == NULL)
     {
-        return E_INVALIDARG;    
+        return E_INVALIDARG;
     }
     VARIANT      varChild;
     varChild.vt = VT_I4;
@@ -111,19 +111,19 @@ HRESULT PrintState(IAccessible* pAcc, long childId)
             if (mask & stateBits)
             {
 
-                // Get the length of the string. 
+                // Get the length of the string.
                 UINT stateLength = GetStateText(mask, NULL, 0);
 
-                // Allocate memory for the string. Add one character to 
-                // the length you got in the previous call to make room 
-                // for the null character. 
+                // Allocate memory for the string. Add one character to
+                // the length you got in the previous call to make room
+                // for the null character.
                 LPTSTR lpszStateString = (LPTSTR)malloc(
                     (stateLength + 1) * sizeof(TCHAR));
                 if (lpszStateString != NULL)
                 {
-                    // Get the string. 
-                    GetStateText(mask, 
-                        lpszStateString, stateLength + 1); 
+                    // Get the string.
+                    GetStateText(mask,
+                        lpszStateString, stateLength + 1);
 #ifdef UNICODE
                     printf("%S\n", lpszStateString);
 #else
@@ -132,7 +132,7 @@ HRESULT PrintState(IAccessible* pAcc, long childId)
                     // Free the allocated memory
                     free(lpszStateString);
                 }
-                else 
+                else
                 {
                     return E_OUTOFMEMORY;
                 }

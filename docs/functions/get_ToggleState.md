@@ -26,7 +26,7 @@ None
 
 ## Remarks
 
-A control must cycle through its [ToggleState](/en-us/windows/desktop/api/uiautomationcore/ne-uiautomationcore-togglestate) in this order:  
+A control must cycle through its [ToggleState](/en-us/windows/desktop/api/uiautomationcore/ne-uiautomationcore-togglestate) in this order:
 **ToggleState\_On**, **ToggleState\_Off**
 and, if supported, **ToggleState\_Indeterminate**.
 

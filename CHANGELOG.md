@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.4] - 2026-01-30
 
 ### Changed
-- **Performance Optimization**: 
+- **Performance Optimization**:
   - Significant improvement in **Tree Traversal speed** (0.2-0.8s).
   - **Desktop State Capture** optimized to (0.4-1.0s).
   - Reduced computation expense by removing reliance on the root level children.

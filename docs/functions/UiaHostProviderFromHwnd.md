@@ -47,7 +47,7 @@ this provider.
 ```
 HRESULT STDMETHODCALLTYPE Provider::get_HostRawElementProvider(IRawElementProviderSimple** pRetVal)
 {
-    return UiaHostProviderFromHwnd(controlHWnd, pRetVal); 
+    return UiaHostProviderFromHwnd(controlHWnd, pRetVal);
 }
 ```
 

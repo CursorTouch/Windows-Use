@@ -6,7 +6,7 @@
 
 Implemented by clients to return information about the local object.
 
-**Note**  Active Accessibility Text Services is deprecated. Please see  
+**Note**  Active Accessibility Text Services is deprecated. Please see
 [Microsoft Windows Text Services Framework](/en-us/windows/win32/tsf/text-services-framework) for more information on advanced text input and natural language technologies.
 
 ## Syntax

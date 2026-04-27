@@ -6,7 +6,7 @@
 
 Clients call **ICoCreateLocally::CoCreateLocally** to create a helper object in the same context as the server object. This allows clients to increase performance because they are running in the server application.
 
-**Note**  Active Accessibility Text Services is deprecated. Please see  
+**Note**  Active Accessibility Text Services is deprecated. Please see
 [Microsoft Windows Text Services Framework](/en-us/windows/win32/tsf/text-services-framework) for more information on advanced text input and natural language technologies.
 
 ## Syntax
