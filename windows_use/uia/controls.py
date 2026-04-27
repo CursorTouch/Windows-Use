@@ -312,7 +312,7 @@ class Control:
         """Get the cached control type name."""
         try:
             return ControlTypeNames.get(self.CachedControlType, "Unknown")
-        except:
+        except Exception:
             return "Unknown"
 
     @property

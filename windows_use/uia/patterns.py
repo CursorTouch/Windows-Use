@@ -95,79 +95,79 @@ def GetPatternIdInterface(patternId: int):
             _PatternIdInterfaces[PatternId.AnnotationPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationAnnotationPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.CustomNavigationPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationCustomNavigationPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.DragPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationDragPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.DropTargetPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationDropTargetPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.ObjectModelPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationObjectModelPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.SpreadsheetItemPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationSpreadsheetItemPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.SpreadsheetPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationSpreadsheetPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.StylesPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationStylesPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.SelectionPattern2] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationSelectionPattern2
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.TextChildPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationTextChildPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.TextEditPattern] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationTextEditPattern
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.TextPattern2] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationTextPattern2
             )
-        except:
+        except Exception:
             pass
         try:
             _PatternIdInterfaces[PatternId.TransformPattern2] = (
                 _AutomationClient.instance().UIAutomationCore.IUIAutomationTransformPattern2
             )
-        except:
+        except Exception:
             pass
     return _PatternIdInterfaces[patternId]
 
@@ -387,7 +387,7 @@ class ExpandCollapsePattern:
             ret = self.pattern.Collapse() == S_OK
             time.sleep(waitTime)
             return ret
-        except:
+        except Exception:
             pass
         return False
 
@@ -402,7 +402,7 @@ class ExpandCollapsePattern:
             ret = self.pattern.Expand() == S_OK
             time.sleep(waitTime)
             return ret
-        except:
+        except Exception:
             pass
         return False
 
