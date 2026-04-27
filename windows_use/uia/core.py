@@ -1033,7 +1033,7 @@ def DwmIsCompositionEnabled() -> bool:
             return bool(isEnabled.value)
         else:
             return False
-    except:
+    except Exception:
         return False
 
 
@@ -1056,7 +1056,7 @@ def DwmGetWindowExtendFrameBounds(handle: int) -> Rect | None:
         if hr == S_OK:
             return Rect(rect.left, rect.top, rect.right, rect.bottom)
         return None
-    except:
+    except Exception:
         return None
 
 
@@ -1418,7 +1418,7 @@ def SendKeys(
                 if hold:
                     if upperKey in SpecialKeyNames:
                         keyValue = SpecialKeyNames[upperKey]
-                        if type(lastKeyValue) == type(keyValue) and lastKeyValue == keyValue:
+                        if type(lastKeyValue) is type(keyValue) and lastKeyValue == keyValue:
                             insertIndex += 1
                         printKeys.insert(insertIndex, (key[0], "KeyDown | ExtendedKey"))
                         printKeys.insert(insertIndex + 1, (key[0], "KeyUp | ExtendedKey"))
@@ -1433,7 +1433,7 @@ def SendKeys(
                         lastKeyValue = keyValue
                     elif key[0] in CharacterCodes:
                         keyValue = CharacterCodes[key[0]]
-                        if type(lastKeyValue) == type(keyValue) and lastKeyValue == keyValue:
+                        if type(lastKeyValue) is type(keyValue) and lastKeyValue == keyValue:
                             insertIndex += 1
                         printKeys.insert(insertIndex, (key[0], "KeyDown | ExtendedKey"))
                         printKeys.insert(insertIndex + 1, (key[0], "KeyUp | ExtendedKey"))
@@ -1502,7 +1502,7 @@ def SendKeys(
                     keyValue = CharacterCodes[text[i]]
                     if (
                         include
-                        and type(lastKeyValue) == type(keyValue)
+                        and type(lastKeyValue) is type(keyValue)
                         and lastKeyValue == keyValue
                     ):
                         insertIndex += 1
@@ -1773,7 +1773,7 @@ def GetProcesses(detailedInfo: bool = True) -> list[ProcessInfo]:
                             ctypes.windll.psapi.GetModuleFileNameExW(
                                 hProcess, hModule, exePath, len(exePath)
                             )
-                        except:
+                        except Exception:
                             # strlen =
                             ctypes.windll.kernel32.GetModuleFileNameExW(
                                 hProcess, hModule, exePath, len(exePath)
