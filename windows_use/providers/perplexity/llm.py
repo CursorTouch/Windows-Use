@@ -94,41 +94,51 @@ class ChatPerplexity:
                 if msg.content:
                     content_parts.append({"type": "input_text", "text": msg.content})
                 for b64 in msg.convert_images("base64"):
-                    content_parts.append({
-                        "type": "input_image",
-                        "image_url": f"data:{msg.mime_type};base64,{b64}",
-                    })
+                    content_parts.append(
+                        {
+                            "type": "input_image",
+                            "image_url": f"data:{msg.mime_type};base64,{b64}",
+                        }
+                    )
                 input_msgs.append({"role": "user", "content": content_parts})
 
             elif isinstance(msg, HumanMessage):
-                input_msgs.append({
-                    "role": "user",
-                    "content": [{"type": "input_text", "text": msg.content or ""}],
-                })
+                input_msgs.append(
+                    {
+                        "role": "user",
+                        "content": [{"type": "input_text", "text": msg.content or ""}],
+                    }
+                )
 
             elif isinstance(msg, AIMessage):
                 text = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
-                input_msgs.append({
-                    "role": "assistant",
-                    "content": [{"type": "output_text", "text": text or ""}],
-                })
+                input_msgs.append(
+                    {
+                        "role": "assistant",
+                        "content": [{"type": "output_text", "text": text or ""}],
+                    }
+                )
 
             elif isinstance(msg, ToolMessage):
                 # A ToolMessage represents a prior tool call + its result.
                 # In the Responses API format this is two items:
                 #   1. function_call  (the model's call)
                 #   2. function_call_output  (the tool's result)
-                input_msgs.append({
-                    "type": "function_call",
-                    "name": msg.name,
-                    "arguments": json.dumps(msg.params),
-                    "call_id": msg.id,
-                })
-                input_msgs.append({
-                    "type": "function_call_output",
-                    "call_id": msg.id,
-                    "output": msg.content or "",
-                })
+                input_msgs.append(
+                    {
+                        "type": "function_call",
+                        "name": msg.name,
+                        "arguments": json.dumps(msg.params),
+                        "call_id": msg.id,
+                    }
+                )
+                input_msgs.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": msg.id,
+                        "output": msg.content or "",
+                    }
+                )
 
         return instructions, input_msgs
 
@@ -143,12 +153,14 @@ class ChatPerplexity:
         result = []
         for tool in tools:
             schema = self.sanitize_schema(tool.json_schema)
-            result.append({
-                "type": "function",
-                "name": schema["name"],
-                "description": schema.get("description", ""),
-                "parameters": schema["parameters"],
-            })
+            result.append(
+                {
+                    "type": "function",
+                    "name": schema["name"],
+                    "description": schema.get("description", ""),
+                    "parameters": schema["parameters"],
+                }
+            )
         return result
 
     def sanitize_schema(self, tool_schema: dict) -> dict:
@@ -217,9 +229,7 @@ class ChatPerplexity:
             data["tools"] = self._convert_tools(tools)
 
         if self._model_info.get("reasoning_support", False):
-            data["reasoning"] = {
-                "effort": self._model_info.get("reasoning_effort", "low")
-            }
+            data["reasoning"] = {"effort": self._model_info.get("reasoning_effort", "low")}
 
         return data
 
@@ -308,7 +318,9 @@ class ChatPerplexity:
         # Perplexity Agent API: fall back to non-streaming
         event = self.invoke(messages, tools, structured_output, json_mode)
         if event.type == LLMEventType.TOOL_CALL:
-            yield LLMStreamEvent(type=LLMStreamEventType.TOOL_CALL, tool_call=event.tool_call, usage=event.usage)
+            yield LLMStreamEvent(
+                type=LLMStreamEventType.TOOL_CALL, tool_call=event.tool_call, usage=event.usage
+            )
         else:
             yield LLMStreamEvent(type=LLMStreamEventType.TEXT_START, content="")
             yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=event.content or "")
@@ -323,7 +335,9 @@ class ChatPerplexity:
     ) -> AsyncIterator[LLMStreamEvent]:
         event = await self.ainvoke(messages, tools, structured_output, json_mode)
         if event.type == LLMEventType.TOOL_CALL:
-            yield LLMStreamEvent(type=LLMStreamEventType.TOOL_CALL, tool_call=event.tool_call, usage=event.usage)
+            yield LLMStreamEvent(
+                type=LLMStreamEventType.TOOL_CALL, tool_call=event.tool_call, usage=event.usage
+            )
         else:
             yield LLMStreamEvent(type=LLMStreamEventType.TEXT_START, content="")
             yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=event.content or "")

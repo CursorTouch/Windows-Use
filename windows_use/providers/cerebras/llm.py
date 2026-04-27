@@ -29,6 +29,7 @@ from windows_use.tools import Tool
 
 logger = logging.getLogger(__name__)
 
+
 class ChatCerebras(BaseChatLLM):
     """
     Cerebras LLM implementation following the BaseChatLLM protocol.
@@ -42,7 +43,7 @@ class ChatCerebras(BaseChatLLM):
         timeout: float = 60.0,
         max_retries: int = 2,
         temperature: float | None = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the Cerebras LLM.
@@ -115,10 +116,12 @@ class ChatCerebras(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content_list.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"}
-                    })
+                    content_list.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
+                        }
+                    )
                 cerebras_messages.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 thinking = getattr(msg, "thinking", None)
@@ -129,34 +132,21 @@ class ChatCerebras(BaseChatLLM):
                 tool_call = {
                     "id": msg.id,
                     "type": "function",
-                    "function": {
-                        "name": msg.name,
-                        "arguments": json.dumps(msg.params)
-                    }
+                    "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
-                cerebras_messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [tool_call]
-                })
-                cerebras_messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.id,
-                    "content": msg.content or ""
-                })
+                cerebras_messages.append(
+                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                )
+                cerebras_messages.append(
+                    {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
+                )
         return cerebras_messages
 
     def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to Cerebras-compatible tool definitions.
         """
-        return [
-            {
-                "type": "function",
-                "function": tool.json_schema
-            }
-            for tool in tools
-        ]
+        return [{"type": "function", "function": tool.json_schema} for tool in tools]
 
     def _process_response(self, response: Any) -> LLMEvent:
         """
@@ -174,7 +164,8 @@ class ChatCerebras(BaseChatLLM):
                 getattr(usage_data, "completion_tokens_details", None),
                 "reasoning_tokens",
                 None,
-            ) or getattr(
+            )
+            or getattr(
                 getattr(usage_data, "completion_tokens_details", None),
                 "thinking_tokens",
                 None,
@@ -185,7 +176,7 @@ class ChatCerebras(BaseChatLLM):
         thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
 
         content = None
-        if hasattr(message, 'tool_calls') and message.tool_calls:
+        if hasattr(message, "tool_calls") and message.tool_calls:
             tool_call = message.tool_calls[0]
             try:
                 params = json.loads(tool_call.function.arguments)
@@ -194,31 +185,39 @@ class ChatCerebras(BaseChatLLM):
 
             content = LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                usage=usage,
             )
         else:
-            content = LLMEvent(type=LLMEventType.TEXT, content=message.content or "", thinking=thinking_obj, usage=usage)
+            content = LLMEvent(
+                type=LLMEventType.TEXT,
+                content=message.content or "",
+                thinking=thinking_obj,
+                usage=usage,
+            )
 
         return content
 
     @overload
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": cerebras_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": cerebras_messages, **self.kwargs}
 
         # Only add tools if they exist
         if cerebras_tools:
@@ -255,7 +254,13 @@ class ChatCerebras(BaseChatLLM):
                     total_tokens=response.usage.total_tokens,
                     thinking_tokens=thinking_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content_dump) if isinstance(content_dump, dict) else str(content_dump), usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content_dump)
+                    if isinstance(content_dump, dict)
+                    else str(content_dump),
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 # Fall through to normal response processing
@@ -263,18 +268,25 @@ class ChatCerebras(BaseChatLLM):
         return self._process_response(response)
 
     @overload
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": cerebras_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": cerebras_messages, **self.kwargs}
 
         if cerebras_tools:
             params["tools"] = cerebras_tools
@@ -300,17 +312,34 @@ class ChatCerebras(BaseChatLLM):
                     completion_tokens=response.usage.completion_tokens,
                     total_tokens=response.usage.total_tokens,
                 )
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content_dump) if isinstance(content_dump, dict) else str(content_dump), usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content_dump)
+                    if isinstance(content_dump, dict)
+                    else str(content_dump),
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
 
         return self._process_response(response)
 
     @overload
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
-        ...
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]: ...
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
 
@@ -318,7 +347,7 @@ class ChatCerebras(BaseChatLLM):
             "model": self._model,
             "messages": cerebras_messages,
             "stream": True,
-            **self.kwargs
+            **self.kwargs,
         }
 
         if cerebras_tools:
@@ -383,7 +412,7 @@ class ChatCerebras(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
 
             # Accumulate tool call deltas
-            if hasattr(delta, 'tool_calls') and delta.tool_calls:
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
@@ -402,12 +431,8 @@ class ChatCerebras(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -416,10 +441,21 @@ class ChatCerebras(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_END, usage=usage)
 
     @overload
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
-        ...
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]: ...
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]:
         cerebras_messages = self._convert_messages(messages)
         cerebras_tools = self._convert_tools(tools) if tools else None
 
@@ -427,7 +463,7 @@ class ChatCerebras(BaseChatLLM):
             "model": self._model,
             "messages": cerebras_messages,
             "stream": True,
-            **self.kwargs
+            **self.kwargs,
         }
 
         if cerebras_tools:
@@ -492,7 +528,7 @@ class ChatCerebras(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
 
             # Accumulate tool call deltas
-            if hasattr(delta, 'tool_calls') and delta.tool_calls:
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
@@ -511,12 +547,8 @@ class ChatCerebras(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -528,5 +560,5 @@ class ChatCerebras(BaseChatLLM):
         return Metadata(
             name=self._model,
             context_window=8192,  # Typical for llama3 on Cerebras, can be adjusted
-            owned_by="cerebras"
+            owned_by="cerebras",
         )

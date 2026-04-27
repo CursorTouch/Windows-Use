@@ -61,15 +61,18 @@ def _strip_markdown(text: str) -> str:
     t = re.sub(r"^\s*\d+\.\s+", "", t, flags=re.MULTILINE)
     return re.sub(r"\n{3,}", "\n\n", t).strip()
 
+
 app = typer.Typer(
     name="windows-use",
     help="Windows-Use: Computer-Use for Windows OS.",
     invoke_without_command=True,
 )
 
+
 def _version() -> str:
     try:
         from importlib.metadata import version
+
         return version("windows-use")
     except Exception:
         return "0.0.0"
@@ -217,12 +220,14 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
     if stt_provider:
         try:
             from windows_use.speech import STT
+
             stt_instance = STT(provider=stt_provider, verbose=False)
         except ImportError:
             stt_provider = None
     if tts_provider:
         try:
             from windows_use.speech import TTS
+
             tts_instance = TTS(provider=tts_provider, verbose=False)
         except ImportError:
             tts_provider = None
@@ -296,6 +301,7 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
         if task.lower() in ("key", "\\key"):
             try:
                 from windows_use.cli.setup import run_key_change
+
                 if run_key_change():
                     active_config = get_active_config()
                     base_url = active_config.get("base_url") if active_config else None
@@ -311,7 +317,9 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
                     )
                     typer.secho("API key updated and applied.", fg="green")
                 else:
-                    typer.secho("No providers with API keys configured. Use \\llm first.", fg="yellow")
+                    typer.secho(
+                        "No providers with API keys configured. Use \\llm first.", fg="yellow"
+                    )
             except KeyboardInterrupt:
                 pass
             continue
@@ -323,25 +331,34 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
                     create_tts_provider,
                     run_speech_setup,
                 )
+
                 run_speech_setup(initial_setup=False)
                 stt_provider = create_stt_provider()
                 tts_provider = create_tts_provider()
                 if stt_provider:
                     try:
                         from windows_use.speech import STT
+
                         stt_instance = STT(provider=stt_provider, verbose=False)
                     except ImportError:
                         stt_instance = None
-                        typer.secho("Install pyaudio for voice input: uv add windows-use[speech]", fg="yellow")
+                        typer.secho(
+                            "Install pyaudio for voice input: uv add windows-use[speech]",
+                            fg="yellow",
+                        )
                 else:
                     stt_instance = None
                 if tts_provider:
                     try:
                         from windows_use.speech import TTS
+
                         tts_instance = TTS(provider=tts_provider, verbose=False)
                     except ImportError:
                         tts_instance = None
-                        typer.secho("Install pyaudio for spoken responses: uv add windows-use[speech]", fg="yellow")
+                        typer.secho(
+                            "Install pyaudio for spoken responses: uv add windows-use[speech]",
+                            fg="yellow",
+                        )
                 else:
                     tts_instance = None
                 # Recreate agent so it picks up new TTS callback
@@ -361,7 +378,9 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
 
         if task.lower() in ("voice", "\\voice"):
             if stt_instance is None:
-                typer.secho("Speech-to-Text not configured. Use \\speech to set it up.", fg="yellow")
+                typer.secho(
+                    "Speech-to-Text not configured. Use \\speech to set it up.", fg="yellow"
+                )
                 continue
             try:
                 # Clear the "> \voice" line and show recording on same line
@@ -454,7 +473,9 @@ def _run_interactive(provider: str, model: str, max_steps: int, debug: bool = Fa
                 event_subscriber=event_subscriber,
             )
         import asyncio
+
         result = asyncio.run(agent.ainvoke(task=task))
+
 
 def main() -> None:
     """Entry point for the console script."""

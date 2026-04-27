@@ -13,18 +13,40 @@ class TestTreeConfig:
 
     def test_interactive_control_type_names_content(self):
         expected_names = {
-            'ButtonControl', 'ListItemControl', 'MenuItemControl', 'EditControl',
-            'CheckBoxControl', 'RadioButtonControl', 'DocumentControl', 'ComboBoxControl',
-            'HyperlinkControl', 'SplitButtonControl', 'TabItemControl',
-            'TreeItemControl', 'DataItemControl', 'HeaderItemControl',
-            'TextBoxControl', 'SpinnerControl', 'ScrollBarControl', 'SliderControl'
+            "ButtonControl",
+            "ListItemControl",
+            "MenuItemControl",
+            "EditControl",
+            "CheckBoxControl",
+            "RadioButtonControl",
+            "DocumentControl",
+            "ComboBoxControl",
+            "HyperlinkControl",
+            "SplitButtonControl",
+            "TabItemControl",
+            "TreeItemControl",
+            "DataItemControl",
+            "HeaderItemControl",
+            "TextBoxControl",
+            "SpinnerControl",
+            "ScrollBarControl",
+            "SliderControl",
         }
         assert INTERACTIVE_CONTROL_TYPE_NAMES == expected_names
 
     def test_default_actions_content(self):
-        expected_actions = {'Click', 'Press', 'Jump', 'Check', 'Uncheck', 'Double Click', 'Expand', 'Collapse'}
+        expected_actions = {
+            "Click",
+            "Press",
+            "Jump",
+            "Check",
+            "Uncheck",
+            "Double Click",
+            "Expand",
+            "Collapse",
+        }
         assert DEFAULT_ACTIONS == expected_actions
 
     def test_informative_control_type_names_content(self):
-        expected_names = {'TextControl', 'ImageControl', 'StatusBarControl'}
+        expected_names = {"TextControl", "ImageControl", "StatusBarControl"}
         assert INFORMATIVE_CONTROL_TYPE_NAMES == expected_names

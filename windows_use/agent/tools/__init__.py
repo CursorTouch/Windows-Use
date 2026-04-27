@@ -28,7 +28,7 @@ BUILTIN_TOOLS = [
     move_tool,
     wait_tool,
     scrape_tool,
-    desktop_tool
+    desktop_tool,
 ]
 
 EXPERIMENTAL_TOOLS = [

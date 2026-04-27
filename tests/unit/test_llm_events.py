@@ -30,13 +30,14 @@ def create_mock_chunk(content=None, tool_calls=None, reasoning=None):
     chunk.usage = None
     return chunk
 
+
 def test_stream_text_only():
     provider = ChatOpenAI(model="gpt-4o")
 
     mock_chunks = [
         create_mock_chunk(content="Hello"),
         create_mock_chunk(content=" world"),
-        create_mock_chunk(content="!")
+        create_mock_chunk(content="!"),
     ]
 
     provider.client.chat.completions.create = MagicMock(return_value=mock_chunks)
@@ -50,13 +51,16 @@ def test_stream_text_only():
     assert events[3] == LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content="!")
     assert events[4] == LLMStreamEvent(type=LLMStreamEventType.TEXT_END)
 
+
 def test_stream_tool_only():
     provider = ChatOpenAI(model="gpt-4o")
 
     mock_chunks = [
-        create_mock_chunk(tool_calls=[{"id": "call_123", "name": "my_tool", "arguments": '{"arg"'} ]),
-        create_mock_chunk(tool_calls=[{"id": None, "name": None, "arguments": ':"val"'} ]),
-        create_mock_chunk(tool_calls=[{"id": None, "name": None, "arguments": '}'} ])
+        create_mock_chunk(
+            tool_calls=[{"id": "call_123", "name": "my_tool", "arguments": '{"arg"'}]
+        ),
+        create_mock_chunk(tool_calls=[{"id": None, "name": None, "arguments": ':"val"'}]),
+        create_mock_chunk(tool_calls=[{"id": None, "name": None, "arguments": "}"}]),
     ]
 
     provider.client.chat.completions.create = MagicMock(return_value=mock_chunks)
@@ -69,6 +73,7 @@ def test_stream_tool_only():
     assert events[0].tool_call.id == "call_123"
     assert events[0].tool_call.name == "my_tool"
     assert events[0].tool_call.params == {"arg": "val"}
+
 
 def test_stream_thinking_then_text():
     provider = ChatOpenAI(model="o3-mini")

@@ -116,13 +116,9 @@ class TTSDeepgram(BaseTTS):
         speak_input = {"text": text}
 
         if self.encoding == "linear16":
-            response = await self.client.speak.asyncrest.v("1").stream(
-                speak_input, options
-            )
+            response = await self.client.speak.asyncrest.v("1").stream(speak_input, options)
             self._save_pcm_as_wav(response.stream.read(), output_path)
         else:
-            await self.client.speak.asyncrest.v("1").save(
-                output_path, speak_input, options
-            )
+            await self.client.speak.asyncrest.v("1").save(output_path, speak_input, options)
 
         logger.debug(f"[TTSDeepgram] Async audio saved to {output_path}")

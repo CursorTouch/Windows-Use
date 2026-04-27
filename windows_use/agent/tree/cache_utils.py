@@ -95,6 +95,7 @@ class CacheRequestFactory:
 
         return cache_request
 
+
 class CachedControlHelper:
     """Helper class for working with cached controls."""
 
@@ -122,7 +123,9 @@ class CachedControlHelper:
             return node
 
     @staticmethod
-    def get_cached_children(node: Control, cache_request: CacheRequest | None = None) -> list[Control]:
+    def get_cached_children(
+        node: Control, cache_request: CacheRequest | None = None
+    ) -> list[Control]:
         """
         Get children with pre-cached properties.
 

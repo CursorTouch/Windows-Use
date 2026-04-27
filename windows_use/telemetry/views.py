@@ -11,19 +11,19 @@ class BaseTelemetryEvent(ABC):
         pass
 
     @property
-    def properties(self) -> dict[str,Any]:
+    def properties(self) -> dict[str, Any]:
         return {k: v for k, v in asdict(self).items()}
+
 
 @dataclass
 class AgentTelemetryEvent(BaseTelemetryEvent):
     query: str
     steps: int
     max_steps: int
-    model:str
-    provider:str
-    use_vision:bool=False
-    answer: str | None=None
-    error: str | None=None
+    model: str
+    provider: str
+    use_vision: bool = False
+    answer: str | None = None
+    error: str | None = None
     event_name: str = "agent_event"
-    is_success:bool=False
-
+    is_success: bool = False

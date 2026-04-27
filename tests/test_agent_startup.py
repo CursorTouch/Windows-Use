@@ -4,6 +4,7 @@ import time
 def log(msg):
     print(f"[DEBUG] {time.time():.3f}: {msg}", flush=True)
 
+
 log("Starting main.py debug...")
 
 log("Importing load_dotenv...")
@@ -29,10 +30,12 @@ from windows_use.agent import Agent, Browser  # noqa: E402
 def main():
     log("Inside main()...")
     log("Initializing ChatGoogle...")
-    llm=ChatGoogle(model="gemini-2.5-flash-lite",thinking_budget=0, temperature=0.7)
+    llm = ChatGoogle(model="gemini-2.5-flash-lite", thinking_budget=0, temperature=0.7)
 
     log("Initializing Agent...")
-    agent = Agent(llm=llm, browser=Browser.EDGE, use_vision=False,use_annotation=False, auto_minimize=False)
+    agent = Agent(
+        llm=llm, browser=Browser.EDGE, use_vision=False, use_annotation=False, auto_minimize=False
+    )
 
     log("Agent initialized. Calling input()...")
     # In a real run, this would be input()
@@ -46,6 +49,7 @@ def main():
     log("Calling agent.print_response...")
     agent.print_response(query=query)
     log("Done.")
+
 
 if __name__ == "__main__":
     main()

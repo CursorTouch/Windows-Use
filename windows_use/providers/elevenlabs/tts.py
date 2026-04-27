@@ -123,9 +123,7 @@ class TTSElevenLabs(BaseTTS):
         audio_iterator = self.client.text_to_speech.convert(**kwargs)
 
         # Collect all audio bytes from the iterator
-        audio_bytes = b"".join(
-            chunk for chunk in audio_iterator if isinstance(chunk, bytes)
-        )
+        audio_bytes = b"".join(chunk for chunk in audio_iterator if isinstance(chunk, bytes))
 
         if self.output_format.startswith("pcm_"):
             self._save_pcm_as_wav(audio_bytes, output_path)
@@ -155,9 +153,7 @@ class TTSElevenLabs(BaseTTS):
         audio_iterator = await self.aclient.text_to_speech.convert(**kwargs)
 
         # Collect all audio bytes from the async iterator
-        audio_bytes = b"".join(
-            chunk for chunk in audio_iterator if isinstance(chunk, bytes)
-        )
+        audio_bytes = b"".join(chunk for chunk in audio_iterator if isinstance(chunk, bytes))
 
         if self.output_format.startswith("pcm_"):
             self._save_pcm_as_wav(audio_bytes, output_path)

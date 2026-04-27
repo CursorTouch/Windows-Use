@@ -29,6 +29,7 @@ from windows_use.tools import Tool
 
 logger = logging.getLogger(__name__)
 
+
 class ChatOpenAI(BaseChatLLM):
     """
     OpenAI LLM implementation following the BaseChatLLM protocol.
@@ -50,7 +51,7 @@ class ChatOpenAI(BaseChatLLM):
         timeout: float = 600.0,
         max_retries: int = 2,
         temperature: float | None = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the OpenAI LLM.
@@ -112,10 +113,12 @@ class ChatOpenAI(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content_list.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"}
-                    })
+                    content_list.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
+                        }
+                    )
                 openai_messages.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 # Handle AIMessage with potential thinking content
@@ -131,34 +134,21 @@ class ChatOpenAI(BaseChatLLM):
                 tool_call = {
                     "id": msg.id,
                     "type": "function",
-                    "function": {
-                        "name": msg.name,
-                        "arguments": json.dumps(msg.params)
-                    }
+                    "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
-                openai_messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [tool_call]
-                })
-                openai_messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.id,
-                    "content": msg.content or ""
-                })
+                openai_messages.append(
+                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                )
+                openai_messages.append(
+                    {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
+                )
         return openai_messages
 
     def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to OpenAI-compatible tool definitions.
         """
-        return [
-            {
-                "type": "function",
-                "function": tool.json_schema
-            }
-            for tool in tools
-        ]
+        return [{"type": "function", "function": tool.json_schema} for tool in tools]
 
     def _process_response(self, response: Any) -> LLMEvent:
         """
@@ -170,12 +160,13 @@ class ChatOpenAI(BaseChatLLM):
 
         # Capture reasoning tokens if available (o1 models)
         thinking_tokens = None
-        if hasattr(usage_data, "completion_tokens_details") and usage_data.completion_tokens_details:
+        if (
+            hasattr(usage_data, "completion_tokens_details")
+            and usage_data.completion_tokens_details
+        ):
             thinking_tokens = getattr(
                 usage_data.completion_tokens_details, "reasoning_tokens", None
-            ) or getattr(
-                usage_data.completion_tokens_details, "thinking_tokens", None
-            )
+            ) or getattr(usage_data.completion_tokens_details, "thinking_tokens", None)
             if thinking_tokens is not None:
                 logger.debug(f"Reasoning tokens used: {thinking_tokens}")
 
@@ -204,28 +195,36 @@ class ChatOpenAI(BaseChatLLM):
                 params = {}
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                usage=usage,
             )
-        return LLMEvent(type=LLMEventType.TEXT, content=message.content or "", thinking=thinking_obj, usage=usage)
+        return LLMEvent(
+            type=LLMEventType.TEXT,
+            content=message.content or "",
+            thinking=thinking_obj,
+            usage=usage,
+        )
 
     @overload
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    def invoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": openai_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": openai_messages, **self.kwargs}
 
         # Only add tools if they exist
         if openai_tools:
@@ -243,12 +242,13 @@ class ChatOpenAI(BaseChatLLM):
             )
 
             thinking_tokens = None
-            if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+            if (
+                hasattr(response.usage, "completion_tokens_details")
+                and response.usage.completion_tokens_details
+            ):
                 thinking_tokens = getattr(
                     response.usage.completion_tokens_details, "reasoning_tokens", None
-                ) or getattr(
-                    response.usage.completion_tokens_details, "thinking_tokens", None
-                )
+                ) or getattr(response.usage.completion_tokens_details, "thinking_tokens", None)
 
             TokenUsage(
                 prompt_tokens=response.usage.prompt_tokens,
@@ -258,7 +258,10 @@ class ChatOpenAI(BaseChatLLM):
             )
             parsed = response.choices[0].message.parsed
             content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
-            return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content)
+            return LLMEvent(
+                type=LLMEventType.TEXT,
+                content=json.dumps(content) if isinstance(content, dict) else content,
+            )
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
@@ -267,18 +270,25 @@ class ChatOpenAI(BaseChatLLM):
         return self._process_response(response)
 
     @overload
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
-        ...
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent: ...
 
-    async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
+    async def ainvoke(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
-        params = {
-            "model": self._model,
-            "messages": openai_messages,
-            **self.kwargs
-        }
+        params = {"model": self._model, "messages": openai_messages, **self.kwargs}
 
         if openai_tools:
             params["tools"] = openai_tools
@@ -293,12 +303,13 @@ class ChatOpenAI(BaseChatLLM):
             )
 
             thinking_tokens = None
-            if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+            if (
+                hasattr(response.usage, "completion_tokens_details")
+                and response.usage.completion_tokens_details
+            ):
                 thinking_tokens = getattr(
                     response.usage.completion_tokens_details, "reasoning_tokens", None
-                ) or getattr(
-                    response.usage.completion_tokens_details, "thinking_tokens", None
-                )
+                ) or getattr(response.usage.completion_tokens_details, "thinking_tokens", None)
 
             usage = TokenUsage(
                 prompt_tokens=response.usage.prompt_tokens,
@@ -308,7 +319,11 @@ class ChatOpenAI(BaseChatLLM):
             )
             parsed = response.choices[0].message.parsed
             content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
-            return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
+            return LLMEvent(
+                type=LLMEventType.TEXT,
+                content=json.dumps(content) if isinstance(content, dict) else content,
+                usage=usage,
+            )
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
@@ -317,10 +332,21 @@ class ChatOpenAI(BaseChatLLM):
         return self._process_response(response)
 
     @overload
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
-        ...
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]: ...
 
-    def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
+    def stream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> Iterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
@@ -329,7 +355,7 @@ class ChatOpenAI(BaseChatLLM):
             "messages": openai_messages,
             "stream": True,
             "stream_options": {"include_usage": True},
-            **self.kwargs
+            **self.kwargs,
         }
 
         if openai_tools:
@@ -358,12 +384,13 @@ class ChatOpenAI(BaseChatLLM):
                 # Final chunk with usage
                 if chunk.usage:
                     thinking_tokens = None
-                    if hasattr(chunk.usage, "completion_tokens_details") and chunk.usage.completion_tokens_details:
+                    if (
+                        hasattr(chunk.usage, "completion_tokens_details")
+                        and chunk.usage.completion_tokens_details
+                    ):
                         thinking_tokens = getattr(
                             chunk.usage.completion_tokens_details, "reasoning_tokens", None
-                        ) or getattr(
-                            chunk.usage.completion_tokens_details, "thinking_tokens", None
-                        )
+                        ) or getattr(chunk.usage.completion_tokens_details, "thinking_tokens", None)
 
                     usage = TokenUsage(
                         prompt_tokens=chunk.usage.prompt_tokens,
@@ -375,11 +402,17 @@ class ChatOpenAI(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            if self._is_reasoning_model() and hasattr(delta, "reasoning_content") and delta.reasoning_content:
+            if (
+                self._is_reasoning_model()
+                and hasattr(delta, "reasoning_content")
+                and delta.reasoning_content
+            ):
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content)
+                yield LLMStreamEvent(
+                    type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content
+                )
 
             if delta.content:
                 if think_started:
@@ -391,7 +424,7 @@ class ChatOpenAI(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
 
             # Accumulate tool call deltas
-            if hasattr(delta, 'tool_calls') and delta.tool_calls:
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
@@ -416,19 +449,26 @@ class ChatOpenAI(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
 
     @overload
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
-        ...
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]: ...
 
-    async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
+    async def astream(
+        self,
+        messages: list[BaseMessage],
+        tools: list[Tool] = [],
+        structured_output: BaseModel | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
 
@@ -437,7 +477,7 @@ class ChatOpenAI(BaseChatLLM):
             "messages": openai_messages,
             "stream": True,
             "stream_options": {"include_usage": True},
-            **self.kwargs
+            **self.kwargs,
         }
 
         if openai_tools:
@@ -465,12 +505,13 @@ class ChatOpenAI(BaseChatLLM):
                 # Final chunk with usage
                 if chunk.usage:
                     thinking_tokens = None
-                    if hasattr(chunk.usage, "completion_tokens_details") and chunk.usage.completion_tokens_details:
+                    if (
+                        hasattr(chunk.usage, "completion_tokens_details")
+                        and chunk.usage.completion_tokens_details
+                    ):
                         thinking_tokens = getattr(
                             chunk.usage.completion_tokens_details, "reasoning_tokens", None
-                        ) or getattr(
-                            chunk.usage.completion_tokens_details, "thinking_tokens", None
-                        )
+                        ) or getattr(chunk.usage.completion_tokens_details, "thinking_tokens", None)
 
                     usage = TokenUsage(
                         prompt_tokens=chunk.usage.prompt_tokens,
@@ -482,11 +523,17 @@ class ChatOpenAI(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            if self._is_reasoning_model() and hasattr(delta, "reasoning_content") and delta.reasoning_content:
+            if (
+                self._is_reasoning_model()
+                and hasattr(delta, "reasoning_content")
+                and delta.reasoning_content
+            ):
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content)
+                yield LLMStreamEvent(
+                    type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content
+                )
 
             if delta.content:
                 if think_started:
@@ -498,7 +545,7 @@ class ChatOpenAI(BaseChatLLM):
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
 
             # Accumulate tool call deltas
-            if hasattr(delta, 'tool_calls') and delta.tool_calls:
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
                 if tc_delta.id:
                     tool_call_id = tc_delta.id
@@ -523,12 +570,8 @@ class ChatOpenAI(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
 
     def get_metadata(self) -> Metadata:
@@ -544,8 +587,4 @@ class ChatOpenAI(BaseChatLLM):
         elif self._model.startswith("o1"):
             context_window = 200000  # o1 models have larger context
 
-        return Metadata(
-            name=self._model,
-            context_window=context_window,
-            owned_by="openai"
-        )
+        return Metadata(name=self._model, context_window=context_window, owned_by="openai")

@@ -14,6 +14,7 @@ class TestContext:
     @pytest.fixture
     def context(self):
         from unittest.mock import MagicMock
+
         return Context(llm=MagicMock())
 
     @pytest.fixture
@@ -74,7 +75,9 @@ class TestContext:
 
     @patch("windows_use.agent.context.service._load_template")
     @patch("windows_use.agent.context.service.uia.GetCursorPos", return_value=(100, 200))
-    def test_human(self, mock_cursor_pos, mock_load_template, context, mock_desktop, mock_desktop_state):
+    def test_human(
+        self, mock_cursor_pos, mock_load_template, context, mock_desktop, mock_desktop_state
+    ):
         mock_desktop_state.screenshot = None
         mock_desktop.desktop_state = mock_desktop_state
         mock_desktop.get_state.return_value = mock_desktop_state

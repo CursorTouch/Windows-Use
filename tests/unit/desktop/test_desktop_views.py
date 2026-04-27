@@ -15,8 +15,9 @@ def sample_window():
         status=Status.NORMAL,
         bounding_box=BoundingBox(0, 0, 100, 100, 100, 100),
         handle=123,
-        process_id=456
+        process_id=456,
     )
+
 
 class TestDesktopViews:
     def test_window_to_row(self, sample_window):
@@ -32,7 +33,7 @@ class TestDesktopViews:
             active_desktop={"name": "Desktop 1"},
             all_desktops=[{"name": "Desktop 1"}, {"name": "Desktop 2"}],
             windows=[sample_window],
-            active_window=sample_window
+            active_window=sample_window,
         )
 
         assert "Desktop 1" in state.active_desktop_to_string()

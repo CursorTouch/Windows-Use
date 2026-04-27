@@ -114,10 +114,12 @@ class ChatVLLM(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content_list.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
-                    })
+                    content_list.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
+                        }
+                    )
                 openai_messages.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 msg_dict: dict = {"role": "assistant", "content": msg.content or ""}
@@ -133,16 +135,20 @@ class ChatVLLM(BaseChatLLM):
                         "arguments": json.dumps(msg.params),
                     },
                 }
-                openai_messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [tool_call],
-                })
-                openai_messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.id,
-                    "content": msg.content or "",
-                })
+                openai_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [tool_call],
+                    }
+                )
+                openai_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": msg.id,
+                        "content": msg.content or "",
+                    }
+                )
         return openai_messages
 
     def _convert_tools(self, tools: list[Tool]) -> list[dict]:
@@ -169,14 +175,17 @@ class ChatVLLM(BaseChatLLM):
                 getattr(usage_data, "completion_tokens_details", None),
                 "reasoning_tokens",
                 None,
-            ) or getattr(
+            )
+            or getattr(
                 getattr(usage_data, "completion_tokens_details", None),
                 "thinking_tokens",
                 None,
             ),
         )
 
-        thinking = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None)
+        thinking = getattr(message, "reasoning", None) or getattr(
+            message, "reasoning_content", None
+        )
         thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
 
         if message.tool_calls:
@@ -188,16 +197,17 @@ class ChatVLLM(BaseChatLLM):
 
             content = LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    params=params
-                ),
+                tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
                 thinking=thinking_obj,
-                usage=usage
+                usage=usage,
             )
         else:
-            content = LLMEvent(type=LLMEventType.TEXT, content=message.content or "", thinking=thinking_obj, usage=usage)
+            content = LLMEvent(
+                type=LLMEventType.TEXT,
+                content=message.content or "",
+                thinking=thinking_obj,
+                usage=usage,
+            )
 
         return content
 
@@ -262,11 +272,15 @@ class ChatVLLM(BaseChatLLM):
             )
 
             try:
-                parsed = structured_output.model_validate_json(
-                    response.choices[0].message.content
-                )
+                parsed = structured_output.model_validate_json(response.choices[0].message.content)
                 content_dump = parsed.model_dump()
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content_dump) if isinstance(content_dump, dict) else str(content_dump), usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content_dump)
+                    if isinstance(content_dump, dict)
+                    else str(content_dump),
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 return LLMEvent(
@@ -341,11 +355,15 @@ class ChatVLLM(BaseChatLLM):
             )
 
             try:
-                parsed = structured_output.model_validate_json(
-                    response.choices[0].message.content
-                )
+                parsed = structured_output.model_validate_json(response.choices[0].message.content)
                 content_dump = parsed.model_dump()
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content_dump) if isinstance(content_dump, dict) else str(content_dump), usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content_dump)
+                    if isinstance(content_dump, dict)
+                    else str(content_dump),
+                    usage=usage,
+                )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 return LLMEvent(
@@ -424,7 +442,9 @@ class ChatVLLM(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            reasoning_delta = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None)
+            reasoning_delta = getattr(delta, "reasoning", None) or getattr(
+                delta, "reasoning_content", None
+            )
             if reasoning_delta:
                 if not think_started:
                     think_started = True
@@ -462,12 +482,8 @@ class ChatVLLM(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:
@@ -539,7 +555,9 @@ class ChatVLLM(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            reasoning_delta = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None)
+            reasoning_delta = getattr(delta, "reasoning", None) or getattr(
+                delta, "reasoning_content", None
+            )
             if reasoning_delta:
                 if not think_started:
                     think_started = True
@@ -577,12 +595,8 @@ class ChatVLLM(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:

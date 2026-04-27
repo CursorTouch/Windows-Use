@@ -1,4 +1,4 @@
-'''
+"""
 uiautomation for Python 3.
 Author: yinkaisheng
 Source: https://github.com/yinkaisheng/Python-UIAutomation-for-Windows
@@ -9,7 +9,7 @@ Run 'automation.py -h' for help.
 
 uiautomation is shared under the Apache Licene 2.0.
 This means that the code can be freely copied and distributed, and costs nothing to use.
-'''
+"""
 
 import ctypes
 import os
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from .controls import Control
 
 
-METRO_WINDOW_CLASS_NAME = 'Windows.UI.Core.CoreWindow'  # for Windows 8 and 8.1
+METRO_WINDOW_CLASS_NAME = "Windows.UI.Core.CoreWindow"  # for Windows 8 and 8.1
 SEARCH_INTERVAL = 0.5  # search control interval seconds
 MAX_MOVE_SECOND = 1  # simulate mouse move or drag max seconds
 TIME_OUT_SECOND = 10
@@ -92,55 +92,81 @@ def GetPatternIdInterface(patternId: int):
         }
         # the following patterns doesn't exist on Windows 7 or lower
         try:
-            _PatternIdInterfaces[PatternId.AnnotationPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationAnnotationPattern
+            _PatternIdInterfaces[PatternId.AnnotationPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationAnnotationPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.CustomNavigationPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationCustomNavigationPattern
+            _PatternIdInterfaces[PatternId.CustomNavigationPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationCustomNavigationPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.DragPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationDragPattern
+            _PatternIdInterfaces[PatternId.DragPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationDragPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.DropTargetPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationDropTargetPattern
+            _PatternIdInterfaces[PatternId.DropTargetPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationDropTargetPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.ObjectModelPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationObjectModelPattern
+            _PatternIdInterfaces[PatternId.ObjectModelPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationObjectModelPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.SpreadsheetItemPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationSpreadsheetItemPattern
+            _PatternIdInterfaces[PatternId.SpreadsheetItemPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationSpreadsheetItemPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.SpreadsheetPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationSpreadsheetPattern
+            _PatternIdInterfaces[PatternId.SpreadsheetPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationSpreadsheetPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.StylesPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationStylesPattern
+            _PatternIdInterfaces[PatternId.StylesPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationStylesPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.SelectionPattern2] = _AutomationClient.instance().UIAutomationCore.IUIAutomationSelectionPattern2
+            _PatternIdInterfaces[PatternId.SelectionPattern2] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationSelectionPattern2
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.TextChildPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationTextChildPattern
+            _PatternIdInterfaces[PatternId.TextChildPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationTextChildPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.TextEditPattern] = _AutomationClient.instance().UIAutomationCore.IUIAutomationTextEditPattern
+            _PatternIdInterfaces[PatternId.TextEditPattern] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationTextEditPattern
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.TextPattern2] = _AutomationClient.instance().UIAutomationCore.IUIAutomationTextPattern2
+            _PatternIdInterfaces[PatternId.TextPattern2] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationTextPattern2
+            )
         except:
             pass
         try:
-            _PatternIdInterfaces[PatternId.TransformPattern2] = _AutomationClient.instance().UIAutomationCore.IUIAutomationTransformPattern2
+            _PatternIdInterfaces[PatternId.TransformPattern2] = (
+                _AutomationClient.instance().UIAutomationCore.IUIAutomationTransformPattern2
+            )
         except:
             pass
     return _PatternIdInterfaces[patternId]
@@ -195,7 +221,7 @@ class AnnotationPattern:
         return self.pattern.CurrentDateTime
 
     @property
-    def Target(self) -> 'Control':
+    def Target(self) -> "Control":
         """
         Property Target.
         Call IUIAutomationAnnotationPattern::get_CurrentTarget.
@@ -211,7 +237,7 @@ class CustomNavigationPattern:
         """Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nn-uiautomationclient-iuiautomationcustomnavigationpattern"""
         self.pattern = pattern
 
-    def Navigate(self, direction: int) -> 'Control':
+    def Navigate(self, direction: int) -> "Control":
         """
         Call IUIAutomationCustomNavigationPattern::Navigate.
         Get the next control in the specified direction within the logical UI tree.
@@ -287,7 +313,7 @@ class DragPattern:
         """
         return bool(self.pattern.CurrentIsGrabbed)
 
-    def GetGrabbedItems(self) -> list['Control']:
+    def GetGrabbedItems(self) -> list["Control"]:
         """
         Call IUIAutomationDragPattern::GetCurrentGrabbedItems.
         Return List[Control], a list of `Control` subclasses that represent the full set of items
@@ -407,7 +433,7 @@ class GridItemPattern:
         return self.pattern.CurrentColumnSpan
 
     @property
-    def ContainingGrid(self) -> 'Control':
+    def ContainingGrid(self) -> "Control":
         """
         Property ContainingGrid.
         Call IUIAutomationGridItemPattern::get_CurrentContainingGrid.
@@ -462,7 +488,7 @@ class GridPattern:
         """
         return self.pattern.CurrentRowCount
 
-    def GetItem(self, row: int, column: int) -> 'Control':
+    def GetItem(self, row: int, column: int) -> "Control":
         """
         Call IUIAutomationGridPattern::GetItem.
         Return `Control` subclass, a control representing an item in the grid.
@@ -494,7 +520,7 @@ class ItemContainerPattern:
         """Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nn-uiautomationclient-iuiautomationitemcontainerpattern"""
         self.pattern = pattern
 
-    def FindItemByProperty(self, control: 'Control', propertyId: int, propertyValue) -> 'Control':
+    def FindItemByProperty(self, control: "Control", propertyId: int, propertyValue) -> "Control":
         """
         Call IUIAutomationItemContainerPattern::FindItemByProperty.
         control: `Control` or its subclass.
@@ -570,7 +596,7 @@ class LegacyIAccessiblePattern:
         Return str, the Microsoft Active Accessibility name property of the element.
         Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationlegacyiaccessiblepattern-get_currentname
         """
-        return self.pattern.CurrentName or ''    # CurrentName may be None
+        return self.pattern.CurrentName or ""  # CurrentName may be None
 
     @property
     def Role(self) -> int:
@@ -614,7 +640,7 @@ class LegacyIAccessiblePattern:
         time.sleep(waitTime)
         return ret
 
-    def GetSelection(self) -> list['Control']:
+    def GetSelection(self) -> list["Control"]:
         """
         Call IUIAutomationLegacyIAccessiblePattern::GetCurrentSelection.
         Return List[Control], a list of `Control` subclasses,
@@ -890,7 +916,9 @@ class ScrollPattern:
         """
         return self.pattern.CurrentVerticalViewSize
 
-    def Scroll(self, horizontalAmount: int, verticalAmount: int, waitTime: float = OPERATION_WAIT_TIME) -> bool:
+    def Scroll(
+        self, horizontalAmount: int, verticalAmount: int, waitTime: float = OPERATION_WAIT_TIME
+    ) -> bool:
         """
         Call IUIAutomationScrollPattern::Scroll.
         Scroll the visible region of the content area horizontally and vertically.
@@ -904,7 +932,12 @@ class ScrollPattern:
         time.sleep(waitTime)
         return ret
 
-    def SetScrollPercent(self, horizontalPercent: float, verticalPercent: float, waitTime: float = OPERATION_WAIT_TIME) -> bool:
+    def SetScrollPercent(
+        self,
+        horizontalPercent: float,
+        verticalPercent: float,
+        waitTime: float = OPERATION_WAIT_TIME,
+    ) -> bool:
         """
         Call IUIAutomationScrollPattern::SetScrollPercent.
         Set the horizontal and vertical scroll positions as a percentage of the total content area within the UI Automation element.
@@ -947,7 +980,7 @@ class SelectionItemPattern:
         return bool(self.pattern.CurrentIsSelected)
 
     @property
-    def SelectionContainer(self) -> 'Control':
+    def SelectionContainer(self) -> "Control":
         """
         Property SelectionContainer.
         Call IUIAutomationScrollPattern::get_CurrentSelectionContainer.
@@ -1007,7 +1040,7 @@ class SelectionPattern:
         """
         return bool(self.pattern.CurrentIsSelectionRequired)
 
-    def GetSelection(self) -> list['Control']:
+    def GetSelection(self) -> list["Control"]:
         """
         Call IUIAutomationSelectionPattern::GetCurrentSelection.
         Return List[Control], a list of `Control` subclasses, the selected elements in the container..
@@ -1029,6 +1062,7 @@ class SelectionPattern2(SelectionPattern):
     """
     Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nn-uiautomationclient-iuiautomationselectionpattern2
     """
+
     def __init__(self, pattern=None):
         super().__init__(pattern)
 
@@ -1086,7 +1120,7 @@ class SpreadsheetItemPattern:
         """
         return self.pattern.CurrentFormula
 
-    def GetAnnotationObjects(self) -> list['Control']:
+    def GetAnnotationObjects(self) -> list["Control"]:
         """
         Call IUIAutomationSelectionPattern::GetCurrentAnnotationObjects.
         Return List[Control], a list of `Control` subclasses representing the annotations associated with this spreadsheet cell.
@@ -1118,7 +1152,7 @@ class SpreadsheetPattern:
         """Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nn-uiautomationclient-iuiautomationspreadsheetpattern"""
         self.pattern = pattern
 
-    def GetItemByName(self, name: str) -> 'Control':
+    def GetItemByName(self, name: str) -> "Control":
         """
         Call IUIAutomationSpreadsheetPattern::GetItemByName.
         name: str.
@@ -1224,7 +1258,7 @@ class TableItemPattern:
         """Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nn-uiautomationclient-iuiautomationtableitempattern"""
         self.pattern = pattern
 
-    def GetColumnHeaderItems(self) -> list['Control']:
+    def GetColumnHeaderItems(self) -> list["Control"]:
         """
         Call IUIAutomationTableItemPattern::GetCurrentColumnHeaderItems.
         Return List[Control], a list of `Control` subclasses, the column headers associated with a table item or cell.
@@ -1241,7 +1275,7 @@ class TableItemPattern:
             return controls
         return []
 
-    def GetRowHeaderItems(self) -> list['Control']:
+    def GetRowHeaderItems(self) -> list["Control"]:
         """
         Call IUIAutomationTableItemPattern::GetCurrentRowHeaderItems.
         Return List[Control], a list of `Control` subclasses, the row headers associated with a table item or cell.
@@ -1274,7 +1308,7 @@ class TablePattern:
         """
         return self.pattern.CurrentRowOrColumnMajor
 
-    def GetColumnHeaders(self) -> list['Control']:
+    def GetColumnHeaders(self) -> list["Control"]:
         """
         Call IUIAutomationTablePattern::GetCurrentColumnHeaders.
         Return List[Control], a list of `Control` subclasses, representing all the column headers in a table..
@@ -1291,7 +1325,7 @@ class TablePattern:
             return controls
         return []
 
-    def GetRowHeaders(self) -> list['Control']:
+    def GetRowHeaders(self) -> list["Control"]:
         """
         Call IUIAutomationTablePattern::GetCurrentRowHeaders.
         Return List[Control], a list of `Control` subclasses, representing all the row headers in a table.
@@ -1328,7 +1362,7 @@ class TextRange:
         time.sleep(waitTime)
         return ret
 
-    def Clone(self) -> 'TextRange':
+    def Clone(self) -> "TextRange":
         """
         Call IUIAutomationTextRange::Clone.
         return `TextRange`, identical to the original and inheriting all properties of the original.
@@ -1336,7 +1370,7 @@ class TextRange:
         """
         return TextRange(textRange=self.textRange.Clone())
 
-    def Compare(self, textRange: 'TextRange') -> bool:
+    def Compare(self, textRange: "TextRange") -> bool:
         """
         Call IUIAutomationTextRange::Compare.
         textRange: `TextRange`.
@@ -1345,7 +1379,9 @@ class TextRange:
         """
         return bool(self.textRange.Compare(textRange.textRange))
 
-    def CompareEndpoints(self, srcEndPoint: int, textRange: 'TextRange', targetEndPoint: int) -> int:
+    def CompareEndpoints(
+        self, srcEndPoint: int, textRange: "TextRange", targetEndPoint: int
+    ) -> int:
         """
         Call IUIAutomationTextRange::CompareEndpoints.
         srcEndPoint: int, a value in class `TextPatternRangeEndpoint`.
@@ -1373,7 +1409,7 @@ class TextRange:
         time.sleep(waitTime)
         return ret
 
-    def FindAttribute(self, textAttributeId: int, val, backward: bool) -> Optional['TextRange']:
+    def FindAttribute(self, textAttributeId: int, val, backward: bool) -> Optional["TextRange"]:
         """
         Call IUIAutomationTextRange::FindAttribute.
         textAttributeID: int, a value in class `TextAttributeId`.
@@ -1387,7 +1423,7 @@ class TextRange:
             return TextRange(textRange=textRange)
         return None
 
-    def FindText(self, text: str, backward: bool, ignoreCase: bool) -> Optional['TextRange']:
+    def FindText(self, text: str, backward: bool, ignoreCase: bool) -> Optional["TextRange"]:
         """
         Call IUIAutomationTextRange::FindText.
         text: str,
@@ -1424,12 +1460,16 @@ class TextRange:
         floats = self.textRange.GetBoundingRectangles()
         rects = []
         for i in range(len(floats) // 4):
-            rect = Rect(int(floats[i * 4]), int(floats[i * 4 + 1]),
-                        int(floats[i * 4]) + int(floats[i * 4 + 2]), int(floats[i * 4 + 1]) + int(floats[i * 4 + 3]))
+            rect = Rect(
+                int(floats[i * 4]),
+                int(floats[i * 4 + 1]),
+                int(floats[i * 4]) + int(floats[i * 4 + 2]),
+                int(floats[i * 4 + 1]) + int(floats[i * 4 + 3]),
+            )
             rects.append(rect)
         return rects
 
-    def GetChildren(self) -> list['Control']:
+    def GetChildren(self) -> list["Control"]:
         """
         Call IUIAutomationTextRange::GetChildren.
         textAttributeId: int, a value in class `TextAttributeId`.
@@ -1447,7 +1487,7 @@ class TextRange:
             return controls
         return []
 
-    def GetEnclosingControl(self) -> 'Control':
+    def GetEnclosingControl(self) -> "Control":
         """
         Call IUIAutomationTextRange::GetEnclosingElement.
         Return `Control` subclass, the innermost UI Automation element that encloses the text range.
@@ -1480,7 +1520,13 @@ class TextRange:
         time.sleep(waitTime)
         return ret
 
-    def MoveEndpointByRange(self, srcEndPoint: int, textRange: 'TextRange', targetEndPoint: int, waitTime: float = OPERATION_WAIT_TIME) -> bool:
+    def MoveEndpointByRange(
+        self,
+        srcEndPoint: int,
+        textRange: "TextRange",
+        targetEndPoint: int,
+        waitTime: float = OPERATION_WAIT_TIME,
+    ) -> bool:
         """
         Call IUIAutomationTextRange::MoveEndpointByRange.
         Move one endpoint of the current text range to the specified endpoint of a second text range.
@@ -1491,11 +1537,16 @@ class TextRange:
         Return bool, True if succeed otherwise False.
         Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationtextrange-moveendpointbyrange
         """
-        ret = self.textRange.MoveEndpointByRange(srcEndPoint, textRange.textRange, targetEndPoint) == S_OK
+        ret = (
+            self.textRange.MoveEndpointByRange(srcEndPoint, textRange.textRange, targetEndPoint)
+            == S_OK
+        )
         time.sleep(waitTime)
         return ret
 
-    def MoveEndpointByUnit(self, endPoint: int, unit: int, count: int, waitTime: float = OPERATION_WAIT_TIME) -> int:
+    def MoveEndpointByUnit(
+        self, endPoint: int, unit: int, count: int, waitTime: float = OPERATION_WAIT_TIME
+    ) -> int:
         """
         Call IUIAutomationTextRange::MoveEndpointByUnit.
         Move one endpoint of the text range the specified number of text units within the document range.
@@ -1558,7 +1609,7 @@ class TextChildPattern:
         self.pattern = pattern
 
     @property
-    def TextContainer(self) -> 'Control':
+    def TextContainer(self) -> "Control":
         """
         Property TextContainer.
         Call IUIAutomationSelectionContainer::get_TextContainer.
@@ -2027,14 +2078,14 @@ class WindowPattern:
         return ret
 
     def WaitForInputIdle(self, milliseconds: int) -> bool:
-        '''
+        """
         Call IUIAutomationWindowPattern::WaitForInputIdle.
         Cause the calling code to block for the specified time or
             until the associated process enters an idle state, whichever completes first.
         milliseconds: int.
         Return bool, True if succeed otherwise False.
         Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationwindowpattern-waitforinputidle
-        '''
+        """
         return self.pattern.WaitForInputIdle(milliseconds) == S_OK
 
 
@@ -2081,5 +2132,3 @@ def CreatePattern(patternId: int, pattern: ctypes.POINTER(comtypes.IUnknown)):
     subPattern = pattern.QueryInterface(GetPatternIdInterface(patternId))
     if subPattern:
         return PatternConstructors[patternId](pattern=subPattern)
-
-

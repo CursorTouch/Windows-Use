@@ -12,23 +12,30 @@ MAX_TOOL_OUTPUT_LENGTH = 10000
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ToolResult:
-    success: bool=False
-    output:str|None=None
-    error:str|None=None
-    metadata:dict[str,Any]=field(default_factory=dict)
+    success: bool = False
+    output: str | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def success_result(cls,output:str,metadata:dict[str,Any]=None) -> "ToolResult":
-        return cls(success=True,output=output,metadata=metadata)
+    def success_result(cls, output: str, metadata: dict[str, Any] = None) -> "ToolResult":
+        return cls(success=True, output=output, metadata=metadata)
 
     @classmethod
-    def error_result(cls,error:str,metadata:dict[str,Any]=None) -> "ToolResult":
-        return cls(success=False,error=error,metadata=metadata)
+    def error_result(cls, error: str, metadata: dict[str, Any] = None) -> "ToolResult":
+        return cls(success=False, error=error, metadata=metadata)
+
 
 class Tool(ABC):
-    def __init__(self, name: str|None=None, description: str|None=None, model: BaseModel|None=None):
+    def __init__(
+        self,
+        name: str | None = None,
+        description: str | None = None,
+        model: BaseModel | None = None,
+    ):
         self.name = name
         self.description = description
         self.model = model
@@ -43,9 +50,7 @@ class Tool(ABC):
         def exclude_properties(obj):
             if isinstance(obj, dict):
                 return {
-                    k: exclude_properties(v)
-                    for k, v in obj.items()
-                    if k not in EXCLUDED_PROPERTIES
+                    k: exclude_properties(v) for k, v in obj.items() if k not in EXCLUDED_PROPERTIES
                 }
             elif isinstance(obj, list):
                 return [exclude_properties(item) for item in obj]
@@ -63,12 +68,12 @@ class Tool(ABC):
             "parameters": parameters,
         }
 
-    def validate_params(self, args: dict[str,Any])->list[str]:
+    def validate_params(self, args: dict[str, Any]) -> list[str]:
         try:
             self.model(**args)
             return []
         except ValidationError as e:
-            errors=[]
+            errors = []
             for error in e.errors():
                 field = "".join([str(loc) for loc in error["loc"]])
                 msg = error["msg"]

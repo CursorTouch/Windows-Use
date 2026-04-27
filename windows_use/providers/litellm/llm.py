@@ -109,10 +109,12 @@ class ChatLiteLLM(BaseChatLLM):
 
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
-                    content_list.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
-                    })
+                    content_list.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{msg.mime_type};base64,{b64}"},
+                        }
+                    )
                 converted.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 msg_dict: dict = {"role": "assistant", "content": msg.content or ""}
@@ -149,11 +151,13 @@ class ChatLiteLLM(BaseChatLLM):
                         {"type": "thinking", "thinking": thinking, "signature": sig}
                     ]
                 converted.append(asst_msg)
-                converted.append({
-                    "role": "tool",
-                    "tool_call_id": msg.id,
-                    "content": msg.content or "",
-                })
+                converted.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": msg.id,
+                        "content": msg.content or "",
+                    }
+                )
         return converted
 
     def _convert_tools(self, tools: list[Tool]) -> list[dict]:
@@ -212,12 +216,13 @@ class ChatLiteLLM(BaseChatLLM):
 
         # Extract reasoning/thinking tokens if available
         thinking_tokens = None
-        if hasattr(usage_data, "completion_tokens_details") and usage_data.completion_tokens_details:
+        if (
+            hasattr(usage_data, "completion_tokens_details")
+            and usage_data.completion_tokens_details
+        ):
             thinking_tokens = getattr(
                 usage_data.completion_tokens_details, "reasoning_tokens", None
-            ) or getattr(
-                usage_data.completion_tokens_details, "thinking_tokens", None
-            )
+            ) or getattr(usage_data.completion_tokens_details, "thinking_tokens", None)
 
         # Extract cache tokens if available
         cache_creation = None
@@ -262,15 +267,16 @@ class ChatLiteLLM(BaseChatLLM):
 
             content = LLMEvent(
                 type=LLMEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.function.name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                usage=usage,
             )
         else:
-            content = LLMEvent(type=LLMEventType.TEXT, content=message.content or "", thinking=thinking_obj, usage=usage)
+            content = LLMEvent(
+                type=LLMEventType.TEXT,
+                content=message.content or "",
+                thinking=thinking_obj,
+                usage=usage,
+            )
 
         return content
 
@@ -295,9 +301,7 @@ class ChatLiteLLM(BaseChatLLM):
 
         if structured_output:
             # Use JSON mode and parse the output into the structured model
-            params = self._build_params(
-                converted_messages, converted_tools, json_mode=True
-            )
+            params = self._build_params(converted_messages, converted_tools, json_mode=True)
             response = litellm.completion(**params)
 
             try:
@@ -307,7 +311,13 @@ class ChatLiteLLM(BaseChatLLM):
 
                 content_dump = parsed_obj.model_dump()
                 usage = self._extract_usage(response.usage) if response.usage else None
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content_dump) if isinstance(content_dump, dict) else str(content_dump), usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content_dump)
+                    if isinstance(content_dump, dict)
+                    else str(content_dump),
+                    usage=usage,
+                )
             except (json.JSONDecodeError, TypeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 # Fall through to normal processing
@@ -336,9 +346,7 @@ class ChatLiteLLM(BaseChatLLM):
         converted_tools = self._convert_tools(tools) if tools else None
 
         if structured_output:
-            params = self._build_params(
-                converted_messages, converted_tools, json_mode=True
-            )
+            params = self._build_params(converted_messages, converted_tools, json_mode=True)
             response = await litellm.acompletion(**params)
 
             try:
@@ -348,7 +356,13 @@ class ChatLiteLLM(BaseChatLLM):
 
                 content_dump = parsed_obj.model_dump()
                 usage = self._extract_usage(response.usage) if response.usage else None
-                return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content_dump) if isinstance(content_dump, dict) else str(content_dump), usage=usage)
+                return LLMEvent(
+                    type=LLMEventType.TEXT,
+                    content=json.dumps(content_dump)
+                    if isinstance(content_dump, dict)
+                    else str(content_dump),
+                    usage=usage,
+                )
             except (json.JSONDecodeError, TypeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
 
@@ -402,7 +416,9 @@ class ChatLiteLLM(BaseChatLLM):
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content)
+                yield LLMStreamEvent(
+                    type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content
+                )
 
             if hasattr(delta, "content") and delta.content:
                 if think_started:
@@ -433,11 +449,7 @@ class ChatLiteLLM(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                )
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
             )
         else:
             if think_started:
@@ -491,7 +503,9 @@ class ChatLiteLLM(BaseChatLLM):
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
-                yield LLMStreamEvent(type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content)
+                yield LLMStreamEvent(
+                    type=LLMStreamEventType.THINK_DELTA, content=delta.reasoning_content
+                )
 
             if hasattr(delta, "content") and delta.content:
                 if think_started:
@@ -522,12 +536,8 @@ class ChatLiteLLM(BaseChatLLM):
 
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
-                tool_call=ToolCall(
-                    id=tool_call_id,
-                    name=tool_call_name,
-                    params=params
-                ),
-                usage=usage
+                tool_call=ToolCall(id=tool_call_id, name=tool_call_name, params=params),
+                usage=usage,
             )
         else:
             if think_started:

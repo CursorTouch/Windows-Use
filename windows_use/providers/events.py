@@ -15,10 +15,12 @@ class LLMStreamEventType(str, Enum):
     THINK_END = "think_end"
     ERROR = "error"
 
+
 class LLMEventType(str, Enum):
     TEXT = "text"
     TOOL_CALL = "tool_call"
     ERROR = "error"
+
 
 class Thinking(BaseModel):
     """Thinking/reasoning content with optional cryptographic signature (Anthropic)."""
@@ -26,10 +28,12 @@ class Thinking(BaseModel):
     content: str | None = None
     signature: str | bytes | None = None
 
+
 class ToolCall(BaseModel):
     id: str
     name: str
     params: dict
+
 
 class LLMStreamEvent(BaseModel):
     type: LLMStreamEventType
