@@ -17,7 +17,7 @@ import os
 import re
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import Any, Optional
 
 import comtypes
@@ -920,7 +920,7 @@ class Control:
         except comtypes.COMError:
             return None
 
-    def GetClickablePoint(self) -> Tuple[int, int, bool]:
+    def GetClickablePoint(self) -> tuple[int, int, bool]:
         """
         Call IUIAutomationElement::GetClickablePoint.
         Return Tuple[int, int, bool], three items tuple (x, y, gotClickable), such as (20, 10, True)
@@ -1306,7 +1306,7 @@ class Control:
                 return False
         return True
 
-    def GetPosition(self, ratioX: float = 0.5, ratioY: float = 0.5) -> Tuple[int, int] | None:
+    def GetPosition(self, ratioX: float = 0.5, ratioY: float = 0.5) -> tuple[int, int] | None:
         """
         Gets the position of the center of the control.
         ratioX: float.
@@ -1327,7 +1327,7 @@ class Control:
         ratioX: float = 0.5,
         ratioY: float = 0.5,
         simulateMove: bool = True,
-    ) -> Tuple[int, int] | None:
+    ) -> tuple[int, int] | None:
         """
         Move cursor to control's internal position, default to center.
         x: int, if < 0, move to self.BoundingRectangle.right + x, if not None, ignore ratioX.
@@ -1355,7 +1355,7 @@ class Control:
             SetCursorPos(x, y)
         return x, y
 
-    def MoveCursorToMyCenter(self, simulateMove: bool = True) -> Tuple[int, int] | None:
+    def MoveCursorToMyCenter(self, simulateMove: bool = True) -> tuple[int, int] | None:
         """
         Move cursor to control's center.
         Return Tuple[int, int], two ints tuple (x, y), the cursor positon relative to screen(0, 0) after moving.
@@ -5469,7 +5469,7 @@ def ControlsAreSame(control1: Control, control2: Control) -> bool:
 
 def WalkControl(
     control: Control, includeTop: bool = False, maxDepth: int = 0xFFFFFFFF
-) -> Generator[Tuple[Control, int], None, None]:
+) -> Generator[tuple[Control, int], None, None]:
     """
     control: `Control` or its subclass.
     includeTop: bool, if True, yield (control, 0) first.
@@ -5588,7 +5588,7 @@ def ShowDesktop(waitTime: float = 1) -> None:
     # time.sleep(1)
 
 
-def WaitHotKeyReleased(hotkey: Tuple[int, int], waitTime: float = OPERATION_WAIT_TIME) -> None:
+def WaitHotKeyReleased(hotkey: tuple[int, int], waitTime: float = OPERATION_WAIT_TIME) -> None:
     """hotkey: Tuple[int, int], two ints tuple (modifierKey, key)"""
     mod = {
         ModifierKey.Alt: Keys.VK_MENU,
