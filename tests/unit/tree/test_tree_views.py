@@ -67,4 +67,4 @@ class TestTreeViews:
         selector = state.build_selector_map()
         assert selector.node_of(0) is sample_interactive_node
         assert selector.node_of(1) is sample_scrollable_node
-        assert selector.center_of(0).to_string() == "(100,200)"
+        assert selector.node_of(0).center.to_string() == "(100,200)"

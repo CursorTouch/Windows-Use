@@ -47,7 +47,7 @@ class TestDesktopService:
              patch("windows_use.agent.desktop.service.get_current_desktop", return_value={"name": "Desktop 1"}), \
              patch("windows_use.agent.desktop.service.get_all_desktops", return_value=[{"name": "Desktop 1"}]):
              
-             state = desktop.get_state(use_vision=False)
+             state = desktop.get_state()
              
         assert isinstance(state, DesktopState)
         assert state.active_window.handle == 123

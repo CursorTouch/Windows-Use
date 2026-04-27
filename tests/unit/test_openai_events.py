@@ -1,9 +1,10 @@
 import asyncio
 import os
 import sys
+import pytest
 
 from windows_use.providers.openai.llm import ChatOpenAI
-from windows_use.providers.events import LLMEvent, LLMEventType
+from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType
 from windows_use.messages import HumanMessage, AIMessage, ToolMessage
 from windows_use.tools import Tool
 
@@ -19,6 +20,7 @@ dummy_tool = Tool(
     model=DummyToolModel
 )
 
+@pytest.mark.asyncio
 async def test_streaming_text():
     print("=== Testing Streaming Text ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
@@ -55,16 +57,17 @@ async def test_streaming_text():
     messages = [HumanMessage(content="Explain what a computer is in 2 short sentences.")]
     
     for chunk in llm.stream(messages=messages):
-        assert isinstance(chunk, LLMEvent), f"Expected LLMEvent, got {type(chunk).__name__}"
-        print(f"[EVENT] {chunk.type.value}: {chunk.content or chunk.tool_name or chunk.tool_params}")
+        assert isinstance(chunk, LLMStreamEvent), f"Expected LLMStreamEvent, got {type(chunk).__name__}"
+        print(f"[EVENT] {chunk.type.value}: {chunk.content}")
         events_received.append(chunk.type)
-    
-    assert LLMEventType.TEXT_START in events_received
-    assert LLMEventType.TEXT_DELTA in events_received
-    assert LLMEventType.TEXT_END in events_received
+
+    assert LLMStreamEventType.TEXT_START in events_received
+    assert LLMStreamEventType.TEXT_DELTA in events_received
+    assert LLMStreamEventType.TEXT_END in events_received
     print("SUCCESS: Text stream generated start, delta, and end events.")
 
 
+@pytest.mark.asyncio
 async def test_streaming_tools():
     print("\n=== Testing Streaming Tools ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
@@ -110,14 +113,15 @@ async def test_streaming_tools():
     messages = [HumanMessage(content="Call the dummy tool with the argument 'hello'.")]
     
     for chunk in llm.stream(messages=messages, tools=[dummy_tool]):
-        assert isinstance(chunk, LLMEvent), f"Expected LLMEvent, got {type(chunk).__name__}"
-        print(f"[EVENT] {chunk.type.value}: {chunk.tool_name} {chunk.tool_params}")
+        assert isinstance(chunk, LLMStreamEvent), f"Expected LLMStreamEvent, got {type(chunk).__name__}"
+        print(f"[EVENT] {chunk.type.value}: {chunk.tool_call}")
         events_received.append(chunk.type)
-    
-    assert LLMEventType.TOOL_CALL in events_received
+
+    assert LLMStreamEventType.TOOL_CALL in events_received
     print("SUCCESS: Tool stream generated start, delta, and end events.")
 
 
+@pytest.mark.asyncio
 async def test_invoke_text():
     print("\n=== Testing Invoke Text ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
@@ -146,13 +150,14 @@ async def test_invoke_text():
     
     messages = [HumanMessage(content="Say Hello via invoke")]
     result = llm.invoke(messages=messages)
-    
+
     assert isinstance(result, LLMEvent), f"Expected LLMEvent from invoke, got {type(result).__name__}"
-    assert result.type == LLMEventType.TEXT_END
+    assert result.type == LLMEventType.TEXT
     assert result.content == "Invoke Hello!"
     print(f"[INVOKE EVENT] {result.type.value}: {result.content}")
     print("SUCCESS: Invoke text generated TEXT_END LLMEvent.")
 
+@pytest.mark.asyncio
 async def test_ainvoke_tools():
     print("\n=== Testing Ainvoke Tools ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
@@ -195,9 +200,9 @@ async def test_ainvoke_tools():
     
     assert isinstance(result, LLMEvent), f"Expected LLMEvent from ainvoke, got {type(result).__name__}"
     assert result.type == LLMEventType.TOOL_CALL
-    assert result.tool_name == "dummy_tool"
-    assert "world" in result.tool_params
-    print(f"[AINVOKE EVENT] {result.type.value}: {result.tool_name} {result.tool_params}")
+    assert result.tool_call.name == "dummy_tool"
+    assert result.tool_call.params.get("dummy") == "world"
+    print(f"[AINVOKE EVENT] {result.type.value}: {result.tool_call.name} {result.tool_call.params}")
     print("SUCCESS: Ainvoke tools generated TOOL_CALL_END LLMEvent.")
 
 async def main():
