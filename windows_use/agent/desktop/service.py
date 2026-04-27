@@ -5,7 +5,6 @@ from windows_use.agent.desktop.utils import escape_text_for_sendkeys
 from windows_use.agent.desktop.config import KEY_ALIASES
 from PIL import ImageGrab, ImageFont, ImageDraw, Image
 from windows_use.agent.tree.service import Tree
-from locale import getpreferredencoding
 import windows_use.uia as uia
 from contextlib import contextmanager
 from typing import Optional,Literal
@@ -35,7 +34,6 @@ class Desktop:
         self.use_vision=use_vision
         self.use_annotation=use_annotation
         self.use_accessibility=use_accessibility
-        self.encoding=getpreferredencoding()
         self.tree=Tree(self)
         self.desktop_state=None
 
@@ -156,20 +154,16 @@ class Desktop:
     
     def execute_command(self, command: str,timeout:int=10) -> tuple[str, int]:
         try:
-            encoded = base64.b64encode(command.encode("utf-16le")).decode("ascii")
+            utf8_command = '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ' + command
+            encoded = base64.b64encode(utf8_command.encode("utf-16le")).decode("ascii")
             result = subprocess.run(
-                ['powershell', '-NoProfile', '-EncodedCommand', encoded], 
-                capture_output=True,  # No errors='ignore' - let subprocess return bytes
+                ['powershell', '-NoProfile', '-EncodedCommand', encoded],
+                capture_output=True,
                 timeout=timeout,
                 cwd=os.path.expanduser(path='~')
             )
-            # Handle both bytes and str output (subprocess behavior varies by environment)
-            stdout = result.stdout
-            stderr = result.stderr
-            if isinstance(stdout, bytes):
-                stdout = stdout.decode(self.encoding, errors='ignore')
-            if isinstance(stderr, bytes):
-                stderr = stderr.decode(self.encoding, errors='ignore')
+            stdout = result.stdout.decode('utf-8', errors='replace') if result.stdout else ''
+            stderr = result.stderr.decode('utf-8', errors='replace') if result.stderr else ''
             return (stdout or stderr, result.returncode)
         except subprocess.TimeoutExpired:
             return ('Command execution timed out', 1)
