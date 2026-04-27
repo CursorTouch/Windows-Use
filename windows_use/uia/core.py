@@ -11,19 +11,19 @@ uiautomation is shared under the Apache Licene 2.0.
 This means that the code can be freely copied and distributed, and costs nothing to use.
 '''
 
+import ctypes
+import ctypes.wintypes
 import os
-import sys
-import time
 import shlex
 import struct
+import sys
 import threading
-import ctypes
-import comtypes
-import ctypes.wintypes
-import comtypes.client
-import ctypes.wintypes
-from typing import (Any, Callable, Dict, List, Tuple, Optional,Generator)
+import time
+from collections.abc import Callable
+from typing import Any
 
+import comtypes
+import comtypes.client
 
 METRO_WINDOW_CLASS_NAME = 'Windows.UI.Core.CoreWindow'  # for Windows 8 and 8.1
 SEARCH_INTERVAL = 0.5  # search control interval seconds
@@ -42,8 +42,6 @@ ProcessTime = time.perf_counter  # this returns nearly 0 when first call it if p
 ProcessTime()  # need to call it once if python version <= 3.6
 TreeNode = Any
 from .enums import *
-import ctypes.wintypes
-
 
 
 def IsTopLevelWindow(handle: int) -> bool:
@@ -113,7 +111,7 @@ ctypes.windll.kernel32.GlobalLock.restype = ctypes.c_void_p
 ctypes.windll.kernel32.OpenProcess.restype = ctypes.c_void_p
 ctypes.windll.ntdll.NtQueryInformationProcess.restype = ctypes.c_uint32
 
-def _GetDictKeyName(theDict: Dict[str, Any], theValue: Any, keyCondition: Optional[Callable[[str], bool]] = None) -> str:
+def _GetDictKeyName(theDict: dict[str, Any], theValue: Any, keyCondition: Callable[[str], bool] | None = None) -> str:
     for key, value in theDict.items():
         if keyCondition:
             if keyCondition(key) and theValue == value:
@@ -167,7 +165,7 @@ def WindowFromPoint(x: int, y: int) -> int:
     return ctypes.windll.user32.WindowFromPoint(ctypes.wintypes.POINT(x, y))  # or ctypes.windll.user32.WindowFromPoint(x, y)
 
 
-def GetCursorPos() -> Tuple[int, int]:
+def GetCursorPos() -> tuple[int, int]:
     """
     GetCursorPos from Win32.
     Get current mouse cursor positon.
@@ -178,7 +176,7 @@ def GetCursorPos() -> Tuple[int, int]:
     return point.x, point.y
 
 
-def GetPhysicalCursorPos() -> Tuple[int, int]:
+def GetPhysicalCursorPos() -> tuple[int, int]:
     """
     GetPhysicalCursorPos from Win32.
     Get current mouse cursor positon.
@@ -516,7 +514,7 @@ def DragTo(start_x: int, start_y: int, end_x: int, end_y: int,
     ReleaseMouse(0.05)
 
 
-def GetScreenSize() -> Tuple[int, int]:
+def GetScreenSize() -> tuple[int, int]:
     """
     Return Tuple[int, int], two ints tuple (width, height).
     """
@@ -554,7 +552,7 @@ def SetScreenSize(width: int, height: int) -> bool:
     return False
 
 
-def GetVirtualScreenSize() -> Tuple[int, int]:
+def GetVirtualScreenSize() -> tuple[int, int]:
     """
     Return Tuple[int, int], two ints tuple (width, height).
     """
@@ -565,7 +563,7 @@ def GetVirtualScreenSize() -> Tuple[int, int]:
     return w, h
 
 
-def GetVirtualScreenRect() -> Tuple[int, int, int, int]:
+def GetVirtualScreenRect() -> tuple[int, int, int, int]:
     """Returns (left, top, width, height) of the virtual screen."""
     SM_XVIRTUALSCREEN = 76
     SM_YVIRTUALSCREEN = 77
@@ -580,7 +578,7 @@ def GetVirtualScreenRect() -> Tuple[int, int, int, int]:
 
 
 
-def GetMonitorsRect() -> List[Rect]:
+def GetMonitorsRect() -> list[Rect]:
     """
     Get monitors' rect.
     Return List[Rect].
@@ -592,7 +590,7 @@ def GetMonitorsRect() -> List[Rect]:
         rect = Rect(lprcMonitor.contents.left, lprcMonitor.contents.top, lprcMonitor.contents.right, lprcMonitor.contents.bottom)
         rects.append(rect)
         return 1
-    ret = ctypes.windll.user32.EnumDisplayMonitors(ctypes.c_void_p(0), ctypes.c_void_p(0), MonitorEnumProc(MonitorCallback), 0)
+    ctypes.windll.user32.EnumDisplayMonitors(ctypes.c_void_p(0), ctypes.c_void_p(0), MonitorEnumProc(MonitorCallback), 0)
     return rects
 
 
@@ -869,7 +867,7 @@ def DwmIsCompositionEnabled() -> bool:
         return False
 
 
-def DwmGetWindowExtendFrameBounds(handle: int) -> Optional[Rect]:
+def DwmGetWindowExtendFrameBounds(handle: int) -> Rect | None:
     """
     Get Native Window Rect without invisible resize borders.
     Return Rect or None. If handle is not top level, return None.
@@ -892,7 +890,7 @@ def DwmGetWindowExtendFrameBounds(handle: int) -> Optional[Rect]:
         return None
 
 
-def GetWindowRect(handle: int) -> Optional[Rect]:
+def GetWindowRect(handle: int) -> Rect | None:
     """
     GetWindowRect from user32.
     Return RECT.
@@ -943,7 +941,7 @@ def PlayWaveFile(filePath: str = r'C:\Windows\Media\notify.wav', isAsync: bool =
         return bool(ctypes.windll.winmm.PlaySoundW(ctypes.c_wchar_p(0), ctypes.c_void_p(0), ctypes.c_uint(0)))
 
 
-def IsProcess64Bit(processId: int) -> Optional[bool]:
+def IsProcess64Bit(processId: int) -> bool | None:
     """
     Return True if process is 64 bit.
     Return False if process is 32 bit.
@@ -951,7 +949,7 @@ def IsProcess64Bit(processId: int) -> Optional[bool]:
     """
     try:
         IsWow64Process = ctypes.windll.kernel32.IsWow64Process
-    except Exception as ex:
+    except Exception:
         return False
     hProcess = ctypes.windll.kernel32.OpenProcess(0x1000, 0, processId)  # PROCESS_QUERY_INFORMATION=0x0400,PROCESS_QUERY_LIMITED_INFORMATION=0x1000
     if hProcess:
@@ -974,7 +972,7 @@ def IsUserAnAdmin() -> bool:
     return bool(ctypes.windll.shell32.IsUserAnAdmin()) if IsNT6orHigher else True
 
 
-def RunScriptAsAdmin(argv: List[str], workingDirectory: str = None, showFlag: int = SW.ShowNormal) -> bool:
+def RunScriptAsAdmin(argv: list[str], workingDirectory: str = None, showFlag: int = SW.ShowNormal) -> bool:
     """
     Run a python script as administrator.
     System will show a popup dialog askes you whether to elevate as administrator if UAC is enabled.
@@ -1188,9 +1186,9 @@ def SendKeys(text: str, interval: float = 0.01, waitTime: float = OPERATION_WAIT
             keyStr = text[i + 1:rindex]
             key = [it for it in keyStr.split(' ') if it]
             if not key:
-                raise ValueError('"{}" is not valid, use "{{Space}}" or " " for " "'.format(text[i:rindex + 1]))
+                raise ValueError(f'"{text[i:rindex + 1]}" is not valid, use "{{Space}}" or " " for " "')
             if (len(key) == 2 and not key[1].isdigit()) or len(key) > 2:
-                raise ValueError('"{}" is not valid'.format(text[i:rindex + 1]))
+                raise ValueError(f'"{text[i:rindex + 1]}" is not valid')
             upperKey = key[0].upper()
             count = 1
             if len(key) > 1:
@@ -1319,7 +1317,7 @@ def SetThreadDpiAwarenessContext(dpiAwarenessContext: int):
         ctypes.windll.user32.SetThreadDpiAwarenessContext.restype = ctypes.c_void_p
         oldContext = ctypes.windll.user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(dpiAwarenessContext))
         return oldContext
-    except Exception as ex:
+    except Exception:
         pass
 
 
@@ -1391,15 +1389,14 @@ class ProcessInfo:
         self.cmdLine = cmdLine  # empty if failed
 
     def __str__(self):
-        return "ProcessInfo(pid={}, ppid={}, exeName='{}', is64Bit={}, exePath='{}', cmdLine='{}'".format(
-            self.pid, self.ppid, self.exeName, self.is64Bit, self.exePath, self.cmdLine)
+        return f"ProcessInfo(pid={self.pid}, ppid={self.ppid}, exeName='{self.exeName}', is64Bit={self.is64Bit}, exePath='{self.exePath}', cmdLine='{self.cmdLine}'"
 
     def __repr__(self):
         return '<{} object at 0x{:08X} {}>'.format(self.__class__.__name__, id(self),
-                                                   ', '.join('{}={}'.format(k, v) for k, v in self.__dict__.items()))
+                                                   ', '.join(f'{k}={v}' for k, v in self.__dict__.items()))
 
 
-def GetProcesses(detailedInfo: bool = True) -> List[ProcessInfo]:
+def GetProcesses(detailedInfo: bool = True) -> list[ProcessInfo]:
     '''
     Enum process by Win32 API.
     detailedInfo: bool, only get pid and exeName if False.
@@ -1409,7 +1406,7 @@ def GetProcesses(detailedInfo: bool = True) -> List[ProcessInfo]:
     if detailedInfo:
         try:
             IsWow64Process = ctypes.windll.kernel32.IsWow64Process
-        except Exception as ex:
+        except Exception:
             IsWow64Process = None
     hSnapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(15, 0)  # TH32CS_SNAPALL = 15
     processEntry32 = tagPROCESSENTRY32()
@@ -1529,7 +1526,7 @@ def _OpenClipboard(value):
         time.sleep(0.005)
 
 
-def GetClipboardFormats() -> Dict[int, str]:
+def GetClipboardFormats() -> dict[int, str]:
     '''
     Get clipboard formats that system clipboard has currently.
     Return Dict[int, str].
@@ -1625,10 +1622,10 @@ def SetClipboardHtml(htmlText: str) -> bool:
     endHtml = len(formatBytes) + len(u8Html) - 2
     startFragment = formatBytes.find(b'{}')
     endFragment = formatBytes.find(b'<!--EndFragment-->') + len(u8Html) - 2
-    formatBytes = formatBytes.replace(b'StartHTML:00000000', 'StartHTML:{:08}'.format(startHtml).encode('utf-8'))
-    formatBytes = formatBytes.replace(b'EndHTML:00000000', 'EndHTML:{:08}'.format(endHtml).encode('utf-8'))
-    formatBytes = formatBytes.replace(b'StartFragment:00000000', 'StartFragment:{:08}'.format(startFragment).encode('utf-8'))
-    formatBytes = formatBytes.replace(b'EndFragment:00000000', 'EndFragment:{:08}'.format(endFragment).encode('utf-8'))
+    formatBytes = formatBytes.replace(b'StartHTML:00000000', f'StartHTML:{startHtml:08}'.encode())
+    formatBytes = formatBytes.replace(b'EndHTML:00000000', f'EndHTML:{endHtml:08}'.encode())
+    formatBytes = formatBytes.replace(b'StartFragment:00000000', f'StartFragment:{startFragment:08}'.encode())
+    formatBytes = formatBytes.replace(b'EndFragment:00000000', f'EndFragment:{endFragment:08}'.encode())
     u8Result = formatBytes.replace(b'{}', u8Html)
     ret = False
     with _ClipboardLock:
@@ -1657,7 +1654,7 @@ def Input(prompt: str, consoleColor: int = ConsoleColor.Default) -> str:
 def InputColorfully(prompt: str, consoleColor: int = ConsoleColor.Default) -> str:
     print(prompt, end="")
     return input()
-class Rect():
+class Rect:
     """
     class Rect, like `ctypes.wintypes.RECT`.
     """
@@ -1700,10 +1697,10 @@ class Rect():
         return self.left == rect.left and self.top == rect.top and self.right == rect.right and self.bottom == rect.bottom
 
     def __str__(self) -> str:
-        return '({},{},{},{})[{}x{}]'.format(self.left, self.top, self.right, self.bottom, self.width(), self.height())
+        return f'({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]'
 
     def __repr__(self) -> str:
-        return '{}({},{},{},{})[{}x{}]'.format(self.__class__.__name__, self.left, self.top, self.right, self.bottom, self.width(), self.height())
+        return f'{self.__class__.__name__}({self.left},{self.top},{self.right},{self.bottom})[{self.width()}x{self.height()}]'
 
 
 class ClipboardFormat:
@@ -2031,7 +2028,7 @@ def RemoveAutomationEventHandler(eventId: int, element, handler) -> None:
     """
     _AutomationClient.instance().IUIAutomation.RemoveAutomationEventHandler(eventId, element, handler)
 
-def AddPropertyChangedEventHandler(element, scope: int, cacheRequest, handler, propertyArray: List[int]) -> None:
+def AddPropertyChangedEventHandler(element, scope: int, cacheRequest, handler, propertyArray: list[int]) -> None:
     """
     Registers a method that handles UI Automation property-changed events.
     """
@@ -2040,7 +2037,7 @@ def AddPropertyChangedEventHandler(element, scope: int, cacheRequest, handler, p
     # Let's see how generic we can be.
     # The signature in IUIAutomation is: HRESULT AddPropertyChangedEventHandler(ptr_element, scope, ptr_cacheRequest, ptr_handler, ptr_propertyArray)
     # The last arg is SAFEARRAY(int)
-    
+
     # We might need to manually convert list to SAFEARRAY or rely on comtypes.
     # For now, let's pass a tuple/list and see if comtypes marshals it.
     _AutomationClient.instance().IUIAutomation.AddPropertyChangedEventHandler(element, scope, cacheRequest, handler, propertyArray)
@@ -2087,7 +2084,7 @@ def RemoveAllEventHandlers() -> None:
 def CreateTrueCondition():
     """
     Create a condition that is always true. This matches all elements.
-    
+
     Return: A condition object that can be used with FindAll, FindFirst, etc.
     Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createtruecondition
     """
@@ -2097,7 +2094,7 @@ def CreateTrueCondition():
 def CreateFalseCondition():
     """
     Create a condition that is always false. This matches no elements.
-    
+
     Return: A condition object that can be used with FindAll, FindFirst, etc.
     Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createfalsecondition
     """
@@ -2107,11 +2104,11 @@ def CreateFalseCondition():
 def CreatePropertyCondition(propertyId: int, value):
     """
     Create a condition that matches elements with a specific property value.
-    
+
     propertyId: int, a value in class `PropertyId`.
     value: The value to match for the property.
     Return: A condition object that can be used with FindAll, FindFirst, etc.
-    
+
     Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createpropertycondition
     """
     return _AutomationClient.instance().IUIAutomation.CreatePropertyCondition(propertyId, value)
@@ -2120,11 +2117,11 @@ def CreatePropertyCondition(propertyId: int, value):
 def CreateAndCondition(condition1, condition2):
     """
     Create a condition that is the logical AND of two conditions.
-    
+
     condition1: First condition.
     condition2: Second condition.
     Return: A condition object that can be used with FindAll, FindFirst, etc.
-    
+
     Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createandcondition
     """
     return _AutomationClient.instance().IUIAutomation.CreateAndCondition(condition1, condition2)
@@ -2133,11 +2130,11 @@ def CreateAndCondition(condition1, condition2):
 def CreateOrCondition(condition1, condition2):
     """
     Create a condition that is the logical OR of two conditions.
-    
+
     condition1: First condition.
     condition2: Second condition.
     Return: A condition object that can be used with FindAll, FindFirst, etc.
-    
+
     Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createorcondition
     """
     return _AutomationClient.instance().IUIAutomation.CreateOrCondition(condition1, condition2)
@@ -2146,10 +2143,10 @@ def CreateOrCondition(condition1, condition2):
 def CreateNotCondition(condition):
     """
     Create a condition that is the logical NOT of another condition.
-    
+
     condition: The condition to negate.
     Return: A condition object that can be used with FindAll, FindFirst, etc.
-    
+
     Refer https://docs.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomation-createnotcondition
     """
     return _AutomationClient.instance().IUIAutomation.CreateNotCondition(condition)

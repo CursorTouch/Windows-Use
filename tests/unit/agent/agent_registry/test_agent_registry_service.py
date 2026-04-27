@@ -1,10 +1,12 @@
 # tests/unit/agent/agent_registry/test_agent_registry_service.py
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from windows_use.agent.registry.service import Registry
-from windows_use.agent.registry.views import ToolResult
 from windows_use.tools import Tool
+
 
 class TestRegistry:
     """Tests for the Registry service class."""

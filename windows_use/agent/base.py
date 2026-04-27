@@ -1,6 +1,7 @@
-from windows_use.agent.views import AgentResult
 from abc import ABC, abstractmethod
-from typing import Optional
+
+from windows_use.agent.views import AgentResult
+
 
 class BaseAgent(ABC):
     """

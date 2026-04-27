@@ -1,26 +1,24 @@
 # tests/unit/agent/agent_tools/test_agent_tools_views.py
 
+
 import pytest
 from pydantic import ValidationError
-from typing import Literal
 
-from windows_use.agent.tools.views import SharedBaseModel
 from windows_use.agent.tools.service import (
     App,
+    Click,
+    Desktop,
     Done,
     Memory,
-    Click,
-    Shell,
-    Type,
-    MultiSelect,
-    MultiEdit,
-    Scroll,
     Move,
-    Shortcut,
-    Wait,
     Scrape,
-    Desktop,
+    Scroll,
+    Shell,
+    Shortcut,
+    Type,
+    Wait,
 )
+from windows_use.agent.tools.views import SharedBaseModel
 
 THOUGHT = "test thought"
 

@@ -1,5 +1,6 @@
-import comtypes.client
 import time
+
+import comtypes.client
 
 print("Attempting to get UIAutomationCore module...")
 start = time.time()

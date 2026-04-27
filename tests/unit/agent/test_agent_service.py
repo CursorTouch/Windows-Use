@@ -1,13 +1,14 @@
 # tests/unit/agent/test_agent_service.py
 
-import pytest
 from unittest.mock import MagicMock, patch
-import json
+
+import pytest
+
 from windows_use.agent.service import Agent
 from windows_use.agent.views import AgentResult
-from windows_use.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from windows_use.providers.events import LLMEvent, LLMEventType, ToolCall
 from windows_use.providers.views import TokenUsage
+
 
 class TestAgent:
     """

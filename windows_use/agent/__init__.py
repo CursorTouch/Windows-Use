@@ -1,13 +1,13 @@
 from windows_use.agent.desktop.views import Browser
-from windows_use.agent.service import Agent
 from windows_use.agent.events import (
     AgentEvent,
-    EventType,
-    Event,
     BaseEventSubscriber,
     ConsoleEventSubscriber,
+    Event,
+    EventType,
     FileEventSubscriber,
 )
+from windows_use.agent.service import Agent
 
 __all__ = [
     "Agent",

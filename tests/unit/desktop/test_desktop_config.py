@@ -1,7 +1,7 @@
 # tests/unit/desktop/test_desktop_config.py
 
-import pytest
 from windows_use.agent.desktop.config import AVOIDED_APPS, EXCLUDED_APPS
+
 
 class TestDesktopConfig:
     def test_avoided_apps_type(self):

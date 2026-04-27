@@ -1,8 +1,7 @@
-import os
 import logging
-from typing import Optional
+import os
 
-from elevenlabs.client import ElevenLabs, AsyncElevenLabs
+from elevenlabs.client import AsyncElevenLabs, ElevenLabs
 
 from windows_use.providers.base import BaseTTS
 
@@ -49,10 +48,10 @@ class TTSElevenLabs(BaseTTS):
         self,
         model: str = "eleven_multilingual_v2",
         voice_id: str = "JBFqnCBsd6RMkjVDRZzb",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         output_format: str = "pcm_24000",
-        stability: Optional[float] = None,
-        similarity_boost: Optional[float] = None,
+        stability: float | None = None,
+        similarity_boost: float | None = None,
         timeout: float = 120.0,
     ):
         self._model = model

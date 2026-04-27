@@ -1,1 +1,1 @@
-from .service import WatchDog
+from .service import WatchDog as WatchDog

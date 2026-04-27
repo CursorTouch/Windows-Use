@@ -1,6 +1,5 @@
-import os
 import logging
-from typing import Optional
+import os
 
 from google import genai
 from google.genai import types
@@ -42,9 +41,9 @@ class STTGoogle(BaseSTT):
     def __init__(
         self,
         model: str = "gemini-2.5-flash",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         prompt: str = "Transcribe this audio clip word for word. Return only the transcription, no extra commentary.",
-        language: Optional[str] = None,
+        language: str | None = None,
     ):
         self._model = model
         self.api_key = (

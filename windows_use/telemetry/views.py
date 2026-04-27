@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any
+
 
 @dataclass
 class BaseTelemetryEvent(ABC):
@@ -12,7 +13,7 @@ class BaseTelemetryEvent(ABC):
     @property
     def properties(self) -> dict[str,Any]:
         return {k: v for k, v in asdict(self).items()}
-    
+
 @dataclass
 class AgentTelemetryEvent(BaseTelemetryEvent):
     query: str
@@ -25,4 +26,4 @@ class AgentTelemetryEvent(BaseTelemetryEvent):
     error: str | None=None
     event_name: str = "agent_event"
     is_success:bool=False
-    
+

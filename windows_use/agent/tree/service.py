@@ -1,26 +1,61 @@
-from windows_use.uia import Control, ComboBoxControl, CheckBoxControl, EditControl, ButtonControl, SliderControl, ScrollPattern, WindowControl, Rect, ExpandCollapseState, ToggleState, PatternId, PropertyId, AccessibleRoleNames, TreeScope, ControlFromHandle, UIAException, UIADeadElementError, UIARetryableError, from_com_error
-from _ctypes import COMError
-from windows_use.agent.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES, DOCUMENT_CONTROL_TYPE_NAMES, INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS, INTERACTIVE_ROLES, THREAD_MAX_RETRIES
-from windows_use.agent.tree.views import TreeElementNode, ScrollElementNode, TextElementNode, Center, BoundingBox, TreeState
-from windows_use.agent.tree.cache_utils import CacheRequestFactory, CachedControlHelper
-from windows_use.agent.tree.utils import random_point_within_bounding_box
-from typing import TYPE_CHECKING,Optional,Any
-from time import sleep,perf_counter
+import ctypes
 import logging
 import weakref
-import ctypes
+from _ctypes import COMError
+from time import perf_counter, sleep
+from typing import TYPE_CHECKING, Any
+
+from windows_use.agent.tree.cache_utils import CachedControlHelper, CacheRequestFactory
+from windows_use.agent.tree.config import (
+    DEFAULT_ACTIONS,
+    DOCUMENT_CONTROL_TYPE_NAMES,
+    INFORMATIVE_CONTROL_TYPE_NAMES,
+    INTERACTIVE_CONTROL_TYPE_NAMES,
+    INTERACTIVE_ROLES,
+    THREAD_MAX_RETRIES,
+)
+from windows_use.agent.tree.utils import random_point_within_bounding_box
+from windows_use.agent.tree.views import (
+    BoundingBox,
+    Center,
+    ScrollElementNode,
+    TextElementNode,
+    TreeElementNode,
+    TreeState,
+)
+from windows_use.uia import (
+    AccessibleRoleNames,
+    ButtonControl,
+    CheckBoxControl,
+    ComboBoxControl,
+    Control,
+    ControlFromHandle,
+    EditControl,
+    ExpandCollapseState,
+    PatternId,
+    PropertyId,
+    Rect,
+    ScrollPattern,
+    SliderControl,
+    ToggleState,
+    TreeScope,
+    UIADeadElementError,
+    UIAException,
+    WindowControl,
+    from_com_error,
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 if TYPE_CHECKING:
     from windows_use.agent.desktop.service import Desktop
-    
+
 class Tree:
     def __init__(self,desktop:'Desktop'):
         self.desktop=weakref.proxy(desktop)
         self.screen_size=desktop.get_screen_size()
-        self.dom:Optional[Control]=None
+        self.dom:Control | None=None
         self.dom_bounding_box:BoundingBox=None
         self.screen_box=BoundingBox(
             top=0, left=0, bottom=self.screen_size.height, right=self.screen_size.width,
@@ -41,7 +76,7 @@ class Tree:
             windows_handles=[active_window_handle]+other_windows_handles
         else:
             windows_handles=other_windows_handles
-        
+
         interactive_nodes,scrollable_nodes,dom_informative_nodes,failed_handles=self.get_window_wise_nodes(windows_handles=windows_handles,active_window_flag=active_window_flag)
         root_node=TreeElementNode(
             name="Desktop",
@@ -139,7 +174,7 @@ class Tree:
                         break
 
         return interactive_nodes, scrollable_nodes, dom_informative_nodes, failed_handles
-    
+
     def iou_bounding_box(self, window_box: Rect, element_box: Rect) -> BoundingBox:
         clipped = element_box.intersect(window_box).intersect(self.screen_box)
         if clipped.right > clipped.left and clipped.bottom > clipped.top:
@@ -207,7 +242,7 @@ class Tree:
                         metadata['value']=value.strip() if value else '(empty)'
                     except Exception:
                         pass
-                    
+
                     try:
                         help_text = node.CachedHelpText
                         if help_text:
@@ -250,21 +285,21 @@ class Tree:
 
 
     def tree_traversal(self, node: Control, window_bounding_box:Rect, window_name:str, is_browser:bool,
-                    interactive_nodes:Optional[list[TreeElementNode]]=None, scrollable_nodes:Optional[list[ScrollElementNode]]=None,
-                    dom_interactive_nodes:Optional[list[TreeElementNode]]=None, dom_informative_nodes:Optional[list[TextElementNode]]=None,
+                    interactive_nodes:list[TreeElementNode] | None=None, scrollable_nodes:list[ScrollElementNode] | None=None,
+                    dom_interactive_nodes:list[TreeElementNode] | None=None, dom_informative_nodes:list[TextElementNode] | None=None,
                     is_dom:bool=False, is_dialog:bool=False,
-                    element_cache_req:Optional[Any]=None, children_cache_req:Optional[Any]=None,
+                    element_cache_req:Any | None=None, children_cache_req:Any | None=None,
                     hwnd:int=0):
         try:
             # Build cached control if caching is enabled
             if not hasattr(node, '_is_cached') and element_cache_req:
                 node = CachedControlHelper.build_cached_control(node, element_cache_req)
-            
+
             # Checks to skip the nodes that are not interactive
             is_offscreen = node.CachedIsOffscreen
             control_type_name = node.CachedControlTypeName
             # class_name = node.CachedClassName
-            
+
             # Scrollable check
             if scrollable_nodes is not None:
                 if (control_type_name not in (INTERACTIVE_CONTROL_TYPE_NAMES|INFORMATIVE_CONTROL_TYPE_NAMES)) and not is_offscreen:
@@ -302,7 +337,7 @@ class Tree:
                             }))
                     except Exception:
                         pass
-        
+
             # Interactive and Informative checks
             # Pre-calculate common properties
             is_control_element = node.CachedIsControlElement
@@ -310,10 +345,10 @@ class Tree:
             width = element_bounding_box.width()
             height = element_bounding_box.height()
             area = width * height
-            
+
             # Is Visible Check
             is_visible = (area > 0) and (not is_offscreen or control_type_name=="EditControl" or (control_type_name=="ListItemControl" and is_browser)) and is_control_element
-            
+
             if is_visible:
                 is_enabled = node.CachedIsEnabled
                 if is_enabled:
@@ -323,7 +358,7 @@ class Tree:
                     else:
                         #Experimentally, ListItemControl is keyboard focusable
                         is_keyboard_focusable = node.CachedIsKeyboardFocusable
-                    
+
                     # Interactive Check
                     if interactive_nodes is not None:
                         is_interactive = False
@@ -338,17 +373,17 @@ class Tree:
                                 is_role_interactive = AccessibleRoleNames.get(role, "Default") in INTERACTIVE_ROLES
                              except Exception:
                                 is_role_interactive = False
-                             
+
                              # Image check
                              is_image = False
                              if control_type_name == 'ImageControl': # approximated
                                  localized = node.CachedLocalizedControlType
                                  if localized == 'graphic' or not is_keyboard_focusable:
                                      is_image = True
-                             
+
                              if is_role_interactive and (not is_image or is_keyboard_focusable):
                                  is_interactive = True
-                                 
+
                         elif control_type_name == 'GroupControl':
                              if is_browser:
                                 try:
@@ -385,7 +420,7 @@ class Tree:
                             metadata['has_focused']=is_focused
                             if accelerator_key:
                                 metadata['shortcut']=accelerator_key
-                            
+
                             try:
                                 help_text = node.CachedHelpText
                                 if help_text:
@@ -419,7 +454,7 @@ class Tree:
                                         metadata['is_password']=True
                                 except Exception:
                                     pass
-                            
+
                             if isinstance(node,ComboBoxControl):
                                 try:
                                     control_state=node.GetCachedPropertyValue(PropertyId.ExpandCollapseExpandCollapseStateProperty)
@@ -435,7 +470,7 @@ class Tree:
                                 except Exception:
                                     pass
 
-                                try: 
+                                try:
                                     can_select_multiple=node.GetCachedPropertyValue(PropertyId.SelectionCanSelectMultipleProperty)
                                     metadata['is_selection_required']=can_select_multiple
                                 except Exception:
@@ -515,25 +550,25 @@ class Tree:
                               is_image_check = False
                               if control_type_name == 'ImageControl':
                                    localized = node.CachedLocalizedControlType
-                                   
+
                                    if not is_keyboard_focusable:
                                         if localized == 'graphic':
                                              is_image_check = True
                                         else:
                                              is_image_check = True
-                                   elif localized == 'graphic': 
+                                   elif localized == 'graphic':
                                         is_image_check = True
 
                               if not is_image_check:
                                   is_text = True
-                         
+
                          if is_text:
                              if is_browser and is_dom:
                                  name = node.CachedName
                                  dom_informative_nodes.append(TextElementNode(
                                      text=(name or '').strip(),
                                  ))
-            
+
             # Phase 3: Cached Children Retrieval
             children = CachedControlHelper.get_cached_children(node, children_cache_req)
 
@@ -590,7 +625,7 @@ class Tree:
                 return "Context Menu"
             case _:
                 return window_name
-    
+
     def get_nodes(self, handle: int, is_browser:bool=False, wait_time:float=0) -> tuple[list[TreeElementNode],list[ScrollElementNode],list[TextElementNode]]:
         if wait_time > 0:
             sleep(wait_time)
@@ -602,12 +637,12 @@ class Tree:
             # Create fresh cache requests for this traversal session
             element_cache_req = CacheRequestFactory.create_tree_traversal_cache()
             element_cache_req.TreeScope = TreeScope.TreeScope_Element
-            
+
             children_cache_req = CacheRequestFactory.create_tree_traversal_cache()
             children_cache_req.TreeScope = TreeScope.TreeScope_Element | TreeScope.TreeScope_Children
 
             window_bounding_box=node.BoundingRectangle
-            
+
             interactive_nodes, dom_interactive_nodes, dom_informative_nodes, scrollable_nodes = [], [], [], []
             window_name=(node.Name or '').strip()
             window_name=self.window_name_correction(window_name)

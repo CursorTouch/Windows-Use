@@ -21,25 +21,25 @@ INTERACTIVE_CONTROL_TYPE_NAMES=set([
 
 INTERACTIVE_ROLES = {
     # Buttons
-    'PushButton', 'SplitButton', 'ButtonDropDown', 'ButtonMenu', 
+    'PushButton', 'SplitButton', 'ButtonDropDown', 'ButtonMenu',
     'ButtonDropDownGrid', 'OutlineButton',
-    
+
     # Links
     'Link',
-    
+
     # Inputs & Selection
     'Text', 'IpAddress', 'HotkeyField', 'ComboBox', 'DropList',
     'CheckButton', 'RadioButton',
-    
+
     # Menus & Tabs
     'MenuItem', 'ListItem', 'PageTab',
-    
+
     # Trees
     'OutlineItem',
-    
+
     # Values
     'Slider', 'SpinButton', 'Dial', 'ScrollBar', 'Grip',
-    
+
     # Grids
     'ColumnHeader', 'RowHeader', 'Cell',
 

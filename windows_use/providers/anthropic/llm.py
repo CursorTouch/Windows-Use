@@ -1,14 +1,31 @@
-import os
 import json
 import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, Union, overload
+import os
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
 from anthropic import Anthropic, AsyncAnthropic
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +33,16 @@ class ChatAnthropic(BaseChatLLM):
     """
     Anthropic LLM implementation following the BaseChatLLM protocol.
     """
-    
+
     def __init__(
         self,
         model: str = "claude-3-5-sonnet-latest",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 600.0,
         max_retries: int = 2,
-        temperature: Optional[float] = None,
-        thinking_budget: Optional[int] = None,
+        temperature: float | None = None,
+        thinking_budget: int | None = None,
         max_tokens: int = 4096,
         enable_prompt_caching: bool = True,
         cache_system_prompt: bool = True,
@@ -85,7 +102,7 @@ class ChatAnthropic(BaseChatLLM):
                     "temperature is ignored when extended thinking is enabled "
                     "(Anthropic requires temperature=1)."
                 )
-        
+
         self.client = Anthropic(
             api_key=self.api_key,
             base_url=self.base_url,
@@ -108,16 +125,16 @@ class ChatAnthropic(BaseChatLLM):
     def provider(self) -> str:
         return "anthropic"
 
-    def _convert_messages(self, messages: List[BaseMessage]) -> tuple[Optional[Union[str, List[dict]]], List[dict]]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> tuple[str | list[dict] | None, list[dict]]:
         """
         Convert BaseMessage objects to Anthropic-compatible message dictionaries.
         Returns (system_prompt, messages).
-        
+
         Adds cache control breakpoints based on configuration.
         """
         anthropic_messages = []
         system_prompt = None
-        
+
         for msg in messages:
             if isinstance(msg, SystemMessage):
                 system_prompt = msg.content
@@ -127,7 +144,7 @@ class ChatAnthropic(BaseChatLLM):
                 content = []
                 if msg.content:
                     content.append({"type": "text", "text": msg.content})
-                
+
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
                     content.append({
@@ -143,8 +160,8 @@ class ChatAnthropic(BaseChatLLM):
                 content = []
                 if msg.thinking:
                     content.append({
-                        "type": "thinking", 
-                        "thinking": msg.thinking, 
+                        "type": "thinking",
+                        "thinking": msg.thinking,
                         "signature": msg.thinking_signature
                     })
                 if msg.content:
@@ -165,7 +182,7 @@ class ChatAnthropic(BaseChatLLM):
                     "name": msg.name,
                     "input": msg.params
                 })
-                
+
                 # Anthropic requires a tool_use block followed by a tool_result block
                 if anthropic_messages and anthropic_messages[-1]["role"] == "assistant":
                     last_content = anthropic_messages[-1]["content"]
@@ -179,7 +196,7 @@ class ChatAnthropic(BaseChatLLM):
                         "role": "assistant",
                         "content": content_blocks
                     })
-                
+
                 # Add the tool result
                 anthropic_messages.append({
                     "role": "user",
@@ -189,7 +206,7 @@ class ChatAnthropic(BaseChatLLM):
                         "content": msg.content or ""
                     }]
                 })
-        
+
         # Apply prompt caching to system prompt
         if system_prompt and self.enable_prompt_caching and self.cache_system_prompt:
             system_prompt = [
@@ -199,35 +216,35 @@ class ChatAnthropic(BaseChatLLM):
                     "cache_control": {"type": "ephemeral"}
                 }
             ]
-        
+
         # Apply prompt caching to recent messages
         if self.enable_prompt_caching and self.cache_recent_messages > 0 and anthropic_messages:
             # Cache the last N user messages (caching works best on user turns)
             user_message_indices = [
-                i for i, msg in enumerate(anthropic_messages) 
+                i for i, msg in enumerate(anthropic_messages)
                 if msg["role"] == "user"
             ]
-            
+
             # Get the indices to cache (last N user messages)
             indices_to_cache = user_message_indices[-self.cache_recent_messages:]
-            
+
             for idx in indices_to_cache:
                 msg = anthropic_messages[idx]
                 content = msg["content"]
-                
+
                 # Convert string content to list format for cache control
                 if isinstance(content, str):
                     content = [{"type": "text", "text": content}]
-                
+
                 # Add cache control to the last content block
                 if isinstance(content, list) and len(content) > 0:
                     # Only add cache control to the last block in the message
                     content[-1]["cache_control"] = {"type": "ephemeral"}
                     msg["content"] = content
-        
+
         return system_prompt, anthropic_messages
 
-    def _build_params(self, anthropic_messages: List[dict], system_prompt: Any, anthropic_tools: Optional[List[dict]]) -> dict:
+    def _build_params(self, anthropic_messages: list[dict], system_prompt: Any, anthropic_tools: list[dict] | None) -> dict:
         """Build the common API parameters for all invoke/stream methods."""
         params = {
             "model": self._model,
@@ -254,7 +271,7 @@ class ChatAnthropic(BaseChatLLM):
 
         return params
 
-    def _convert_tools(self, tools: List[Tool]) -> List[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to Anthropic-compatible tool definitions.
         Adds cache control to tools if enabled.
@@ -267,11 +284,11 @@ class ChatAnthropic(BaseChatLLM):
             }
             for tool in tools
         ]
-        
+
         # Add cache control to the last tool definition
         if self.enable_prompt_caching and self.cache_tools and tool_defs:
             tool_defs[-1]["cache_control"] = {"type": "ephemeral"}
-        
+
         return tool_defs
 
     def _process_response(self, response: Any) -> LLMEvent:
@@ -345,7 +362,7 @@ class ChatAnthropic(BaseChatLLM):
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
-        
+
         if structured_output:
             # Simulate structured output via tool calling
             structured_tool = {
@@ -353,24 +370,24 @@ class ChatAnthropic(BaseChatLLM):
                 "description": f"Record the structured result: {structured_output.__name__}",
                 "input_schema": structured_output.model_json_schema()
             }
-            
+
             # Add cache control to structured output tool if caching enabled
             if self.enable_prompt_caching and self.cache_tools:
                 structured_tool["cache_control"] = {"type": "ephemeral"}
-            
+
             params["tools"] = [structured_tool]
             params["tool_choice"] = {"type": "tool", "name": "record_result"}
             # Forced tool_choice is incompatible with extended thinking
             params.pop("thinking", None)
-            
+
             response = self.client.messages.create(**params)
             tool_use = next(b for b in response.content if b.type == "tool_use")
             parsed = structured_output(**tool_use.input)
-            
+
             # Extract cache metrics
             cache_creation_tokens = getattr(response.usage, 'cache_creation_input_tokens', None) or 0
             cache_read_tokens = getattr(response.usage, 'cache_read_input_tokens', None) or 0
-            
+
             usage = TokenUsage(
                 prompt_tokens=response.usage.input_tokens,
                 completion_tokens=response.usage.output_tokens,
@@ -394,29 +411,29 @@ class ChatAnthropic(BaseChatLLM):
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
-        
+
         if structured_output:
             structured_tool = {
                 "name": "record_result",
                 "description": f"Record the structured result: {structured_output.__name__}",
                 "input_schema": structured_output.model_json_schema()
             }
-            
+
             if self.enable_prompt_caching and self.cache_tools:
                 structured_tool["cache_control"] = {"type": "ephemeral"}
-            
+
             params["tools"] = [structured_tool]
             params["tool_choice"] = {"type": "tool", "name": "record_result"}
             # Forced tool_choice is incompatible with extended thinking
             params.pop("thinking", None)
-            
+
             response = await self.aclient.messages.create(**params)
             tool_use = next(b for b in response.content if b.type == "tool_use")
             parsed = structured_output(**tool_use.input)
-            
+
             cache_creation_tokens = getattr(response.usage, 'cache_creation_input_tokens', None) or 0
             cache_read_tokens = getattr(response.usage, 'cache_read_input_tokens', None) or 0
-            
+
             usage = TokenUsage(
                 prompt_tokens=response.usage.input_tokens,
                 completion_tokens=response.usage.output_tokens,
@@ -440,7 +457,7 @@ class ChatAnthropic(BaseChatLLM):
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
-        
+
         text_started = False
         think_started = False
         usage = None
@@ -501,7 +518,7 @@ class ChatAnthropic(BaseChatLLM):
         system_prompt, anthropic_messages = self._convert_messages(messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
         params = self._build_params(anthropic_messages, system_prompt, anthropic_tools)
-        
+
         text_started = False
         think_started = False
         usage = None
@@ -564,7 +581,7 @@ class ChatAnthropic(BaseChatLLM):
     def get_cache_stats(self) -> dict:
         """
         Return information about the current caching configuration.
-        
+
         Returns:
             dict: Cache configuration details
         """

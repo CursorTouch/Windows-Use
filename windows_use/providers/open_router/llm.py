@@ -1,14 +1,31 @@
-import os
 import json
 import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, Union, overload
-from openai import OpenAI, AsyncOpenAI
+import os
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
+from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
@@ -16,19 +33,19 @@ class ChatOpenRouter(BaseChatLLM):
     """
     OpenRouter LLM implementation following the BaseChatLLM protocol.
     Uses OpenAI SDK with OpenRouter base URL.
-    
+
     OpenRouter provides access to multiple LLM providers through a unified API.
     """
-    
+
     def __init__(
         self,
         model: str,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1",
         timeout: float = 600.0,
         max_retries: int = 2,
-        temperature: Optional[float] = None,
-        default_headers: Optional[dict] = None,
+        temperature: float | None = None,
+        default_headers: dict | None = None,
         **kwargs
     ):
         """
@@ -46,10 +63,10 @@ class ChatOpenRouter(BaseChatLLM):
         self._model = model
         self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
         self.temperature = temperature
-        
+
         # Build headers
         headers = default_headers or {}
-        
+
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=base_url,
@@ -74,7 +91,7 @@ class ChatOpenRouter(BaseChatLLM):
     def provider(self) -> str:
         return "open_router"
 
-    def _convert_messages(self, messages: List[BaseMessage]) -> List[dict]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """
         Convert BaseMessage objects to OpenRouter-compatible message dictionaries.
         """
@@ -88,7 +105,7 @@ class ChatOpenRouter(BaseChatLLM):
                 content_list = []
                 if msg.content:
                     content_list.append({"type": "text", "text": msg.content})
-                
+
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
                     content_list.append({
@@ -123,7 +140,7 @@ class ChatOpenRouter(BaseChatLLM):
                 })
         return openai_messages
 
-    def _convert_tools(self, tools: List[Tool]) -> List[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to OpenRouter-compatible tool definitions.
         """
@@ -186,37 +203,37 @@ class ChatOpenRouter(BaseChatLLM):
     def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
             **self.kwargs
         }
-        
+
         # Only add tools if they exist
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         # Note: OpenRouter doesn't support structured_output via beta.parse
         if structured_output:
             logger.warning("OpenRouter does not support structured_output via beta.parse. Using json_mode instead.")
             params["response_format"] = {"type": "json_object"}
-            
+
         response = self.client.chat.completions.create(**params)
-        
+
         if structured_output:
             # Try to parse the JSON response into the structured output
             try:
                 content_text = response.choices[0].message.content
                 parsed_data = json.loads(content_text)
                 parsed_obj = structured_output(**parsed_data)
-                
+
                 thinking_tokens = getattr(
                     getattr(response.usage, "completion_tokens_details", None),
                     "reasoning_tokens",
@@ -237,7 +254,7 @@ class ChatOpenRouter(BaseChatLLM):
             except (json.JSONDecodeError, TypeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
                 # Fall through to normal response processing
-        
+
         return self._process_response(response)
 
     @overload
@@ -247,34 +264,34 @@ class ChatOpenRouter(BaseChatLLM):
     async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
             **self.kwargs
         }
-        
+
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         if structured_output:
             logger.warning("OpenRouter does not support structured_output via beta.parse. Using json_mode instead.")
             params["response_format"] = {"type": "json_object"}
-            
+
         response = await self.aclient.chat.completions.create(**params)
-        
+
         if structured_output:
             try:
                 content_text = response.choices[0].message.content
                 parsed_data = json.loads(content_text)
                 parsed_obj = structured_output(**parsed_data)
-                
+
                 thinking_tokens = getattr(
                     getattr(response.usage, "completion_tokens_details", None),
                     "reasoning_tokens",
@@ -294,7 +311,7 @@ class ChatOpenRouter(BaseChatLLM):
                 return LLMEvent(type=LLMEventType.TEXT, content=json.dumps(content) if isinstance(content, dict) else content, usage=usage)
             except (json.JSONDecodeError, TypeError, ValueError) as e:
                 logger.error(f"Failed to parse structured output: {e}")
-        
+
         return self._process_response(response)
 
     @overload
@@ -304,7 +321,7 @@ class ChatOpenRouter(BaseChatLLM):
     def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
@@ -312,24 +329,24 @@ class ChatOpenRouter(BaseChatLLM):
             "stream_options": {"include_usage": True},
             **self.kwargs
         }
-        
+
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         response = self.client.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -352,9 +369,9 @@ class ChatOpenRouter(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
-            
+
             if hasattr(delta, "reasoning_content") and delta.reasoning_content:
                 if not think_started:
                     think_started = True
@@ -368,7 +385,7 @@ class ChatOpenRouter(BaseChatLLM):
                     text_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.TEXT_START)
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
-            
+
             # Accumulate tool call deltas
             if hasattr(delta, 'tool_calls') and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
@@ -379,14 +396,14 @@ class ChatOpenRouter(BaseChatLLM):
                         tool_call_name = tc_delta.function.name
                     if tc_delta.function.arguments:
                         tool_call_args += tc_delta.function.arguments
-        
+
         # Yield accumulated tool call as final response
         if tool_call_id and tool_call_name:
             try:
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -409,7 +426,7 @@ class ChatOpenRouter(BaseChatLLM):
     async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
         openai_messages = self._convert_messages(messages)
         openai_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": openai_messages,
@@ -417,24 +434,24 @@ class ChatOpenRouter(BaseChatLLM):
             "stream_options": {"include_usage": True},
             **self.kwargs
         }
-        
+
         if openai_tools:
             params["tools"] = openai_tools
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         response = await self.aclient.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -457,7 +474,7 @@ class ChatOpenRouter(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
 
             if hasattr(delta, "reasoning_content") and delta.reasoning_content:
@@ -473,7 +490,7 @@ class ChatOpenRouter(BaseChatLLM):
                     text_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.TEXT_START)
                 yield LLMStreamEvent(type=LLMStreamEventType.TEXT_DELTA, content=delta.content)
-            
+
             # Accumulate tool call deltas
             if hasattr(delta, 'tool_calls') and delta.tool_calls:
                 tc_delta = delta.tool_calls[0]
@@ -484,14 +501,14 @@ class ChatOpenRouter(BaseChatLLM):
                         tool_call_name = tc_delta.function.name
                     if tc_delta.function.arguments:
                         tool_call_args += tc_delta.function.arguments
-        
+
         # Yield accumulated tool call as final response
         if tool_call_id and tool_call_name:
             try:
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(

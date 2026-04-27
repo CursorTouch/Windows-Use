@@ -1,11 +1,11 @@
 from windows_use.agent import (
     Agent,
-    Browser,
     AgentEvent,
-    EventType,
-    Event,
     BaseEventSubscriber,
+    Browser,
     ConsoleEventSubscriber,
+    Event,
+    EventType,
     FileEventSubscriber,
 )
 

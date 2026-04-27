@@ -1,6 +1,8 @@
-from windows_use.uia.core import _AutomationClient
-import comtypes
 import weakref
+
+import comtypes
+
+from windows_use.uia.core import _AutomationClient
 
 # Get UIA Interface for COM definitions
 uia_client = _AutomationClient.instance()
@@ -11,7 +13,7 @@ class FocusChangedEventHandler(comtypes.COMObject):
 
     def __init__(self, parent):
         self._parent = weakref.ref(parent)
-        super(FocusChangedEventHandler, self).__init__()
+        super().__init__()
 
     def HandleFocusChangedEvent(self, sender):
         try:
@@ -27,7 +29,7 @@ class StructureChangedEventHandler(comtypes.COMObject):
 
     def __init__(self, parent):
         self._parent = weakref.ref(parent)
-        super(StructureChangedEventHandler, self).__init__()
+        super().__init__()
 
     def HandleStructureChangedEvent(self, sender, changeType, runtimeId):
         try:
@@ -43,7 +45,7 @@ class PropertyChangedEventHandler(comtypes.COMObject):
 
     def __init__(self, parent):
         self._parent = weakref.ref(parent)
-        super(PropertyChangedEventHandler, self).__init__()
+        super().__init__()
 
     def HandlePropertyChangedEvent(self, sender, propertyId, newValue):
         try:

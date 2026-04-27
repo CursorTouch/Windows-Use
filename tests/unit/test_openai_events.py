@@ -1,15 +1,13 @@
 import asyncio
-import os
-import sys
-import pytest
 
-from windows_use.providers.openai.llm import ChatOpenAI
+import pytest
+from pydantic import BaseModel
+
+from windows_use.messages import HumanMessage
 from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType
-from windows_use.messages import HumanMessage, AIMessage, ToolMessage
+from windows_use.providers.openai.llm import ChatOpenAI
 from windows_use.tools import Tool
 
-
-from pydantic import BaseModel
 
 class DummyToolModel(BaseModel):
     dummy: str
@@ -24,7 +22,7 @@ dummy_tool = Tool(
 async def test_streaming_text():
     print("=== Testing Streaming Text ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
-    
+
     # MOCK OPENAI STREAM
     from unittest.mock import MagicMock
     class MockDelta:
@@ -52,10 +50,10 @@ async def test_streaming_text():
     llm._is_reasoning_model = lambda: True
 
     events_received = []
-    
+
     # Simple message
     messages = [HumanMessage(content="Explain what a computer is in 2 short sentences.")]
-    
+
     for chunk in llm.stream(messages=messages):
         assert isinstance(chunk, LLMStreamEvent), f"Expected LLMStreamEvent, got {type(chunk).__name__}"
         print(f"[EVENT] {chunk.type.value}: {chunk.content}")
@@ -71,7 +69,7 @@ async def test_streaming_text():
 async def test_streaming_tools():
     print("\n=== Testing Streaming Tools ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
-    
+
     # MOCK OPENAI STREAM
     from unittest.mock import MagicMock
     class MockToolFunction:
@@ -107,11 +105,11 @@ async def test_streaming_tools():
 
     llm.client.chat.completions.create = mock_stream
     llm._is_reasoning_model = lambda: False
-    
+
     events_received = []
-    
+
     messages = [HumanMessage(content="Call the dummy tool with the argument 'hello'.")]
-    
+
     for chunk in llm.stream(messages=messages, tools=[dummy_tool]):
         assert isinstance(chunk, LLMStreamEvent), f"Expected LLMStreamEvent, got {type(chunk).__name__}"
         print(f"[EVENT] {chunk.type.value}: {chunk.tool_call}")
@@ -125,7 +123,7 @@ async def test_streaming_tools():
 async def test_invoke_text():
     print("\n=== Testing Invoke Text ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
-    
+
     # MOCK OPENAI INVOKE
     from unittest.mock import MagicMock
     class MockMessage:
@@ -147,7 +145,7 @@ async def test_invoke_text():
 
     llm.client.chat.completions.create = mock_create
     llm._is_reasoning_model = lambda: False
-    
+
     messages = [HumanMessage(content="Say Hello via invoke")]
     result = llm.invoke(messages=messages)
 
@@ -161,7 +159,7 @@ async def test_invoke_text():
 async def test_ainvoke_tools():
     print("\n=== Testing Ainvoke Tools ===")
     llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
-    
+
     # MOCK OPENAI AINVOKE
     from unittest.mock import MagicMock
     class MockToolFunction:
@@ -194,10 +192,10 @@ async def test_ainvoke_tools():
 
     llm.aclient.chat.completions.create = mock_acreate
     llm._is_reasoning_model = lambda: False
-    
+
     messages = [HumanMessage(content="Call the dummy tool with 'world'")]
     result = await llm.ainvoke(messages=messages, tools=[dummy_tool])
-    
+
     assert isinstance(result, LLMEvent), f"Expected LLMEvent from ainvoke, got {type(result).__name__}"
     assert result.type == LLMEventType.TOOL_CALL
     assert result.tool_call.name == "dummy_tool"

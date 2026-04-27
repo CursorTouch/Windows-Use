@@ -1,15 +1,22 @@
-from windows_use.messages import SystemMessage, HumanMessage, ImageMessage, AIMessage, ToolMessage, BaseMessage
-from windows_use.providers import BaseChatLLM,TokenUsage
-from windows_use.agent.desktop.views import Browser
-from windows_use.agent.desktop.service import Desktop
 from concurrent.futures import ThreadPoolExecutor
-from importlib.resources import files
 from datetime import datetime
 from getpass import getuser
+from importlib.resources import files
 from pathlib import Path
 from typing import Literal
 
 import windows_use.uia as uia
+from windows_use.agent.desktop.service import Desktop
+from windows_use.agent.desktop.views import Browser
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
+from windows_use.providers import BaseChatLLM, TokenUsage
 
 _template_cache: dict[str, str] = {}
 
@@ -29,7 +36,7 @@ class Context:
     def __init__(self,llm: BaseChatLLM):
         self.token_usage:TokenUsage=TokenUsage()
         self.llm = llm
-        
+
     def _build_system_prompt(self,
         mode: Literal["flash", "normal"],
         desktop: Desktop,
@@ -88,7 +95,12 @@ class Context:
                 params=message.params
                 if 'thought' in params:
                     lines.append(f'THOUGHT: {params["thought"]}')
-                lines.append(f'TOOL CALL {id}: {name}({', '.join([f'{k}={v[:2000]+'...[TRUNCATED]' if len(v)>2000 else v}' for k,v in params.items() if k not in _NON_TOOL_PARAMS])})')
+                parts = ", ".join(
+                    f"{k}={v[:2000] + '...[TRUNCATED]' if len(v) > 2000 else v}"
+                    for k, v in params.items()
+                    if k not in _NON_TOOL_PARAMS
+                )
+                lines.append(f"TOOL CALL {id}: {name}({parts})")
                 lines.append(f'TOOL RESULT {id}: {content}')
             else:
                 pass

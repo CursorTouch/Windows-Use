@@ -1,10 +1,12 @@
-from typing import Protocol, runtime_checkable, overload, Iterator, AsyncIterator
+from collections.abc import AsyncIterator, Iterable, Iterator
+from typing import Protocol, overload, runtime_checkable
+
+from pydantic import BaseModel
+
+from windows_use.messages import BaseMessage
 from windows_use.providers.events import LLMEvent, LLMStreamEvent
 from windows_use.providers.views import Metadata
-from windows_use.messages import BaseMessage
-from collections.abc import Iterable
 from windows_use.tools import Tool
-from pydantic import BaseModel
 
 
 @runtime_checkable

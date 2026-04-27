@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Literal, Optional
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class SharedBaseModel(BaseModel):
 
@@ -16,17 +18,17 @@ class App(SharedBaseModel):
         description="Operation mode: 'launch' opens the application from Start Menu, 'resize' adjusts the active window's size and position, 'switch' brings a specific open window into the foreground",
         examples=['launch']
     )
-    name: Optional[str] = Field(
+    name: str | None = Field(
         description="Application name as it appears in Start Menu (for launch) or the window title as shown in the taskbar (for switch/resize). Example: 'Notepad' to launch, 'Untitled - Notepad' to switch.",
         examples=['Notepad', 'Google Chrome', 'Untitled - Notepad'],
         default=None
     )
-    loc: Optional[list[int]] = Field(
+    loc: list[int] | None = Field(
         description="Target [x, y] pixel coordinates for the window's top-left corner. Required for resize mode only.",
         examples=[[0, 0]],
         default=None
     )
-    size: Optional[list[int]] = Field(
+    size: list[int] | None = Field(
         description="Target [width, height] in pixels for the window dimensions. Required for resize mode only.",
         examples=[[1920, 1080]],
         default=None
@@ -43,31 +45,31 @@ class Memory(SharedBaseModel):
     mode: Literal['view', 'read', 'write', 'delete', 'update'] = Field(
         description="Operation mode: 'view' lists all stored files, 'read' retrieves file content, 'write' creates a new file, 'update' modifies an existing file, 'delete' removes a file"
     )
-    path: Optional[str] = Field(
+    path: str | None = Field(
         None,
         description="Relative file path from the .windows-use/memories directory (e.g., 'notes.md', 'project/data.md'). Required for read, write, update, and delete."
     )
-    content: Optional[str] = Field(
+    content: str | None = Field(
         None,
         description="Text content to write into the file. Required for 'write' mode and 'insert' operation in 'update' mode."
     )
-    operation: Optional[Literal['replace', 'insert']] = Field(
+    operation: Literal['replace', 'insert'] | None = Field(
         'replace',
         description="Update strategy: 'replace' finds old_str and substitutes it with new_str, 'insert' adds content at a specific line number. Only used in 'update' mode."
     )
-    old_str: Optional[str] = Field(
+    old_str: str | None = Field(
         None,
         description="Exact string to find in the file. Required when operation='replace'."
     )
-    new_str: Optional[str] = Field(
+    new_str: str | None = Field(
         None,
         description="Replacement string. Required when operation='replace'."
     )
-    line_number: Optional[int] = Field(
+    line_number: int | None = Field(
         None,
         description="0-indexed line number where content will be inserted. Required when operation='insert'."
     )
-    read_range: Optional[list[int]] = Field(
+    read_range: list[int] | None = Field(
         None,
         description="Optional [start, end] line range for partial reads (0-indexed, end exclusive). Example: [0, 10] reads lines 0 through 9."
     )
@@ -100,7 +102,7 @@ class Shell(SharedBaseModel):
             'echo "Hello World"'
         ]
     )
-    timeout: Optional[int] = Field(
+    timeout: int | None = Field(
         description="Maximum seconds to wait for command completion. Increase for long-running operations.",
         default=10,
         examples=[10, 30, 60]
@@ -153,7 +155,7 @@ class MultiEdit(SharedBaseModel):
     )
 
 class Scroll(SharedBaseModel):
-    loc: Optional[list[int]] = Field(
+    loc: list[int] | None = Field(
         description="[x, y] pixel coordinates where scrolling occurs. If omitted, scrolls at the current cursor position.",
         default=None,
         examples=[[640, 360], [800, 400]]
@@ -218,17 +220,17 @@ class File(SharedBaseModel):
         description="Absolute path or path relative to user home directory. Examples: 'C:\\Users\\me\\file.txt', 'Desktop\\notes.txt', 'Documents\\config.json'",
         examples=["C:\\Users\\me\\file.txt", "Desktop\\notes.txt", "Documents\\data.json"],
     )
-    destination: Optional[str] = Field(
+    destination: str | None = Field(
         None,
         description="Target path for move or copy actions. Required when action is 'move' or 'copy'.",
         examples=["C:\\Users\\me\\backup\\file.txt", "Desktop\\copy.txt"],
     )
-    content: Optional[str] = Field(
+    content: str | None = Field(
         None,
         description="Text content to write. Required when action is 'write'.",
         examples=["Hello world", "{\"key\": \"value\"}"],
     )
-    encoding: Optional[str] = Field(
+    encoding: str | None = Field(
         "utf-8",
         description="Character encoding for read and write. Defaults to utf-8.",
         examples=["utf-8", "utf-16", "latin-1"],
@@ -241,12 +243,12 @@ class Desktop(SharedBaseModel):
         description="Virtual desktop action: 'create' adds a new desktop, 'remove' deletes a desktop by name, 'rename' changes a desktop's name, 'switch' activates a desktop by name",
         examples=['create', 'switch', 'rename', 'remove']
     )
-    desktop_name: Optional[str] = Field(
+    desktop_name: str | None = Field(
         description="Name of the target desktop. Required for remove, rename, and switch. Optional for create (auto-named if omitted).",
         default=None,
         examples=["Desktop 1", "Work", "Research"]
     )
-    new_name: Optional[str] = Field(
+    new_name: str | None = Field(
         description="New name for the desktop. Required for rename only.",
         default=None,
         examples=["My Workspace", "Project Alpha"]

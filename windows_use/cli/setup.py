@@ -21,13 +21,18 @@ from windows_use.cli.config import (
     update_provider_base_url,
     upsert_provider,
 )
-from windows_use.cli.registry import get_provider_display, get_providers, get_models, provider_requires_api_key
+from windows_use.cli.registry import (
+    get_models,
+    get_provider_display,
+    get_providers,
+    provider_requires_api_key,
+)
 from windows_use.cli.speech_registry import (
+    SPEECH_PROVIDERS_OWN_KEY,
     get_stt_models,
     get_stt_providers,
     get_tts_models,
     get_tts_providers,
-    SPEECH_PROVIDERS_OWN_KEY,
     speech_provider_requires_api_key,
 )
 

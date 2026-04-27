@@ -1,7 +1,9 @@
 # tests/unit/agent/agent_registry/test_agent_registry_views.py
 
 import pytest
+
 from windows_use.agent.registry.views import ToolResult
+
 
 class TestAgentRegistryViews:
     """

@@ -1,23 +1,32 @@
-from windows_use.messages import SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
-from windows_use.agent.events import AgentEvent, Event, EventType, ConsoleEventSubscriber, FileEventSubscriber
-from windows_use.agent.tools import BUILTIN_TOOLS, EXPERIMENTAL_TOOLS
-from windows_use.agent.views import AgentResult, AgentState
-from windows_use.telemetry.service import ProductTelemetry
-from windows_use.telemetry.views import AgentTelemetryEvent
-from windows_use.agent.registry.service import Registry
-from windows_use.agent.watchdog.service import WatchDog
-from windows_use.agent.desktop.service import Desktop
-from windows_use.agent.desktop.views import Browser
-from windows_use.agent.loop import LoopGuard
-from windows_use.providers.events import LLMEventType, LLMStreamEventType
-from typing import Callable, Literal, TYPE_CHECKING
-from windows_use.agent.context import Context
-from windows_use.agent.base import BaseAgent
-from contextlib import nullcontext
-from rich.console import Console
-from itertools import chain
 import logging
 import time
+from collections.abc import Callable
+from contextlib import nullcontext
+from itertools import chain
+from typing import TYPE_CHECKING, Literal
+
+from rich.console import Console
+
+from windows_use.agent.base import BaseAgent
+from windows_use.agent.context import Context
+from windows_use.agent.desktop.service import Desktop
+from windows_use.agent.desktop.views import Browser
+from windows_use.agent.events import (
+    AgentEvent,
+    ConsoleEventSubscriber,
+    Event,
+    EventType,
+    FileEventSubscriber,
+)
+from windows_use.agent.loop import LoopGuard
+from windows_use.agent.registry.service import Registry
+from windows_use.agent.tools import BUILTIN_TOOLS, EXPERIMENTAL_TOOLS
+from windows_use.agent.views import AgentResult, AgentState
+from windows_use.agent.watchdog.service import WatchDog
+from windows_use.messages import AIMessage, HumanMessage, ImageMessage, SystemMessage, ToolMessage
+from windows_use.providers.events import LLMEventType
+from windows_use.telemetry.service import ProductTelemetry
+from windows_use.telemetry.views import AgentTelemetryEvent
 
 if TYPE_CHECKING:
     from windows_use.providers.base import BaseChatLLM
@@ -134,7 +143,7 @@ class Agent(BaseAgent):
             instructions=self.instructions,
         )
         return self._cached_system_message
-    
+
     @property
     def task_message(self) -> HumanMessage:
         return self.context.task(task=self.state.task)

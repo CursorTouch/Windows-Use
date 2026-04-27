@@ -1,35 +1,52 @@
-import os
 import json
 import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, Union, overload
-from groq import Groq, AsyncGroq
+import os
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
+from groq import AsyncGroq, Groq
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
 class ChatGroq(BaseChatLLM):
     """
     Groq LLM implementation following the BaseChatLLM protocol.
-    
+
     Groq provides ultra-fast inference for open-source models like:
     - Llama 3.3 70B
     - Mixtral
     - Gemma 2
     """
-    
+
     def __init__(
         self,
         model: str = "llama-3.3-70b-versatile",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs
     ):
         """
@@ -47,7 +64,7 @@ class ChatGroq(BaseChatLLM):
         self._model = model
         self.api_key = api_key or os.environ.get("GROQ_API_KEY")
         self.temperature = temperature
-        
+
         self.client = Groq(
             api_key=self.api_key,
             base_url=base_url,
@@ -77,7 +94,7 @@ class ChatGroq(BaseChatLLM):
             p in m for p in ("gpt-oss", "qwen3-32b", "qwen/qwen3")
         )
 
-    def _convert_messages(self, messages: List[BaseMessage]) -> List[dict]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """
         Convert BaseMessage objects to Groq-compatible message dictionaries.
         """
@@ -92,7 +109,7 @@ class ChatGroq(BaseChatLLM):
                 content_list = []
                 if msg.content:
                     content_list.append({"type": "text", "text": msg.content})
-                
+
                 b64_imgs = msg.convert_images(format="base64")
                 for b64 in b64_imgs:
                     content_list.append({
@@ -127,7 +144,7 @@ class ChatGroq(BaseChatLLM):
                 })
         return groq_messages
 
-    def _convert_tools(self, tools: List[Tool]) -> List[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to Groq-compatible tool definitions.
         """
@@ -188,13 +205,13 @@ class ChatGroq(BaseChatLLM):
     def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": groq_messages,
             **self.kwargs
         }
-        
+
         # Only add tools if they exist
         if groq_tools:
             params["tools"] = groq_tools
@@ -203,19 +220,19 @@ class ChatGroq(BaseChatLLM):
                 params["reasoning_format"] = "parsed"
             else:
                 params["include_reasoning"] = True
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         # Handle structured output and json_mode
         if structured_output:
             # Groq doesn't have beta.parse, so use json_mode and manual parsing
             params["response_format"] = {"type": "json_object"}
         elif json_mode:
             params["response_format"] = {"type": "json_object"}
-            
+
         response = self.client.chat.completions.create(**params)
-        
+
         if structured_output:
             try:
                 # Parse the JSON response into the structured output
@@ -225,7 +242,7 @@ class ChatGroq(BaseChatLLM):
                 else:
                     # Fallback to empty object if no content
                     parsed = structured_output()
-                
+
                 content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
                 thinking_tokens = None
                 if response.usage and hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
@@ -254,13 +271,13 @@ class ChatGroq(BaseChatLLM):
     async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": groq_messages,
             **self.kwargs
         }
-        
+
         if groq_tools:
             params["tools"] = groq_tools
         if self._is_reasoning_model():
@@ -268,17 +285,17 @@ class ChatGroq(BaseChatLLM):
                 params["reasoning_format"] = "parsed"
             else:
                 params["include_reasoning"] = True
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if structured_output:
             params["response_format"] = {"type": "json_object"}
         elif json_mode:
             params["response_format"] = {"type": "json_object"}
-            
+
         response = await self.aclient.chat.completions.create(**params)
-        
+
         if structured_output:
             try:
                 content_text = response.choices[0].message.content
@@ -286,7 +303,7 @@ class ChatGroq(BaseChatLLM):
                     parsed = structured_output.model_validate_json(content_text)
                 else:
                     parsed = structured_output()
-                
+
                 content = parsed.model_dump() if hasattr(parsed, "model_dump") else str(parsed)
                 thinking_tokens = None
                 if response.usage and hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
@@ -314,14 +331,14 @@ class ChatGroq(BaseChatLLM):
     def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": groq_messages,
             "stream": True,
             **self.kwargs
         }
-        
+
         if groq_tools:
             params["tools"] = groq_tools
         if self._is_reasoning_model():
@@ -329,21 +346,21 @@ class ChatGroq(BaseChatLLM):
                 params["reasoning_format"] = "parsed"
             else:
                 params["include_reasoning"] = True
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         response = self.client.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -366,7 +383,7 @@ class ChatGroq(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
 
             reasoning_delta = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None)
@@ -401,7 +418,7 @@ class ChatGroq(BaseChatLLM):
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -424,14 +441,14 @@ class ChatGroq(BaseChatLLM):
     async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
         groq_messages = self._convert_messages(messages)
         groq_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": groq_messages,
             "stream": True,
             **self.kwargs
         }
-        
+
         if groq_tools:
             params["tools"] = groq_tools
         if self._is_reasoning_model():
@@ -439,21 +456,21 @@ class ChatGroq(BaseChatLLM):
                 params["reasoning_format"] = "parsed"
             else:
                 params["include_reasoning"] = True
-        
+
         if self.temperature is not None:
             params["temperature"] = self.temperature
-        
+
         if json_mode:
             params["response_format"] = {"type": "json_object"}
-        
+
         response = await self.aclient.chat.completions.create(**params)
-        
+
         # Accumulators for streamed tool calls
         tool_call_id = None
         tool_call_name = None
         tool_call_args = ""
         usage = None
-        
+
         text_started = False
         think_started = False
 
@@ -476,9 +493,9 @@ class ChatGroq(BaseChatLLM):
                         thinking_tokens=thinking_tokens,
                     )
                 continue
-            
+
             delta = chunk.choices[0].delta
-            
+
             reasoning_delta = getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None)
             if reasoning_delta:
                 if not think_started:
@@ -511,7 +528,7 @@ class ChatGroq(BaseChatLLM):
                 params = json.loads(tool_call_args)
             except json.JSONDecodeError:
                 params = {}
-                
+
             yield LLMStreamEvent(
                 type=LLMStreamEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -530,14 +547,14 @@ class ChatGroq(BaseChatLLM):
     def get_metadata(self) -> Metadata:
         # Context windows vary by model
         context_window = 128000  # Default
-        
+
         if "llama-3.3" in self._model or "llama-3.1" in self._model:
             context_window = 128000
         elif "mixtral" in self._model:
             context_window = 32768
         elif "gemma-2" in self._model:
             context_window = 8192
-        
+
         return Metadata(
             name=self._model,
             context_window=context_window,

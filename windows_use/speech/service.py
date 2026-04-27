@@ -1,15 +1,15 @@
 """STT and TTS service implementations for recording, transcription, and playback."""
 
+import asyncio
+import logging
 import os
 import wave
-import logging
-import asyncio
-from time import sleep
-from threading import Thread
 from tempfile import NamedTemporaryFile
+from threading import Thread
+from time import sleep
 from typing import TYPE_CHECKING
 
-from pyaudio import PyAudio, paInt16, Stream
+from pyaudio import PyAudio, Stream, paInt16
 
 if TYPE_CHECKING:
     from windows_use.providers.base import BaseSTT, BaseTTS

@@ -1,13 +1,13 @@
-from dataclasses import dataclass,field
-from typing import TYPE_CHECKING, Optional,Any,Union
 import json
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Optional
 
 WARNING_MESSAGE="The desktop UI services are temporarily unavailable. Please wait a few seconds and continue."
 EMPTY_MESSAGE="No elements found"
 
 if TYPE_CHECKING:
-    from windows_use.uia.core import Rect
     from windows_use.uia.controls import Control
+    from windows_use.uia.core import Rect
 
 @dataclass
 class TreeState:
@@ -59,7 +59,7 @@ class TreeState:
             rows.append(row)
         parts.append("\n".join(rows))
         return "\n".join(parts)
-    
+
 @dataclass
 class BoundingBox:
     left:int
@@ -85,11 +85,11 @@ class BoundingBox:
 
     def xywh_to_string(self):
         return f'({self.left},{self.top},{self.width},{self.height})'
-    
+
     def xyxy_to_string(self):
         x1,y1,x2,y2=self.convert_xywh_to_xyxy()
         return f'({x1},{y1},{x2},{y2})'
-    
+
     def convert_xywh_to_xyxy(self)->tuple[int,int,int,int]:
         x1,y1=self.left,self.top
         x2,y2=self.left+self.width,self.top+self.height
@@ -156,7 +156,7 @@ class TextElementNode:
 
 ElementNode=TreeElementNode|ScrollElementNode|TextElementNode
 
-_SelectorNode = Union[TreeElementNode, ScrollElementNode]
+_SelectorNode = TreeElementNode | ScrollElementNode
 
 class SelectorMap(dict):
     """Maps element index (as shown in the tree output) to its node.

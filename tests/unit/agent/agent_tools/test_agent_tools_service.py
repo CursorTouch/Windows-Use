@@ -1,28 +1,29 @@
 # tests/unit/agent/agent_tools/test_agent_tools_service.py
 
-import pytest
-from unittest.mock import MagicMock, patch, mock_open
-from typing import Literal
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
-from windows_use.agent.tools.service import (
-    done_tool,
-    app_tool,
-    shell_tool,
-    click_tool,
-    type_tool,
-    scroll_tool,
-    move_tool,
-    shortcut_tool,
-    wait_tool,
-    scrape_tool,
-    desktop_tool,
-    memory_tool,
-    file_tool,
-    multi_select_tool,
-    multi_edit_tool
-)
+import pytest
+
 from windows_use.agent.desktop.service import Desktop
+from windows_use.agent.tools.service import (
+    app_tool,
+    click_tool,
+    desktop_tool,
+    done_tool,
+    file_tool,
+    memory_tool,
+    move_tool,
+    multi_edit_tool,
+    multi_select_tool,
+    scrape_tool,
+    scroll_tool,
+    shell_tool,
+    shortcut_tool,
+    type_tool,
+    wait_tool,
+)
+
 
 class TestAgentToolsService:
     """
@@ -73,16 +74,16 @@ class TestAgentToolsService:
         """Test type_tool delegation."""
         type_tool.invoke(**{"loc": [10, 20], "text": "hello", "clear": "true", "caret_position": "start", "press_enter": "true", "desktop": mock_desktop})
         mock_desktop.type.assert_called_once_with(
-            loc=[10, 20], 
-            text="hello", 
-            caret_position="start", 
-            clear="true", 
+            loc=[10, 20],
+            text="hello",
+            caret_position="start",
+            clear="true",
             press_enter="true"
         )
 
     def test_scroll_tool(self, mock_desktop):
         """Test scroll_tool delegation."""
-        mock_desktop.scroll.return_value = None 
+        mock_desktop.scroll.return_value = None
         scroll_tool.invoke(**{"loc": [10, 20], "type": "vertical", "direction": "up", "wheel_times": 3, "desktop": mock_desktop})
         mock_desktop.scroll.assert_called_once_with([10, 20], "vertical", "up", 3)
 

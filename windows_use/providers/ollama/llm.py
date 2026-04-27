@@ -1,16 +1,32 @@
-import os
 import json
-import uuid
 import logging
-from typing import Iterator, AsyncIterator, List, Optional, Any, overload
-import ollama
-from ollama import Client, AsyncClient
+import os
+import uuid
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, overload
+
+from ollama import AsyncClient, Client
 from pydantic import BaseModel
+
+from windows_use.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    ImageMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from windows_use.providers.base import BaseChatLLM
-from windows_use.providers.views import TokenUsage, Metadata
-from windows_use.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ImageMessage, ToolMessage
+from windows_use.providers.events import (
+    LLMEvent,
+    LLMEventType,
+    LLMStreamEvent,
+    LLMStreamEventType,
+    Thinking,
+    ToolCall,
+)
+from windows_use.providers.views import Metadata, TokenUsage
 from windows_use.tools import Tool
-from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType, ToolCall, Thinking
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +34,13 @@ class ChatOllama(BaseChatLLM):
     """
     Ollama LLM implementation following the BaseChatLLM protocol.
     """
-    
+
     def __init__(
         self,
         model: str = "llama3.1",
-        host: Optional[str] = None,
+        host: str | None = None,
         timeout: float = 600.0,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs
     ):
         """
@@ -40,7 +56,7 @@ class ChatOllama(BaseChatLLM):
         self._model = model
         self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.temperature = temperature
-        
+
         self.client = Client(host=self.host, timeout=timeout)
         self.aclient = AsyncClient(host=self.host, timeout=timeout)
         self.kwargs = kwargs
@@ -61,7 +77,7 @@ class ChatOllama(BaseChatLLM):
             for p in ("qwen3", "deepseek-r1", "deepseek-v3", "gpt-oss")
         )
 
-    def _convert_messages(self, messages: List[BaseMessage]) -> List[dict]:
+    def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """
         Convert BaseMessage objects to Ollama-compatible message dictionaries.
         """
@@ -102,7 +118,7 @@ class ChatOllama(BaseChatLLM):
                 })
         return ollama_messages
 
-    def _convert_tools(self, tools: List[Tool]) -> List[dict]:
+    def _convert_tools(self, tools: list[Tool]) -> list[dict]:
         """
         Convert Tool objects to Ollama-compatible tool definitions.
         """
@@ -159,28 +175,28 @@ class ChatOllama(BaseChatLLM):
     def invoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         ollama_messages = self._convert_messages(messages)
         ollama_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": ollama_messages,
             **self.kwargs
         }
-        
+
         if ollama_tools:
             params["tools"] = ollama_tools
         if self._is_thinking_model():
             params["think"] = True
-        
+
         if self.temperature is not None:
             if "options" not in params:
                 params["options"] = {}
             params["options"]["temperature"] = self.temperature
-        
+
         if json_mode or structured_output:
             params["format"] = "json" if not structured_output else structured_output.model_json_schema()
 
         response = self.client.chat(**params)
-        
+
         if structured_output:
             try:
                 parsed = structured_output.model_validate_json(response["message"]["content"])
@@ -205,28 +221,28 @@ class ChatOllama(BaseChatLLM):
     async def ainvoke(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> LLMEvent:
         ollama_messages = self._convert_messages(messages)
         ollama_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": ollama_messages,
             **self.kwargs
         }
-        
+
         if ollama_tools:
             params["tools"] = ollama_tools
         if self._is_thinking_model():
             params["think"] = True
-        
+
         if self.temperature is not None:
             if "options" not in params:
                 params["options"] = {}
             params["options"]["temperature"] = self.temperature
-        
+
         if json_mode or structured_output:
             params["format"] = "json" if not structured_output else structured_output.model_json_schema()
 
         response = await self.aclient.chat(**params)
-        
+
         if structured_output:
             try:
                 parsed = structured_output.model_validate_json(response["message"]["content"])
@@ -250,29 +266,29 @@ class ChatOllama(BaseChatLLM):
     def stream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> Iterator[LLMStreamEvent]:
         ollama_messages = self._convert_messages(messages)
         ollama_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": ollama_messages,
             "stream": True,
             **self.kwargs
         }
-        
+
         if ollama_tools:
             params["tools"] = ollama_tools
         if self._is_thinking_model():
             params["think"] = True
-        
+
         if self.temperature is not None:
             if "options" not in params:
                 params["options"] = {}
             params["options"]["temperature"] = self.temperature
-        
+
         if json_mode:
             params["format"] = "json"
 
         response = self.client.chat(**params)
-        
+
         text_started = False
         think_started = False
         usage = None
@@ -336,29 +352,29 @@ class ChatOllama(BaseChatLLM):
     async def astream(self, messages: list[BaseMessage], tools: list[Tool] = [], structured_output: BaseModel | None = None, json_mode: bool = False) -> AsyncIterator[LLMStreamEvent]:
         ollama_messages = self._convert_messages(messages)
         ollama_tools = self._convert_tools(tools) if tools else None
-        
+
         params = {
             "model": self._model,
             "messages": ollama_messages,
             "stream": True,
             **self.kwargs
         }
-        
+
         if ollama_tools:
             params["tools"] = ollama_tools
         if self._is_thinking_model():
             params["think"] = True
-        
+
         if self.temperature is not None:
             if "options" not in params:
                 params["options"] = {}
             params["options"]["temperature"] = self.temperature
-        
+
         if json_mode:
             params["format"] = "json"
 
         response = await self.aclient.chat(**params)
-        
+
         text_started = False
         think_started = False
         usage = None
@@ -409,7 +425,7 @@ class ChatOllama(BaseChatLLM):
                     ),
                     usage=usage
                 )
-                
+
         if think_started:
             yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
         if text_started:

@@ -1,10 +1,13 @@
 # tests/unit/tree/test_tree_init.py
 
-import pytest
 from unittest.mock import MagicMock, patch
-from windows_use.agent.tree.service import Tree
-from windows_use.agent.tree.views import TreeState, BoundingBox
+
+import pytest
+
 from windows_use.agent.desktop.views import Size
+from windows_use.agent.tree.service import Tree
+from windows_use.agent.tree.views import TreeState
+
 
 class TestTreeService:
     @pytest.fixture

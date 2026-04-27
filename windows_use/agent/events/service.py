@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Callable, Union
+from collections.abc import Callable
 
-from windows_use.agent.events.views import AgentEvent, EventType
 from windows_use.agent.events.subscriber import BaseEventSubscriber
+from windows_use.agent.events.views import AgentEvent
 
-EventSubscriber = Union[BaseEventSubscriber, Callable[[AgentEvent], None]]
+EventSubscriber = BaseEventSubscriber | Callable[[AgentEvent], None]
 
 
 class Event:

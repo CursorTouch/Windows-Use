@@ -1,7 +1,6 @@
 """NVIDIA NIM LLM provider via OpenAI-compatible API."""
 
 import os
-from typing import Optional
 
 from windows_use.providers.openai.llm import ChatOpenAI
 
@@ -19,11 +18,11 @@ class ChatNvidia(ChatOpenAI):
     def __init__(
         self,
         model: str = "qwen/qwen3.5-122b-a10b",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 600.0,
         max_retries: int = 2,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
         **kwargs,
     ):
         api_key = api_key or os.environ.get("NVIDIA_NIM_API_KEY") or os.environ.get("NVIDIA_API_KEY")
