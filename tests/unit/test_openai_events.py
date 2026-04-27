@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
@@ -7,6 +8,13 @@ from windows_use.messages import HumanMessage
 from windows_use.providers.events import LLMEvent, LLMEventType, LLMStreamEvent, LLMStreamEventType
 from windows_use.providers.openai.llm import ChatOpenAI
 from windows_use.tools import Tool
+
+
+def make_llm(**kwargs) -> ChatOpenAI:
+    with patch("windows_use.providers.openai.llm.OpenAI"), patch(
+        "windows_use.providers.openai.llm.AsyncOpenAI"
+    ):
+        return ChatOpenAI(api_key="test-key", **kwargs)
 
 
 class DummyToolModel(BaseModel):
@@ -19,7 +27,7 @@ dummy_tool = Tool(name="dummy_tool", description="A dummy tool for testing", mod
 @pytest.mark.asyncio
 async def test_streaming_text():
     print("=== Testing Streaming Text ===")
-    llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
+    llm = make_llm(model="gpt-4o-mini", max_retries=1)
 
     # MOCK OPENAI STREAM
     from unittest.mock import MagicMock
@@ -69,7 +77,7 @@ async def test_streaming_text():
 @pytest.mark.asyncio
 async def test_streaming_tools():
     print("\n=== Testing Streaming Tools ===")
-    llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
+    llm = make_llm(model="gpt-4o-mini", max_retries=1)
 
     # MOCK OPENAI STREAM
     from unittest.mock import MagicMock
@@ -128,7 +136,7 @@ async def test_streaming_tools():
 @pytest.mark.asyncio
 async def test_invoke_text():
     print("\n=== Testing Invoke Text ===")
-    llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
+    llm = make_llm(model="gpt-4o-mini", max_retries=1)
 
     # MOCK OPENAI INVOKE
     from unittest.mock import MagicMock
@@ -171,7 +179,7 @@ async def test_invoke_text():
 @pytest.mark.asyncio
 async def test_ainvoke_tools():
     print("\n=== Testing Ainvoke Tools ===")
-    llm = ChatOpenAI(model="gpt-4o-mini", max_retries=1)
+    llm = make_llm(model="gpt-4o-mini", max_retries=1)
 
     # MOCK OPENAI AINVOKE
     from unittest.mock import MagicMock

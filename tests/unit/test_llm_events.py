@@ -1,8 +1,15 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from windows_use.messages import HumanMessage
 from windows_use.providers.events import LLMStreamEvent, LLMStreamEventType
 from windows_use.providers.openai.llm import ChatOpenAI
+
+
+def make_provider(model: str) -> ChatOpenAI:
+    with patch("windows_use.providers.openai.llm.OpenAI"), patch(
+        "windows_use.providers.openai.llm.AsyncOpenAI"
+    ):
+        return ChatOpenAI(model=model, api_key="test-key")
 
 
 def create_mock_chunk(content=None, tool_calls=None, reasoning=None):
@@ -32,7 +39,7 @@ def create_mock_chunk(content=None, tool_calls=None, reasoning=None):
 
 
 def test_stream_text_only():
-    provider = ChatOpenAI(model="gpt-4o")
+    provider = make_provider("gpt-4o")
 
     mock_chunks = [
         create_mock_chunk(content="Hello"),
@@ -53,7 +60,7 @@ def test_stream_text_only():
 
 
 def test_stream_tool_only():
-    provider = ChatOpenAI(model="gpt-4o")
+    provider = make_provider("gpt-4o")
 
     mock_chunks = [
         create_mock_chunk(
@@ -76,7 +83,7 @@ def test_stream_tool_only():
 
 
 def test_stream_thinking_then_text():
-    provider = ChatOpenAI(model="o3-mini")
+    provider = make_provider("o3-mini")
 
     mock_chunks = [
         create_mock_chunk(reasoning="Thinking"),

@@ -69,6 +69,7 @@ windows-use = "windows_use.cli.__main__:main"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.4.1",
+    "pytest-asyncio>=0.24.0",
     "ruff>=0.12.1",
 ]
 speech = [
@@ -83,6 +84,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 packages = ["windows_use"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100

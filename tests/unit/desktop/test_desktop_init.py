@@ -24,7 +24,11 @@ class TestDesktopService:
 
     def test_init(self, desktop):
         assert desktop.desktop_state is None
-        assert desktop.get_screen_size().width == 1920
+        with patch(
+            "windows_use.agent.desktop.service.uia.GetVirtualScreenSize",
+            return_value=(1920, 1080),
+        ):
+            assert desktop.get_screen_size().width == 1920
 
     @patch("windows_use.agent.desktop.service.win32gui.EnumWindows")
     @patch("windows_use.agent.desktop.service.win32gui.IsWindowVisible")
