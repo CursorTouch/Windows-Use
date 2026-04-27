@@ -66,7 +66,7 @@ The following example returns various property values. The **UiaIds** structure 
 property identifiers; to see how it is initialized, see [UiaLookupId](/en-us/windows/desktop/api/uiautomationcoreapi/nf-uiautomationcoreapi-uialookupid).
 
 ```
-HRESULT STDMETHODCALLTYPE Provider::GetPropertyValue(PROPERTYID propertyId, 
+HRESULT STDMETHODCALLTYPE Provider::GetPropertyValue(PROPERTYID propertyId,
         VARIANT* pRetVal)
 {
     if (propertyId == UiaIds.ControlTypeProperty)
@@ -75,9 +75,9 @@ HRESULT STDMETHODCALLTYPE Provider::GetPropertyValue(PROPERTYID propertyId,
         pRetVal->lVal = UiaIds.ButtonControlType;
     }
 
-    // The Name property normally comes from the Caption property of the 
-    // control window, if it has one. The Name is overridden here for the 
-    // sake of illustration. 
+    // The Name property normally comes from the Caption property of the
+    // control window, if it has one. The Name is overridden here for the
+    // sake of illustration.
     else if (propertyId == UiaIds.NameProperty)
     {
         pRetVal->vt = VT_BSTR;
@@ -86,7 +86,7 @@ HRESULT STDMETHODCALLTYPE Provider::GetPropertyValue(PROPERTYID propertyId,
     else
     {
         pRetVal->vt = VT_EMPTY;
-        // UI Automation will attempt to get the property from the host 
+        // UI Automation will attempt to get the property from the host
         //window provider.
     }
     return S_OK;

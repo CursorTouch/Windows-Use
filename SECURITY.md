@@ -185,5 +185,5 @@ For security-related questions (not vulnerabilities):
 
 ---
 
-**Last Updated**: November 26, 2025  
+**Last Updated**: November 26, 2025
 **Version**: 1.0.0

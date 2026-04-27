@@ -84,7 +84,7 @@ IUIAutomation *g_pAutomation;
 BOOL InitializeUIAutomation()
 {
     CoInitialize(NULL);
-    HRESULT hr = CoCreateInstance(__uuidof(CUIAutomation), NULL, CLSCTX_INPROC_SERVER, 
+    HRESULT hr = CoCreateInstance(__uuidof(CUIAutomation), NULL, CLSCTX_INPROC_SERVER,
         __uuidof(IUIAutomation), (void**)&g_pAutomation);
     return (SUCCEEDED(hr));
 }

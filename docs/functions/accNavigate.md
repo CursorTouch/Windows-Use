@@ -105,16 +105,16 @@ For more information, see [Object Navigation Properties and Methods](/en-us/wind
 The following example shows a possible implementation of the method for a custom list box whose list items are child elements.
 
 ```
-// m_pControl is the control that returns this accessible object. 
-// m_pStdAccessibleObject is the standard accessible object for the window 
-//    that contains the control. 
+// m_pControl is the control that returns this accessible object.
+// m_pStdAccessibleObject is the standard accessible object for the window
+//    that contains the control.
 
-HRESULT STDMETHODCALLTYPE AccServer::accNavigate( 
+HRESULT STDMETHODCALLTYPE AccServer::accNavigate(
     long navDir,
     VARIANT varStart,
     VARIANT *pvarEndUpAt)
 {
-    // Default value. 
+    // Default value.
     pvarEndUpAt->vt = VT_EMPTY;
 
     if (varStart.vt != VT_I4)
@@ -130,7 +130,7 @@ HRESULT STDMETHODCALLTYPE AccServer::accNavigate(
             pvarEndUpAt->vt = VT_I4;
             pvarEndUpAt->lVal = 1;
         }
-        else  // Starting with child. 
+        else  // Starting with child.
         {
             return S_FALSE;
         }
@@ -142,26 +142,26 @@ HRESULT STDMETHODCALLTYPE AccServer::accNavigate(
             pvarEndUpAt->vt = VT_I4;
             pvarEndUpAt->lVal = m_pControl->GetCount();
         }
-        else  // Starting with child.           
+        else  // Starting with child.
         {
             return S_FALSE;
         }
         break;
 
-    case NAVDIR_NEXT:   
+    case NAVDIR_NEXT:
     case NAVDIR_DOWN:
         if (varStart.lVal != CHILDID_SELF)
         {
             pvarEndUpAt->vt = VT_I4;
             pvarEndUpAt->lVal = varStart.lVal + 1;
-            // Out of range. 
+            // Out of range.
             if (pvarEndUpAt->lVal > m_pControl->GetCount())
             {
                 pvarEndUpAt->vt = VT_EMPTY;
                 return S_FALSE;
             }
         }
-        else  // Call through to method on standard object. 
+        else  // Call through to method on standard object.
         {
             return m_pStdAccessibleObject->accNavigate(navDir, varStart, pvarEndUpAt);
         }
@@ -173,27 +173,27 @@ HRESULT STDMETHODCALLTYPE AccServer::accNavigate(
         {
             pvarEndUpAt->vt = VT_I4;
             pvarEndUpAt->lVal = varStart.lVal - 1;
-            // Out of range. 
+            // Out of range.
             if (pvarEndUpAt->lVal <1)
             {
                 pvarEndUpAt->vt = VT_EMPTY;
                 return S_FALSE;
             }
         }
-        else  // Call through to method on standard object. 
+        else  // Call through to method on standard object.
         {
             return m_pStdAccessibleObject->accNavigate(navDir, varStart, pvarEndUpAt);
         }
         break;
 
-     // Unsupported directions. 
+     // Unsupported directions.
     case NAVDIR_LEFT:
     case NAVDIR_RIGHT:
         if (varStart.lVal == CHILDID_SELF)
         {
             return m_pStdAccessibleObject->accNavigate(navDir, varStart, pvarEndUpAt);
         }
-        else 
+        else
         {
             pvarEndUpAt->vt = VT_EMPTY;
             return S_FALSE;

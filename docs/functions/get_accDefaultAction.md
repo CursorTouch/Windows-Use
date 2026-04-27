@@ -58,7 +58,7 @@ Only controls that perform actions support this method.
 The following example code shows a possible implementation of this method for a custom list box. For simplicity, the strings are not localized.
 
 ```
-HRESULT STDMETHODCALLTYPE AccServer::get_accDefaultAction( 
+HRESULT STDMETHODCALLTYPE AccServer::get_accDefaultAction(
     VARIANT varChild,
     BSTR *pszDefaultAction)
 {

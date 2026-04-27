@@ -141,18 +141,18 @@ void ShutdownMSAA()
 
 // Callback function that handles events.
 //
-void CALLBACK HandleWinEvent(HWINEVENTHOOK hook, DWORD event, HWND hwnd, 
-                             LONG idObject, LONG idChild, 
+void CALLBACK HandleWinEvent(HWINEVENTHOOK hook, DWORD event, HWND hwnd,
+                             LONG idObject, LONG idChild,
                              DWORD dwEventThread, DWORD dwmsEventTime)
 {
     IAccessible* pAcc = NULL;
     VARIANT varChild;
-    HRESULT hr = AccessibleObjectFromEvent(hwnd, idObject, idChild, &pAcc, &varChild);  
+    HRESULT hr = AccessibleObjectFromEvent(hwnd, idObject, idChild, &pAcc, &varChild);
     if ((hr == S_OK) && (pAcc != NULL))
     {
         BSTR bstrName;
         pAcc->get_accName(varChild, &bstrName);
-        if (event == EVENT_SYSTEM_MENUSTART) 
+        if (event == EVENT_SYSTEM_MENUSTART)
         {
             printf("Begin: ");
         }

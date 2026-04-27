@@ -74,36 +74,36 @@ When this method is used in certain situations, additional usage notes apply. Fo
 The following example code shows a possible implementation for a custom list box.
 
 ```
-// m_pControl is the control that returns this accessible object. 
-// m_hwnd is the HWND of the control window. 
-//  
-HRESULT STDMETHODCALLTYPE AccServer::accHitTest( 
+// m_pControl is the control that returns this accessible object.
+// m_hwnd is the HWND of the control window.
+//
+HRESULT STDMETHODCALLTYPE AccServer::accHitTest(
     long xLeft,
     long yTop,
-    VARIANT *pvarChild) 
+    VARIANT *pvarChild)
 
 {
     POINT pt;
     pt.x = xLeft;
     pt.y = yTop;
 
-    // Not in our window. 
+    // Not in our window.
     if (WindowFromPoint(pt) != m_hwnd)
     {
         pvarChild->vt = VT_EMPTY;
         return S_FALSE;
     }
 
-    else  // In our window; return list item, or self if in blank space. 
+    else  // In our window; return list item, or self if in blank space.
     {
         pvarChild->vt = VT_I4;
         ScreenToClient(m_hwnd, &pt);
-        // IndexFromY returns the 0-based index of the item at that point, 
+        // IndexFromY returns the 0-based index of the item at that point,
         // or -1 if the point is not on any item.
         int index = m_pControl->IndexFromY(pt.y);
         if (index >= 0)
         {
-            // Increment, because the child array is 1-based. 
+            // Increment, because the child array is 1-based.
             pvarChild->lVal = index + 1;
         }
         else
@@ -129,7 +129,7 @@ HRESULT SelectItemAtPoint(IAccessible* pAcc, POINT point)
     }
     VARIANT varChild;
 
-    HRESULT hr = pAcc->accHitTest(point.x, point.y, &varChild);        
+    HRESULT hr = pAcc->accHitTest(point.x, point.y, &varChild);
     if ((hr == S_OK) && (varChild.lVal != CHILDID_SELF))
     {
         return pAcc->accSelect((SELFLAG_TAKEFOCUS | SELFLAG_TAKESELECTION), varChild);

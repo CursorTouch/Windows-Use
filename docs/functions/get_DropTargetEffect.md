@@ -36,7 +36,7 @@ If this property changes, the provider must notify clients by firing a [UIA\_Aut
 IFACEMETHODIMP CRegionProvider::get_DropTargetEffect(BSTR * pDefaultDropAction)
 {
     WCHAR wszDropAction[100];
-    LoadString(g_hInstance, IDS_REGION_DEFAULTDROPACTION1, wszDropAction, 
+    LoadString(g_hInstance, IDS_REGION_DEFAULTDROPACTION1, wszDropAction,
         ARRAYSIZE(wszDropAction));
     *pDefaultDropAction = ::SysAllocString(wszDropAction);
     return (*pDefaultDropAction == nullptr) ? E_OUTOFMEMORY : S_OK;

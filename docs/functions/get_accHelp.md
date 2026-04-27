@@ -56,10 +56,10 @@ This property returns a string, whereas [IAccessible::get\_accHelpTopic](/en-us/
 The following example code shows one possible implementation of this method for a custom list box. Different text is displayed depending on the status of the contact in the list. For simplicity, the example does not localize the returned string.
 
 ```
-// m_pControl is the custom control that returns this accessible object. 
-// 'online' is an enumerated value. 
+// m_pControl is the custom control that returns this accessible object.
+// 'online' is an enumerated value.
 
-HRESULT STDMETHODCALLTYPE AccServer::get_accHelp( 
+HRESULT STDMETHODCALLTYPE AccServer::get_accHelp(
     VARIANT varChild,
     BSTR *pszHelp)
 {
@@ -84,7 +84,7 @@ HRESULT STDMETHODCALLTYPE AccServer::get_accHelp(
         {
             *pszHelp = SysAllocString(L"Online contact.");
         }
-        else 
+        else
         {
             *pszHelp = SysAllocString(L"Offline contact.");
         }

@@ -55,11 +55,11 @@ Localize the string returned from this property.
 The following example shows a possible implementation of this method for a custom list box control that manages its own child elements.
 
 ```
-// m_pStdAccessibleObject is the standard object returned by CreateStdAccessibleObject. 
+// m_pStdAccessibleObject is the standard object returned by CreateStdAccessibleObject.
 // m_pControl is the control object that provides this accessibility object. It maintains
-// a zero-based collection of child items. 
+// a zero-based collection of child items.
 
-HRESULT STDMETHODCALLTYPE AccServer::get_accName( 
+HRESULT STDMETHODCALLTYPE AccServer::get_accName(
     VARIANT varChild,
     BSTR *pszName)
 {
@@ -68,22 +68,22 @@ HRESULT STDMETHODCALLTYPE AccServer::get_accName(
         *pszName = NULL;
         return E_INVALIDARG;
     }
-    // For the control itself, let the standard accessible object return the name 
-    // assigned by the application. This is either the "caption" property or, if 
-    // there is no caption, the text of any label. 
+    // For the control itself, let the standard accessible object return the name
+    // assigned by the application. This is either the "caption" property or, if
+    // there is no caption, the text of any label.
     if (varChild.lVal == CHILDID_SELF)
     {
-        return m_pStdAccessibleObject->get_accName(varChild, pszName);                  
+        return m_pStdAccessibleObject->get_accName(varChild, pszName);
     }
-    
-    // Else return the name of the item in the list. 
+
+    // Else return the name of the item in the list.
     else
     {
         CustomListControlItem* pItem = m_pControl->GetItemAt(varChild.lVal - 1);
         if (pItem)
         {
-            *pszName = SysAllocString(pItem->GetName());        
-       
+            *pszName = SysAllocString(pItem->GetName());
+
         }
     }
     return S_OK;

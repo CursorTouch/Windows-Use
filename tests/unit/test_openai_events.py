@@ -11,8 +11,9 @@ from windows_use.tools import Tool
 
 
 def make_llm(**kwargs) -> ChatOpenAI:
-    with patch("windows_use.providers.openai.llm.OpenAI"), patch(
-        "windows_use.providers.openai.llm.AsyncOpenAI"
+    with (
+        patch("windows_use.providers.openai.llm.OpenAI"),
+        patch("windows_use.providers.openai.llm.AsyncOpenAI"),
     ):
         return ChatOpenAI(api_key="test-key", **kwargs)
 

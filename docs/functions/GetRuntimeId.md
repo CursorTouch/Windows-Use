@@ -43,23 +43,23 @@ The following implementation for a list item returns a runtime identifier made u
 ```
 HRESULT STDMETHODCALLTYPE ListItemProvider::GetRuntimeId(SAFEARRAY ** pRetVal)
 {
-    if (pRetVal == NULL) 
+    if (pRetVal == NULL)
     {
         return E_INVALIDARG;
     }
-    
+
     int rId[] = { UiaAppendRuntimeId, m_itemIndex };
     SAFEARRAY *psa = SafeArrayCreateVector(VT_I4, 0, 2);
     if (psa == NULL)
     {
         return E_OUTOFMEMORY;
     }
-    
+
     for (LONG i = 0; i < 2; i++)
     {
         SafeArrayPutElement(psa, &i, (void*)&(rId[i]));
     }
-    
+
     *pRetVal = psa;
     return S_OK;
 }

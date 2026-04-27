@@ -7,7 +7,6 @@ import pytest
 
 try:
     from windows_use.agent.utils import json_parser, read_file
-
     from windows_use.agent.views import Action, AgentData  # noqa: F401
     from windows_use.messages import AIMessage
 

@@ -59,7 +59,7 @@ This property provides a textual equivalent of the object for the user. The desc
 The following example code shows one possible implementation of this method for a custom list box that maintains its own child elements. The example demonstrates the syntax, but remember that a real text-only list box would probably not need to support this property. For simplicity, the strings in the example are not localized.
 
 ```
-HRESULT STDMETHODCALLTYPE AccServer::get_accDescription( 
+HRESULT STDMETHODCALLTYPE AccServer::get_accDescription(
     VARIANT varChild,
     BSTR *pszDescription)
 {
@@ -70,13 +70,13 @@ HRESULT STDMETHODCALLTYPE AccServer::get_accDescription(
     }
     if (varChild.lVal == CHILDID_SELF)
     {
-        *pszDescription = SysAllocString(L"List of contacts.");    
-            
+        *pszDescription = SysAllocString(L"List of contacts.");
+
     }
     else
     {
-        *pszDescription = SysAllocString(L"A contact.");           
-            
+        *pszDescription = SysAllocString(L"A contact.");
+
     }
     return S_OK;
 };

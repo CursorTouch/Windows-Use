@@ -77,17 +77,17 @@ This function fails if called in response to [EVENT\_OBJECT\_CREATE](/en-us/wind
 The following example code shows this method being called in a [WinEventProc](/en-us/windows/desktop/api/winuser/nc-winuser-wineventproc) event handler.
 
 ```
-void CALLBACK HandleWinEvent(HWINEVENTHOOK hook, DWORD event, HWND hwnd, 
-                             LONG idObject, LONG idChild, 
+void CALLBACK HandleWinEvent(HWINEVENTHOOK hook, DWORD event, HWND hwnd,
+                             LONG idObject, LONG idChild,
                              DWORD dwEventThread, DWORD dwmsEventTime)
 {
     IAccessible* pAcc = NULL;
     VARIANT varChild;
-    HRESULT hr = AccessibleObjectFromEvent(hwnd, idObject, idChild, &pAcc, &varChild);  
+    HRESULT hr = AccessibleObjectFromEvent(hwnd, idObject, idChild, &pAcc, &varChild);
     if ((hr == S_OK) && (pAcc != NULL))
     {
-        // Do something with the accessible object, then release it.        
-        // ... 
+        // Do something with the accessible object, then release it.
+        // ...
         pAcc->Release();
     }
 }

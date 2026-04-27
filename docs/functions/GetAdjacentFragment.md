@@ -47,34 +47,34 @@ The following C++ code example shows how to implement the **GetAdjacentFragment*
 
 ```
 IFACEMETHODIMP CProviderWindowlessSite::GetAdjacentFragment(
-        enum NavigateDirection direction, IRawElementProviderFragment **ppFragment)   
+        enum NavigateDirection direction, IRawElementProviderFragment **ppFragment)
 {
     if (ppFragment == NULL)
     {
         return E_INVALIDARG;
     }
-    
+
     *ppFragment = NULL;
     HRESULT hr = S_OK;
 
     switch (direction)
     {
         case NavigateDirection_Parent:
-            {  
+            {
                 IRawElementProviderSimple *pSimple = NULL;
 
                 // Call an application-defined function to retrieve the
                 // parent provider interface.
-                hr = GetParentProvider(&pSimple);  
-                if (SUCCEEDED(hr))  
-                {  
+                hr = GetParentProvider(&pSimple);
+                if (SUCCEEDED(hr))
+                {
                     // Get the parent's IRawElementProviderFragment interface.
-                    hr = pSimple->QueryInterface(IID_PPV_ARGS(ppFragment));  
-                    pSimple->Release();  
-                } 
-            }  
-            break;  
-  
+                    hr = pSimple->QueryInterface(IID_PPV_ARGS(ppFragment));
+                    pSimple->Release();
+                }
+            }
+            break;
+
         case NavigateDirection_FirstChild:
         case NavigateDirection_LastChild:
             hr = E_INVALIDARG;
@@ -82,11 +82,11 @@ IFACEMETHODIMP CProviderWindowlessSite::GetAdjacentFragment(
 
         // Ignore NavigateDirection_NextSibling and NavigateDirection_PreviousSibling
         // because there are no adjacent fragments.
-        default:  
-            break;  
-    }  
-  
-    return hr;  
+        default:
+            break;
+    }
+
+    return hr;
 }
 ```
 

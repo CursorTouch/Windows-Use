@@ -28,7 +28,7 @@ The handle of the AT application window. This parameter must not be **NULL**.
 
 Type: **DWORD**
 
-A  
+A
 mask that indicates the system values being set. It can be a combination of the following values:
 
 #### ANRUS\_ON\_SCREEN\_KEYBOARD\_ACTIVE
@@ -73,10 +73,10 @@ This code example shows how to call the **AccSetRunningUtilityState** function.
 ```
 if (SUCCEEDED(hr))
 {
-    // Tell the system that an AT application has registered with the 
+    // Tell the system that an AT application has registered with the
     // touch redirector.
-    hr = AccSetRunningUtilityState(hwndTouchWindow, 
-            ANRUS_TOUCH_MODIFICATION_ACTIVE, 
+    hr = AccSetRunningUtilityState(hwndTouchWindow,
+            ANRUS_TOUCH_MODIFICATION_ACTIVE,
             ANRUS_TOUCH_MODIFICATION_ACTIVE);
     if (FAILED(hr))
     {
