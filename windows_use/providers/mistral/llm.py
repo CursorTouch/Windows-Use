@@ -122,10 +122,16 @@ class ChatMistral(BaseChatLLM):
                 # Mistral requires assistant message with tool_calls followed by tool message
                 # API expects 9 alphanumeric chars; model returns long IDs (toolu_...)
                 tool_id = _mistral_tool_call_id(msg.id)
+                thinking = getattr(msg, "thinking", None)
+                asst_content: str | list = (
+                    [{"type": "thinking", "thinking": [{"type": "text", "text": thinking}]}]
+                    if thinking
+                    else ""
+                )
                 mistral_messages.append(
                     {
                         "role": "assistant",
-                        "content": "",
+                        "content": asst_content,
                         "tool_calls": [
                             {
                                 "id": tool_id,
@@ -239,9 +245,11 @@ class ChatMistral(BaseChatLLM):
                 logger.warning(f"Failed to parse tool arguments: {e}")
                 params = {}
 
+            thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
             content = LLMEvent(
                 type=LLMEventType.TOOL_CALL,
                 tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                thinking=thinking_obj,
                 usage=usage,
             )
         else:

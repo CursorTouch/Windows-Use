@@ -98,13 +98,14 @@ class ChatOllama(BaseChatLLM):
             elif isinstance(msg, ToolMessage):
                 # Ollama expects assistant message with tool_calls followed by tool message
                 # Reconstruct for history consistency
-                ollama_messages.append(
-                    {
-                        "role": "assistant",
-                        "content": "",
-                        "tool_calls": [{"function": {"name": msg.name, "arguments": msg.params}}],
-                    }
-                )
+                asst_msg: dict = {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [{"function": {"name": msg.name, "arguments": msg.params}}],
+                }
+                if getattr(msg, "thinking", None):
+                    asst_msg["thinking"] = msg.thinking
+                ollama_messages.append(asst_msg)
                 ollama_messages.append({"role": "tool", "content": msg.content or ""})
         return ollama_messages
 
@@ -140,6 +141,7 @@ class ChatOllama(BaseChatLLM):
                     args = json.loads(args) if args else {}
                 except json.JSONDecodeError:
                     args = {}
+            thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
                 tool_call=ToolCall(
@@ -147,6 +149,7 @@ class ChatOllama(BaseChatLLM):
                     name=func.get("name"),
                     params=args,
                 ),
+                thinking=thinking_obj,
                 usage=usage,
             )
         thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
