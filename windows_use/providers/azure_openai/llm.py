@@ -118,7 +118,7 @@ class ChatAzureOpenAI(BaseChatLLM):
                 openai_messages.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 msg_dict: dict = {"role": "assistant", "content": msg.content or ""}
-                if self._is_reasoning_model() and getattr(msg, "thinking", None):
+                if getattr(msg, "thinking", None):
                     msg_dict["reasoning_content"] = msg.thinking
                 openai_messages.append(msg_dict)
             elif isinstance(msg, ToolMessage):
@@ -128,9 +128,10 @@ class ChatAzureOpenAI(BaseChatLLM):
                     "type": "function",
                     "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
-                openai_messages.append(
-                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
-                )
+                assistant_msg: dict = {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                if getattr(msg, "thinking", None):
+                    assistant_msg["reasoning_content"] = msg.thinking
+                openai_messages.append(assistant_msg)
                 openai_messages.append(
                     {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
                 )
@@ -167,13 +168,9 @@ class ChatAzureOpenAI(BaseChatLLM):
             thinking_tokens=thinking_tokens,
         )
 
-        # Extract thinking/reasoning content (for o-series models)
-        thinking = None
-        if self._is_reasoning_model():
-            if hasattr(message, "reasoning_content"):
-                thinking = message.reasoning_content
-            elif hasattr(choice, "reasoning_content"):
-                thinking = choice.reasoning_content
+        thinking = getattr(message, "reasoning_content", None) or getattr(
+            choice, "reasoning_content", None
+        )
 
         thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
 
@@ -403,11 +400,7 @@ class ChatAzureOpenAI(BaseChatLLM):
             delta = chunk.choices[0].delta
 
             # Handle reasoning content for o-series models
-            if (
-                self._is_reasoning_model()
-                and hasattr(delta, "reasoning_content")
-                and delta.reasoning_content
-            ):
+            if hasattr(delta, "reasoning_content") and delta.reasoning_content:
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
@@ -521,11 +514,7 @@ class ChatAzureOpenAI(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            if (
-                self._is_reasoning_model()
-                and hasattr(delta, "reasoning_content")
-                and delta.reasoning_content
-            ):
+            if hasattr(delta, "reasoning_content") and delta.reasoning_content:
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
