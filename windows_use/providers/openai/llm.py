@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from collections.abc import AsyncIterator, Iterator
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
@@ -50,7 +50,9 @@ class ChatOpenAI(BaseChatLLM):
         base_url: str | None = None,
         timeout: float = 600.0,
         max_retries: int = 2,
+        reasoning_effort: Literal['none','low','medium','high','xhigh'] = "high",
         temperature: float | None = None,
+        extra_body: dict | None = None,
         **kwargs,
     ):
         """
@@ -69,6 +71,7 @@ class ChatOpenAI(BaseChatLLM):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.base_url = base_url or os.environ.get("OPENAI_BASE_URL")
         self.temperature = temperature
+        self.extra_body = extra_body
 
         self.client = OpenAI(
             api_key=self.api_key,
@@ -263,6 +266,12 @@ class ChatOpenAI(BaseChatLLM):
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
+        
+        if self.extra_body:
+            params["extra_body"] = self.extra_body
+        
+        if self._is_reasoning_model():
+            params["reasoning_effort"] = self.reasoning_effort
 
         response = self.client.chat.completions.create(**params)
         return self._process_response(response)
@@ -326,6 +335,12 @@ class ChatOpenAI(BaseChatLLM):
         if json_mode:
             params["response_format"] = {"type": "json_object"}
 
+        if self.extra_body:
+            params["extra_body"] = self.extra_body
+
+        if self._is_reasoning_model():
+            params["reasoning_effort"] = self.reasoning_effort
+
         response = await self.aclient.chat.completions.create(**params)
         return self._process_response(response)
 
@@ -365,7 +380,13 @@ class ChatOpenAI(BaseChatLLM):
         if json_mode:
             params["response_format"] = {"type": "json_object"}
 
-        response = self.client.chat.completions.create(**params)
+        if self.extra_body:
+            params["extra_body"] = self.extra_body
+
+        if self._is_reasoning_model():
+            params["reasoning_effort"] = self.reasoning_effort
+
+        response = self.client.chat.completions.create(**params, **self.kwargs)
 
         # Accumulators for streamed tool calls
         tool_call_id = None
@@ -482,6 +503,12 @@ class ChatOpenAI(BaseChatLLM):
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
+
+        if self.extra_body:
+            params["extra_body"] = self.extra_body
+
+        if self._is_reasoning_model():
+            params["reasoning_effort"] = self.reasoning_effort
 
         response = await self.aclient.chat.completions.create(**params)
 
