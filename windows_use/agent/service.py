@@ -1,7 +1,9 @@
 import logging
 import time
+import traceback
 from collections.abc import Callable
 from contextlib import nullcontext
+from importlib.metadata import version
 from itertools import chain
 from typing import TYPE_CHECKING, Literal
 
@@ -39,6 +41,14 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 _NON_TOOL_PARAMS = {"thought"}
+
+
+def _get_package_version() -> str | None:
+    """Get the windows-use package version."""
+    try:
+        return version("windows-use")
+    except Exception:
+        return None
 
 
 class Agent(BaseAgent):
@@ -390,6 +400,7 @@ class Agent(BaseAgent):
                     use_vision=self.desktop.use_vision,
                     answer=result.content,
                     error=result.error,
+                    version=_get_package_version(),
                     is_success=result.is_done,
                 )
             )
@@ -411,6 +422,9 @@ class Agent(BaseAgent):
                     provider=self.llm.provider,
                     use_vision=self.desktop.use_vision,
                     error=str(e),
+                    error_type=type(e).__name__,
+                    error_traceback=traceback.format_exc(),
+                    version=_get_package_version(),
                     is_success=False,
                 )
             )
@@ -605,6 +619,7 @@ class Agent(BaseAgent):
                     use_vision=self.desktop.use_vision,
                     answer=result.content,
                     error=result.error,
+                    version=_get_package_version(),
                     is_success=result.is_done,
                 )
             )
@@ -626,6 +641,9 @@ class Agent(BaseAgent):
                     provider=self.llm.provider,
                     use_vision=self.desktop.use_vision,
                     error=str(e),
+                    error_type=type(e).__name__,
+                    error_traceback=traceback.format_exc(),
+                    version=_get_package_version(),
                     is_success=False,
                 )
             )
