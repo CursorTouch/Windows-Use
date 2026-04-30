@@ -126,7 +126,7 @@ class ChatOpenAI(BaseChatLLM):
                 msg_dict: dict = {"role": "assistant", "content": content}
                 # For o1/o3/o4 models, pass reasoning_content so the model can continue its
                 # reasoning chain in multi-turn conversations (especially with tool calls).
-                if self._is_reasoning_model() and getattr(msg, "thinking", None):
+                if getattr(msg, "thinking", None):
                     msg_dict["reasoning_content"] = msg.thinking
                 openai_messages.append(msg_dict)
             elif isinstance(msg, ToolMessage):
@@ -136,9 +136,10 @@ class ChatOpenAI(BaseChatLLM):
                     "type": "function",
                     "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
-                openai_messages.append(
-                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
-                )
+                assistant_msg: dict = {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                if getattr(msg, "thinking", None):
+                    assistant_msg["reasoning_content"] = msg.thinking
+                openai_messages.append(assistant_msg)
                 openai_messages.append(
                     {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
                 )
@@ -196,6 +197,7 @@ class ChatOpenAI(BaseChatLLM):
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
                 tool_call=ToolCall(id=tool_call.id, name=tool_call.function.name, params=params),
+                thinking=thinking_obj,
                 usage=usage,
             )
         return LLMEvent(
