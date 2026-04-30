@@ -3,7 +3,7 @@ import logging
 import os
 import uuid
 from collections.abc import AsyncIterator, Iterator
-from typing import Any, overload
+from typing import Any, overload, Literal
 
 from google import genai
 from google.genai import types
@@ -52,7 +52,7 @@ class ChatGoogle(BaseChatLLM):
         base_url: str | None = None,
         temperature: float | None = None,
         thinking_budget: int | None = None,
-        thinking_level: str | None = None,
+        thinking_level: Literal["minimal", "low", "medium", "high"] | None = None,
         **kwargs,
     ):
         """

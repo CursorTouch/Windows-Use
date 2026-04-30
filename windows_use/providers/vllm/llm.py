@@ -56,6 +56,7 @@ class ChatVLLM(BaseChatLLM):
         timeout: float = 600.0,
         max_retries: int = 2,
         temperature: float | None = None,
+        thinking: bool = False,
         **kwargs,
     ):
         """
@@ -70,12 +71,14 @@ class ChatVLLM(BaseChatLLM):
             timeout: Request timeout in seconds.
             max_retries: Maximum number of retries for failed requests.
             temperature: Sampling temperature.
+            thinking: Enable thinking/reasoning via chat template kwargs.
             **kwargs: Additional arguments passed to the chat completions create method.
         """
         self._model = model
         self.api_key = api_key or os.environ.get("VLLM_API_KEY", "EMPTY")
         self.base_url = base_url or os.environ.get("VLLM_BASE_URL", "http://localhost:8000/v1")
         self.temperature = temperature
+        self.thinking = thinking
 
         self.client = OpenAI(
             api_key=self.api_key,
@@ -252,6 +255,7 @@ class ChatVLLM(BaseChatLLM):
                 },
             }
             params.pop("tools", None)
+            params["extra_body"] = {"chat_template_kwargs": {"enable_thinking": self.thinking}}
 
             response = self.client.chat.completions.create(**params)
             usage_data = response.usage
@@ -291,6 +295,8 @@ class ChatVLLM(BaseChatLLM):
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
+
+        params["extra_body"] = {"chat_template_kwargs": {"enable_thinking": self.thinking}}
 
         response = self.client.chat.completions.create(**params)
         return self._process_response(response)
@@ -335,6 +341,7 @@ class ChatVLLM(BaseChatLLM):
                 },
             }
             params.pop("tools", None)
+            params["extra_body"] = {"chat_template_kwargs": {"enable_thinking": self.thinking}}
 
             response = await self.aclient.chat.completions.create(**params)
             usage_data = response.usage
@@ -375,6 +382,8 @@ class ChatVLLM(BaseChatLLM):
         if json_mode:
             params["response_format"] = {"type": "json_object"}
 
+        params["extra_body"] = {"chat_template_kwargs": {"enable_thinking": self.thinking}}
+
         response = await self.aclient.chat.completions.create(**params)
         return self._process_response(response)
 
@@ -413,6 +422,8 @@ class ChatVLLM(BaseChatLLM):
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
+
+        params["extra_body"] = {"chat_template_kwargs": {"enable_thinking": self.thinking}}
 
         response = self.client.chat.completions.create(**params)
 
@@ -526,6 +537,8 @@ class ChatVLLM(BaseChatLLM):
 
         if json_mode:
             params["response_format"] = {"type": "json_object"}
+
+        params["extra_body"] = {"chat_template_kwargs": {"enable_thinking": self.thinking}}
 
         response = await self.aclient.chat.completions.create(**params)
 

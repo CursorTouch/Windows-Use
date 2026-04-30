@@ -21,6 +21,7 @@ class ChatNvidia(ChatOpenAI):
         api_key: str | None = None,
         base_url: str | None = None,
         timeout: float = 600.0,
+        thinking: bool = False,
         max_retries: int = 2,
         temperature: float | None = None,
         **kwargs,
@@ -29,6 +30,7 @@ class ChatNvidia(ChatOpenAI):
             api_key or os.environ.get("NVIDIA_NIM_API_KEY") or os.environ.get("NVIDIA_API_KEY")
         )
         base_url = base_url or os.environ.get("NVIDIA_NIM_API_BASE") or NVIDIA_NIM_BASE_URL
+        extra_body = {"chat_template_kwargs": {"thinking": thinking}}
         super().__init__(
             model=model,
             api_key=api_key,
@@ -36,6 +38,7 @@ class ChatNvidia(ChatOpenAI):
             timeout=timeout,
             max_retries=max_retries,
             temperature=temperature,
+            extra_body=extra_body,
             **kwargs,
         )
 

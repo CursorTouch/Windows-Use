@@ -1,6 +1,7 @@
 """DeepSeek LLM provider via OpenAI-compatible API."""
 
 import os
+from typing import Literal
 
 from windows_use.providers.openai.llm import ChatOpenAI
 
@@ -23,17 +24,22 @@ class ChatDeepSeek(ChatOpenAI):
         timeout: float = 600.0,
         max_retries: int = 2,
         temperature: float | None = None,
+        reasoning_effort: Literal['none','low','medium','high','xhigh','max'] = "high",
+        thinking: bool = False,
         **kwargs,
     ):
         api_key = api_key or os.environ.get("DEEPSEEK_API_KEY")
         base_url = base_url or os.environ.get("DEEPSEEK_API_BASE") or DEEPSEEK_BASE_URL
+        extra_body = {"thinking": {"type": "enabled" if thinking else "disabled"}}
         super().__init__(
             model=model,
             api_key=api_key,
             base_url=base_url,
             timeout=timeout,
+            reasoning_effort=reasoning_effort,
             max_retries=max_retries,
             temperature=temperature,
+            extra_body=extra_body,
             **kwargs,
         )
 
