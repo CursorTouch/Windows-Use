@@ -178,13 +178,9 @@ class ChatOpenAI(BaseChatLLM):
             thinking_tokens=thinking_tokens,
         )
 
-        # Extract thinking/reasoning content (for o1 models)
-        thinking = None
-        if self._is_reasoning_model():
-            if hasattr(message, "reasoning_content"):
-                thinking = message.reasoning_content
-            elif hasattr(choice, "reasoning_content"):
-                thinking = choice.reasoning_content
+        thinking = getattr(message, "reasoning_content", None) or getattr(
+            choice, "reasoning_content", None
+        )
 
         thinking_obj = Thinking(content=thinking, signature=None) if thinking else None
 
@@ -404,11 +400,7 @@ class ChatOpenAI(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            if (
-                self._is_reasoning_model()
-                and hasattr(delta, "reasoning_content")
-                and delta.reasoning_content
-            ):
+            if hasattr(delta, "reasoning_content") and delta.reasoning_content:
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
@@ -525,11 +517,7 @@ class ChatOpenAI(BaseChatLLM):
 
             delta = chunk.choices[0].delta
 
-            if (
-                self._is_reasoning_model()
-                and hasattr(delta, "reasoning_content")
-                and delta.reasoning_content
-            ):
+            if hasattr(delta, "reasoning_content") and delta.reasoning_content:
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)

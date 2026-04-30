@@ -120,7 +120,7 @@ class ChatGroq(BaseChatLLM):
                 groq_messages.append({"role": "user", "content": content_list})
             elif isinstance(msg, AIMessage):
                 msg_dict: dict = {"role": "assistant", "content": msg.content or ""}
-                if self._is_reasoning_model() and getattr(msg, "thinking", None):
+                if getattr(msg, "thinking", None):
                     msg_dict["reasoning"] = msg.thinking
                 groq_messages.append(msg_dict)
             elif isinstance(msg, ToolMessage):
@@ -130,9 +130,10 @@ class ChatGroq(BaseChatLLM):
                     "type": "function",
                     "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
-                groq_messages.append(
-                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
-                )
+                assistant_msg: dict = {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                if getattr(msg, "thinking", None):
+                    assistant_msg["reasoning"] = msg.thinking
+                groq_messages.append(assistant_msg)
                 groq_messages.append(
                     {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
                 )

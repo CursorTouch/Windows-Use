@@ -134,8 +134,13 @@ class ChatCerebras(BaseChatLLM):
                     "type": "function",
                     "function": {"name": msg.name, "arguments": json.dumps(msg.params)},
                 }
+                thinking = getattr(msg, "thinking", None)
                 cerebras_messages.append(
-                    {"role": "assistant", "content": None, "tool_calls": [tool_call]}
+                    {
+                        "role": "assistant",
+                        "content": self._format_assistant_content(None, thinking) if thinking else None,
+                        "tool_calls": [tool_call],
+                    }
                 )
                 cerebras_messages.append(
                     {"role": "tool", "tool_call_id": msg.id, "content": msg.content or ""}
