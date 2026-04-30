@@ -52,6 +52,7 @@ class ChatGoogle(BaseChatLLM):
         base_url: str | None = None,
         temperature: float | None = None,
         thinking_budget: int | None = None,
+        thinking_level: str | None = None,
         **kwargs,
     ):
         """
@@ -63,6 +64,9 @@ class ChatGoogle(BaseChatLLM):
             base_url: Base URL for the API. Defaults to GOOGLE_BASE_URL environment variable.
             temperature: Sampling temperature.
             thinking_budget: Token budget for extended thinking (Gemini 2.5 models).
+                Pass -1 for dynamic thinking, 0 to disable, or 0-32768 for a fixed budget.
+            thinking_level: Thinking effort level for Gemini 3+ models.
+                One of "minimal", "low", "medium", "high".
             **kwargs: Additional arguments for GenerateContentConfig.
         """
         self._model = model
@@ -72,6 +76,7 @@ class ChatGoogle(BaseChatLLM):
         self.base_url = base_url or os.environ.get("GOOGLE_BASE_URL")
         self.temperature = temperature
         self.thinking_budget = thinking_budget
+        self.thinking_level = thinking_level
 
         client_kwargs = {"api_key": self.api_key}
         if self.base_url:
@@ -87,10 +92,6 @@ class ChatGoogle(BaseChatLLM):
     @property
     def provider(self) -> str:
         return "google"
-
-    def _is_thinking_model(self) -> bool:
-        """Check if the model supports extended thinking (Gemini 2.5 series)."""
-        return "2.5" in self._model
 
     def _convert_messages(
         self, messages: list[BaseMessage]
@@ -137,11 +138,18 @@ class ChatGoogle(BaseChatLLM):
                 if parts:
                     raw_contents.append(types.Content(role="model", parts=parts))
             elif isinstance(msg, ToolMessage):
-                # Model's function call (with optional thinking)
+                # Model's function call (with optional thinking and thought_signature)
                 model_parts: list[types.Part] = []
                 if msg.thinking:
                     model_parts.append(types.Part(thought=True, text=msg.thinking))
-                model_parts.append(types.Part.from_function_call(name=msg.name, args=msg.params))
+                fc_part = types.Part(
+                    function_call=types.FunctionCall(name=msg.name, args=msg.params)
+                )
+                if msg.thinking_signature:
+                    fc_part = fc_part.model_copy(
+                        update={"thought_signature": msg.thinking_signature}
+                    )
+                model_parts.append(fc_part)
                 raw_contents.append(types.Content(role="model", parts=model_parts))
 
                 # Function response
@@ -230,10 +238,14 @@ class ChatGoogle(BaseChatLLM):
         if self.temperature is not None:
             config_params["temperature"] = self.temperature
 
-        # Thinking budget for 2.5 models
-        if self._is_thinking_model() and self.thinking_budget is not None:
+        # Thinking config: thinking_budget for Gemini 2.5, thinking_level for Gemini 3+
+        if self.thinking_budget is not None:
             config_params["thinking_config"] = types.ThinkingConfig(
                 thinking_budget=self.thinking_budget
+            )
+        elif self.thinking_level is not None:
+            config_params["thinking_config"] = types.ThinkingConfig(
+                thinking_level=self.thinking_level
             )
 
         if structured_output:
@@ -259,6 +271,19 @@ class ChatGoogle(BaseChatLLM):
             total_tokens=usage_metadata.total_token_count or 0,
             thinking_tokens=thinking_tokens,
         )
+
+    def _extract_signature(self, response: Any) -> bytes | None:
+        """Extract thought_signature from the first function call part."""
+        try:
+            if response.candidates and response.candidates[0].content:
+                for part in response.candidates[0].content.parts:
+                    if getattr(part, "function_call", None):
+                        sig = getattr(part, "thought_signature", None)
+                        if sig:
+                            return sig
+        except (AttributeError, IndexError):
+            pass
+        return None
 
     def _extract_thinking(self, response: Any) -> str | None:
         """
@@ -323,7 +348,12 @@ class ChatGoogle(BaseChatLLM):
             fc = function_calls[0]
             fc_id = getattr(fc, "id", None) or f"call_{uuid.uuid4().hex[:8]}"
             thinking_content = self._extract_thinking(response)
-            thinking_obj = Thinking(content=thinking_content, signature=None) if thinking_content else None
+            thought_signature = self._extract_signature(response)
+            thinking_obj = (
+                Thinking(content=thinking_content, signature=thought_signature)
+                if (thinking_content or thought_signature)
+                else None
+            )
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
                 tool_call=ToolCall(id=fc_id, name=fc.name, params=dict(fc.args) if fc.args else {}),

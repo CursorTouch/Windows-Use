@@ -232,6 +232,7 @@ class Agent(BaseAgent):
                                 name=llm_event.tool_call.name,
                                 params=llm_event.tool_call.params,
                                 thinking=llm_event.thinking.content if llm_event.thinking else None,
+                                thinking_signature=llm_event.thinking.signature if llm_event.thinking else None,
                             )
                             break
                         case LLMEventType.TEXT:
@@ -485,6 +486,7 @@ class Agent(BaseAgent):
                                 name=llm_event.tool_call.name,
                                 params=llm_event.tool_call.params,
                                 thinking=llm_event.thinking.content if llm_event.thinking else None,
+                                thinking_signature=llm_event.thinking.signature if llm_event.thinking else None,
                             )
                             break
                         case LLMEventType.TEXT:
