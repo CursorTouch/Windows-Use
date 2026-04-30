@@ -42,6 +42,7 @@ class ChatOllama(BaseChatLLM):
         host: str | None = None,
         timeout: float = 600.0,
         temperature: float | None = None,
+        think: bool | str | None = None,
         **kwargs,
     ):
         """
@@ -52,11 +53,14 @@ class ChatOllama(BaseChatLLM):
             host (str, optional): Ollama host URL. Defaults to OLLAMA_HOST environment variable or localhost.
             timeout (float): Request timeout.
             temperature (float, optional): Sampling temperature.
+            think: Enable thinking traces. Pass True/False or an effort level
+                ("low", "medium", "high") for models that support it.
             **kwargs: Additional arguments for chat.
         """
         self._model = model
         self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.temperature = temperature
+        self.think = think
 
         self.client = Client(host=self.host, timeout=timeout)
         self.aclient = AsyncClient(host=self.host, timeout=timeout)
@@ -69,11 +73,6 @@ class ChatOllama(BaseChatLLM):
     @property
     def provider(self) -> str:
         return "ollama"
-
-    def _is_thinking_model(self) -> bool:
-        """Check if the model supports thinking (qwen3, deepseek-r1, deepseek-v3, gpt-oss, etc.)."""
-        m = self._model.lower()
-        return any(m.startswith(p) for p in ("qwen3", "deepseek-r1", "deepseek-v3", "gpt-oss"))
 
     def _convert_messages(self, messages: list[BaseMessage]) -> list[dict]:
         """
@@ -183,8 +182,8 @@ class ChatOllama(BaseChatLLM):
 
         if ollama_tools:
             params["tools"] = ollama_tools
-        if self._is_thinking_model():
-            params["think"] = True
+        if self.think is not None:
+            params["think"] = self.think
 
         if self.temperature is not None:
             if "options" not in params:
@@ -243,8 +242,8 @@ class ChatOllama(BaseChatLLM):
 
         if ollama_tools:
             params["tools"] = ollama_tools
-        if self._is_thinking_model():
-            params["think"] = True
+        if self.think is not None:
+            params["think"] = self.think
 
         if self.temperature is not None:
             if "options" not in params:
@@ -302,8 +301,8 @@ class ChatOllama(BaseChatLLM):
 
         if ollama_tools:
             params["tools"] = ollama_tools
-        if self._is_thinking_model():
-            params["think"] = True
+        if self.think is not None:
+            params["think"] = self.think
 
         if self.temperature is not None:
             if "options" not in params:
@@ -317,14 +316,14 @@ class ChatOllama(BaseChatLLM):
 
         text_started = False
         think_started = False
+        accumulated_thinking: list[str] = []
         usage = None
 
         for chunk in response:
             message = chunk.get("message", {})
             # Ollama may send usage in the final chunk
             if "eval_count" in chunk or "prompt_eval_count" in chunk:
-                thinking = message.get("thinking")
-                thinking_tokens = max(1, len(thinking) // 4) if thinking else None
+                thinking_tokens = max(1, sum(len(t) for t in accumulated_thinking) // 4) if accumulated_thinking else None
                 usage = TokenUsage(
                     prompt_tokens=chunk.get("prompt_eval_count", 0),
                     completion_tokens=chunk.get("eval_count", 0),
@@ -332,6 +331,7 @@ class ChatOllama(BaseChatLLM):
                     thinking_tokens=thinking_tokens,
                 )
             if message.get("thinking"):
+                accumulated_thinking.append(message["thinking"])
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
@@ -358,11 +358,17 @@ class ChatOllama(BaseChatLLM):
                         args = json.loads(args) if args else {}
                     except json.JSONDecodeError:
                         args = {}
+                if think_started:
+                    yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
+                    think_started = False
+                thinking_content = "".join(accumulated_thinking) or None
+                thinking_obj = Thinking(content=thinking_content, signature=None) if thinking_content else None
                 yield LLMStreamEvent(
                     type=LLMStreamEventType.TOOL_CALL,
                     tool_call=ToolCall(
                         id=f"call_{uuid.uuid4().hex[:8]}", name=func.get("name"), params=args
                     ),
+                    thinking=thinking_obj,
                     usage=usage,
                 )
 
@@ -394,8 +400,8 @@ class ChatOllama(BaseChatLLM):
 
         if ollama_tools:
             params["tools"] = ollama_tools
-        if self._is_thinking_model():
-            params["think"] = True
+        if self.think is not None:
+            params["think"] = self.think
 
         if self.temperature is not None:
             if "options" not in params:
@@ -409,14 +415,14 @@ class ChatOllama(BaseChatLLM):
 
         text_started = False
         think_started = False
+        accumulated_thinking: list[str] = []
         usage = None
 
         async for chunk in response:
             message = chunk.get("message", {})
             # Ollama may send usage in the final chunk
             if "eval_count" in chunk or "prompt_eval_count" in chunk:
-                thinking = message.get("thinking")
-                thinking_tokens = max(1, len(thinking) // 4) if thinking else None
+                thinking_tokens = max(1, sum(len(t) for t in accumulated_thinking) // 4) if accumulated_thinking else None
                 usage = TokenUsage(
                     prompt_tokens=chunk.get("prompt_eval_count", 0),
                     completion_tokens=chunk.get("eval_count", 0),
@@ -424,6 +430,7 @@ class ChatOllama(BaseChatLLM):
                     thinking_tokens=thinking_tokens,
                 )
             if message.get("thinking"):
+                accumulated_thinking.append(message["thinking"])
                 if not think_started:
                     think_started = True
                     yield LLMStreamEvent(type=LLMStreamEventType.THINK_START)
@@ -450,11 +457,17 @@ class ChatOllama(BaseChatLLM):
                         args = json.loads(args) if args else {}
                     except json.JSONDecodeError:
                         args = {}
+                if think_started:
+                    yield LLMStreamEvent(type=LLMStreamEventType.THINK_END)
+                    think_started = False
+                thinking_content = "".join(accumulated_thinking) or None
+                thinking_obj = Thinking(content=thinking_content, signature=None) if thinking_content else None
                 yield LLMStreamEvent(
                     type=LLMStreamEventType.TOOL_CALL,
                     tool_call=ToolCall(
                         id=f"call_{uuid.uuid4().hex[:8]}", name=func.get("name"), params=args
                     ),
+                    thinking=thinking_obj,
                     usage=usage,
                 )
 
