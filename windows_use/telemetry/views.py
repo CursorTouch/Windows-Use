@@ -25,5 +25,8 @@ class AgentTelemetryEvent(BaseTelemetryEvent):
     use_vision: bool = False
     answer: str | None = None
     error: str | None = None
+    error_type: str | None = None
+    error_traceback: str | None = None
+    version: str | None = None
     event_name: str = "agent_event"
     is_success: bool = False
