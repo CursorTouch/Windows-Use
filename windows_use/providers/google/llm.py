@@ -322,9 +322,12 @@ class ChatGoogle(BaseChatLLM):
         if function_calls:
             fc = function_calls[0]
             fc_id = getattr(fc, "id", None) or f"call_{uuid.uuid4().hex[:8]}"
+            thinking_content = self._extract_thinking(response)
+            thinking_obj = Thinking(content=thinking_content, signature=None) if thinking_content else None
             return LLMEvent(
                 type=LLMEventType.TOOL_CALL,
                 tool_call=ToolCall(id=fc_id, name=fc.name, params=dict(fc.args) if fc.args else {}),
+                thinking=thinking_obj,
                 usage=usage,
             )
 
