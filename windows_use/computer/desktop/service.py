@@ -617,9 +617,9 @@ class Desktop:
     def get_windows(
         self, controls_handles: set[int] | None = None
     ) -> tuple[list[Window], set[int]]:
+        windows = []
+        window_handles = set()
         try:
-            windows = []
-            window_handles = set()
             controls_handles = controls_handles or self.get_controls_handles()
             for depth, hwnd in enumerate(controls_handles):
                 try:
