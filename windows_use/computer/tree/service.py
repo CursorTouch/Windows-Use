@@ -795,7 +795,7 @@ class Tree:
                             except Exception:
                                 is_modal = False
 
-                            if is_modal:
+                            if is_modal and interactive_nodes is not None:
                                 interactive_nodes.clear()
                     # enter dialog subtree
                     self.tree_traversal(
