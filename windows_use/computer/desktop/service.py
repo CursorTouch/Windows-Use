@@ -593,6 +593,8 @@ class Desktop:
             if windows is None:
                 windows, _ = self.get_windows()
             active_window = self.get_foreground_window()
+            if active_window is None:
+                return None
             if active_window.ClassName == "Progman":
                 return None
             active_window_handle = active_window.NativeWindowHandle

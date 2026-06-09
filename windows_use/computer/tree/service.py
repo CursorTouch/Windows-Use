@@ -96,7 +96,7 @@ class Tree:
             window_name="Desktop",
             metadata={},
         )
-        if self.dom:
+        if self.dom and self.dom_bounding_box:
             try:
                 scroll_pattern: ScrollPattern = self.dom.GetCachedPattern(
                     PatternId.ScrollPattern, True
