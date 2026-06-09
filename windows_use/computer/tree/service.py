@@ -672,7 +672,7 @@ class Tree:
                                 except Exception:
                                     pass
 
-                            if is_browser and is_dom:
+                            if is_browser and is_dom and self.dom_bounding_box and dom_interactive_nodes is not None:
                                 bounding_box = self.iou_bounding_box(
                                     self.dom_bounding_box, element_bounding_box
                                 )
