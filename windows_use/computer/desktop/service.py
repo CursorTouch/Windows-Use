@@ -630,6 +630,8 @@ class Desktop:
 
     def get_window_from_element_handle(self, element_handle: int) -> uia.Control:
         current = uia.ControlFromHandle(element_handle)
+        if current is None:
+            raise ValueError(f"Invalid window handle: {element_handle}")
         root_handle = uia.GetRootControl().NativeWindowHandle
 
         while True:
