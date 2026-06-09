@@ -86,11 +86,12 @@ class Tree:
                 windows_handles=windows_handles, active_window_flag=active_window_flag
             )
         )
+        screen_bbox = BoundingBox.from_bounding_rectangle(self.screen_box)
         root_node = TreeElementNode(
             name="Desktop",
             control_type="PaneControl",
-            bounding_box=self.screen_box,
-            center=self.screen_box.get_center(),
+            bounding_box=screen_bbox,
+            center=screen_bbox.get_center(),
             window_name="Desktop",
             metadata={},
         )
