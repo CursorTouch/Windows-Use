@@ -58,13 +58,11 @@ class Tree:
         self.screen_size = desktop.get_screen_size()
         self.dom: Control | None = None
         self.dom_bounding_box: Rect | None = None
-        self.screen_box = BoundingBox(
+        self.screen_box = Rect(
             top=0,
             left=0,
             bottom=self.screen_size.height,
             right=self.screen_size.width,
-            width=self.screen_size.width,
-            height=self.screen_size.height,
         )
         self.tree_state = None
 
