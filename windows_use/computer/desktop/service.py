@@ -748,10 +748,10 @@ class Desktop:
             # Scale and pad the bounding box also clip the bounding box
             # Adjust for virtual screen offset so coordinates map to the screenshot image
             adjusted_box = (
-                int(box.left - left_offset) + padding,
-                int(box.top - top_offset) + padding,
-                int(box.right - left_offset) + padding,
-                int(box.bottom - top_offset) + padding,
+                box.left - left_offset + padding,
+                box.top - top_offset + padding,
+                box.right - left_offset + padding,
+                box.bottom - top_offset + padding,
             )
             # Draw bounding box
             draw.rectangle(adjusted_box, outline=color, width=2)
