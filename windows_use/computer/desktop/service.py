@@ -159,7 +159,7 @@ class Desktop:
     def get_cursor_location(self) -> tuple[int, int]:
         return uia.GetCursorPos()
 
-    def get_element_under_cursor(self) -> uia.Control:
+    def get_element_under_cursor(self) -> uia.Control|None:
         return uia.ControlFromCursor()
 
     def get_apps_from_start_menu(self) -> dict[str, str]:
@@ -544,7 +544,7 @@ class Desktop:
 
     def is_overlay_window(self, element: uia.Control) -> bool:
         no_children = element.GetFirstChildControl() is None
-        is_name = "Overlay" in element.Name.strip()
+        is_name = "Overlay" in (element.Name or "").strip()
         return no_children or is_name
 
     def get_controls_handles(self, optimized: bool = False):
@@ -625,6 +625,9 @@ class Desktop:
                 try:
                     child = uia.ControlFromHandle(hwnd)
                 except Exception:
+                    continue
+
+                if child is None:
                     continue
 
                 # Filter out Overlays (e.g. NVIDIA, Steam)
