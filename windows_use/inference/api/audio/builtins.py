@@ -1,7 +1,7 @@
-from operator_use.inference.api.audio.openai_audio import OpenAIAudioAPI
-from operator_use.inference.api.audio.gemini_audio import GeminiAudioAPI
-from operator_use.inference.api.audio.sarvam_audio import SarvamAudioAPI
-from operator_use.inference.api.audio.elevenlabs_audio import ElevenLabsAudioAPI
+from windows_use.inference.api.audio.openai_audio import OpenAIAudioAPI
+from windows_use.inference.api.audio.gemini_audio import GeminiAudioAPI
+from windows_use.inference.api.audio.sarvam_audio import SarvamAudioAPI
+from windows_use.inference.api.audio.elevenlabs_audio import ElevenLabsAudioAPI
 
 # openai-audio:     OpenAI-compatible — works for OpenAI, Groq, and any provider
 #                   that implements /v1/audio/speech and /v1/audio/transcriptions.
