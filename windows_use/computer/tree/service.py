@@ -331,12 +331,12 @@ class Tree:
         elif self.element_has_child_element(node, "link", "heading"):
             popped = dom_interactive_nodes.pop()
             # child from GetFirstChildControl() is NOT cached — use live access
-            node = node.GetFirstChildControl()
-            if node is None or self.dom_bounding_box is None:
+            child_node = node.GetFirstChildControl()
+            if child_node is None or self.dom_bounding_box is None:
                 return None
             control_type = "link"
-            value = node.GetPropertyValue(PropertyId.LegacyIAccessibleValueProperty) or ""
-            element_bounding_box = node.BoundingRectangle
+            value = child_node.GetPropertyValue(PropertyId.LegacyIAccessibleValueProperty) or ""
+            element_bounding_box = child_node.BoundingRectangle
             bounding_box = self.iou_bounding_box(self.dom_bounding_box, element_bounding_box)
             center = bounding_box.get_center()
             is_focused = node.HasKeyboardFocus
