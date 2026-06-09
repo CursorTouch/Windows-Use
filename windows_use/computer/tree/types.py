@@ -9,7 +9,7 @@ EMPTY_MESSAGE = "No elements found"
 
 if TYPE_CHECKING:
     from windows_use.uia.controls import Control
-    from windows_use.uia.core import Rect
+    from windows_use.uia.enums import Rect
 
 
 @dataclass

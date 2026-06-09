@@ -34,6 +34,7 @@ from windows_use.uia import (
     ExpandCollapseState,
     PatternId,
     PropertyId,
+    Rect,
     ScrollPattern,
     SliderControl,
     ToggleState,
@@ -43,7 +44,6 @@ from windows_use.uia import (
     WindowControl,
     from_com_error,
 )
-from windows_use.uia.core import Rect
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
