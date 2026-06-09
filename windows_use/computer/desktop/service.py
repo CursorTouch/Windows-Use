@@ -747,7 +747,7 @@ class Desktop:
     def get_annotated_screenshot(
         self, nodes: list[TreeElementNode], as_bytes: bool = False
     ) -> bytes | Image.Image:
-        screenshot = self.get_screenshot()
+        screenshot = self.get_screenshot(as_bytes=False)
         # Add padding
         padding = 5
         width = int(screenshot.width + (1.5 * padding))
