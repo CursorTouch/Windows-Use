@@ -57,7 +57,7 @@ class Tree:
         self.desktop = weakref.proxy(desktop)
         self.screen_size = desktop.get_screen_size()
         self.dom: Control | None = None
-        self.dom_bounding_box: BoundingBox = None
+        self.dom_bounding_box: BoundingBox | None = None
         self.screen_box = BoundingBox(
             top=0,
             left=0,
