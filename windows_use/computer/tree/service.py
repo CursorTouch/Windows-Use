@@ -98,7 +98,7 @@ class Tree:
         )
         if self.dom and self.dom_bounding_box:
             try:
-                scroll_pattern: ScrollPattern = self.dom.GetCachedPattern(
+                scroll_pattern: ScrollPattern | None = self.dom.GetCachedPattern(
                     PatternId.ScrollPattern, True
                 )
                 metadata = {
@@ -382,7 +382,7 @@ class Tree:
                     not in (INTERACTIVE_CONTROL_TYPE_NAMES | INFORMATIVE_CONTROL_TYPE_NAMES)
                 ) and not is_offscreen:
                     try:
-                        scroll_pattern: ScrollPattern = node.GetCachedPattern(
+                        scroll_pattern: ScrollPattern | None = node.GetCachedPattern(
                             PatternId.ScrollPattern, True
                         )
                         if scroll_pattern and scroll_pattern.VerticallyScrollable:
