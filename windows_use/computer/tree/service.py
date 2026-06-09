@@ -166,6 +166,8 @@ class Tree:
             is_browser = False
             try:
                 temp_node = ControlFromHandle(handle)
+                if temp_node is None:
+                    continue
                 if active_window_flag and temp_node.ClassName == "Progman":
                     continue
                 is_browser = self.desktop.is_window_browser(temp_node)
