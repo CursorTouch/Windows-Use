@@ -334,7 +334,7 @@ class Desktop:
         matched_app = process.extractOne(name, apps_map.keys(), score_cutoff=70)
         if matched_app is None:
             return (f"{name.title()} not found in start menu.", 1, 0)
-        app_name, _ = matched_app
+        app_name, _, _ = matched_app
         appid = apps_map.get(app_name)
         if appid is None:
             return (f"{name.title()} not found in start menu.", 1, 0)
