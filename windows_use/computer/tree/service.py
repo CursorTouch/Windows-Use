@@ -784,7 +784,7 @@ class Tree:
                 # Check if the child is a dialog
                 elif isinstance(child, WindowControl):
                     if not child.CachedIsOffscreen:
-                        if is_dom:
+                        if is_dom and self.dom_bounding_box:
                             bounding_box = child.CachedBoundingRectangle
                             if bounding_box.width() > 0.8 * self.dom_bounding_box.width:
                                 # Because this window element covers the majority of the screen
