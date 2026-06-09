@@ -17,9 +17,9 @@ class TreeState:
     status: bool = True
     root_node: Optional["TreeElementNode"] = None
     dom_node: Optional["ScrollElementNode"] = None
-    interactive_nodes: list["TreeElementNode"] | None = field(default_factory=list)
-    scrollable_nodes: list["ScrollElementNode"] | None = field(default_factory=list)
-    dom_informative_nodes: list["TextElementNode"] | None = field(default_factory=list)
+    interactive_nodes: list["TreeElementNode"] = field(default_factory=list)
+    scrollable_nodes: list["ScrollElementNode"] = field(default_factory=list)
+    dom_informative_nodes: list["TextElementNode"] = field(default_factory=list)
 
     def interactive_elements_to_string(self) -> str:
         parts = []
@@ -41,7 +41,7 @@ class TreeState:
 
     def build_selector_map(self) -> "SelectorMap":
         """Build a SelectorMap from all interactive and scrollable nodes in this tree state."""
-        nodes: list = list(self.interactive_nodes or []) + list(self.scrollable_nodes or [])
+        nodes: list = self.interactive_nodes + self.scrollable_nodes
         return SelectorMap(enumerate(nodes))
 
     def scrollable_elements_to_string(self) -> str:
