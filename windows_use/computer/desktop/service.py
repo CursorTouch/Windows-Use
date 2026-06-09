@@ -218,6 +218,8 @@ class Desktop:
         """Find a window by fuzzy name match. Returns (window, error_msg).
         If the returned window is None, error_msg describes the failure reason.
         """
+        if self.desktop_state is None:
+            return None, "Desktop state not initialized. Call get_state() first."
         window_list = [
             w
             for w in [self.desktop_state.active_window] + self.desktop_state.windows
@@ -240,6 +242,8 @@ class Desktop:
             if target_app is None:
                 return error, 1
         else:
+            if self.desktop_state is None:
+                return "Desktop state not initialized. Call get_state() first.", 1
             target_app = self.desktop_state.active_window
             if target_app is None:
                 return "No active app found", 1
@@ -402,7 +406,11 @@ class Desktop:
             logger.exception(f"Failed to bring window to top: {e}")
 
     def get_element_handle_from_label(self, label: int) -> uia.Control:
+        if self.desktop_state is None:
+            raise ValueError("Desktop state not initialized. Call get_state() first.")
         tree_state = self.desktop_state.tree_state
+        if tree_state is None:
+            raise ValueError("Tree state not available")
         selector = tree_state.build_selector_map()
         element_node = selector.node_of(label)
         if element_node is None:
