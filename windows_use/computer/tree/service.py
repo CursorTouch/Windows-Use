@@ -57,7 +57,7 @@ class Tree:
         self.desktop = weakref.proxy(desktop)
         self.screen_size = desktop.get_screen_size()
         self.dom: Control | None = None
-        self.dom_bounding_box: BoundingBox | None = None
+        self.dom_bounding_box: Rect | None = None
         self.screen_box = BoundingBox(
             top=0,
             left=0,
@@ -115,12 +115,13 @@ class Tree:
                     if scroll_pattern and scroll_pattern.VerticallyScrollable
                     else 0,
                 }
+                dom_bbox = BoundingBox.from_bounding_rectangle(self.dom_bounding_box)
                 dom_node = ScrollElementNode(
                     **{
                         "name": "DOM",
                         "control_type": "DocumentControl",
-                        "bounding_box": self.dom_bounding_box,
-                        "center": self.dom_bounding_box.get_center(),
+                        "bounding_box": dom_bbox,
+                        "center": dom_bbox.get_center(),
                         "window_name": "DOM",
                         "metadata": metadata,
                     }
@@ -758,15 +759,7 @@ class Tree:
             for orig_idx, child in traversal:
                 # Check if the child is a DOM element
                 if is_browser and child.CachedAutomationId == "RootWebArea":
-                    bounding_box = child.CachedBoundingRectangle
-                    self.dom_bounding_box = BoundingBox(
-                        left=bounding_box.left,
-                        top=bounding_box.top,
-                        right=bounding_box.right,
-                        bottom=bounding_box.bottom,
-                        width=bounding_box.width(),
-                        height=bounding_box.height(),
-                    )
+                    self.dom_bounding_box = child.CachedBoundingRectangle
                     self.dom = child
                     # enter DOM subtree
                     self.tree_traversal(
@@ -789,7 +782,7 @@ class Tree:
                     if not child.CachedIsOffscreen:
                         if is_dom and self.dom_bounding_box:
                             bounding_box = child.CachedBoundingRectangle
-                            if bounding_box.width() > 0.8 * self.dom_bounding_box.width:
+                            if bounding_box.width() > 0.8 * self.dom_bounding_box.width():
                                 # Because this window element covers the majority of the screen
                                 dom_interactive_nodes.clear()
                         else:
