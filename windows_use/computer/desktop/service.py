@@ -747,13 +747,15 @@ class Desktop:
     def get_annotated_screenshot(
         self, nodes: list[TreeElementNode], as_bytes: bool = False
     ) -> bytes | Image.Image:
-        screenshot = self.get_screenshot(as_bytes=False)
+        screenshot_img = self.get_screenshot(as_bytes=False)
+        if not isinstance(screenshot_img, Image.Image):
+            raise TypeError("Expected Image object from get_screenshot")
         # Add padding
         padding = 5
-        width = int(screenshot.width + (1.5 * padding))
-        height = int(screenshot.height + (1.5 * padding))
+        width = int(screenshot_img.width + (1.5 * padding))
+        height = int(screenshot_img.height + (1.5 * padding))
         padded_screenshot = Image.new("RGB", (width, height), color=(255, 255, 255))
-        padded_screenshot.paste(screenshot, (padding, padding))
+        padded_screenshot.paste(screenshot_img, (padding, padding))
 
         draw = ImageDraw.Draw(padded_screenshot)
         font_size = 12
