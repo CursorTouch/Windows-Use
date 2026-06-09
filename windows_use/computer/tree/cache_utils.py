@@ -116,11 +116,12 @@ class CachedControlHelper:
 
         try:
             cached_node = node.BuildUpdatedCache(cache_request)
-            cached_node._is_cached = True
-            return cached_node
+            if cached_node is not None:
+                cached_node._is_cached = True
+                return cached_node
         except Exception as e:
             logger.debug(f"Failed to build cached control: {e}")
-            return node
+        return node
 
     @staticmethod
     def get_cached_children(
