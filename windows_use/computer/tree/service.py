@@ -267,11 +267,14 @@ class Tree:
             if is_kb_focusable:
                 child = node
                 try:
-                    while child.GetFirstChildControl() is not None:
+                    while True:
+                        next_child = child.GetFirstChildControl()
+                        if next_child is None:
+                            break
                         # Children from GetFirstChildControl() are NOT cached — use live access
                         if child.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
                             return None
-                        child = child.GetFirstChildControl()
+                        child = next_child
                 except Exception:
                     return None
                 if child.ControlTypeName != "TextControl":
