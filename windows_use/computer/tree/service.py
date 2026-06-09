@@ -910,6 +910,8 @@ class Tree:
         # Debounce duplicate events
         current_time = perf_counter()
         element = Control.CreateControlFromElement(sender)
+        if element is None:
+            return None
         runtime_id = element.GetRuntimeId()
         event_key = tuple(runtime_id)
         if hasattr(self, "_last_focus_event") and self._last_focus_event:
