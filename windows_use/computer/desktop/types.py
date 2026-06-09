@@ -4,7 +4,7 @@ from enum import Enum
 from PIL.Image import Image
 from tabulate import tabulate
 
-from windows_use.agent.tree.views import BoundingBox, TreeState
+from windows_use.computer.tree.types import BoundingBox, TreeState
 
 
 class Browser(Enum):
