@@ -62,7 +62,7 @@ class DesktopState:
     all_desktops: list[dict]
     windows: list[Window]
     active_window: Window | None
-    screenshot: Image | None = None
+    screenshot: Image | bytes | None = None
     tree_state: TreeState | None = None
 
     def active_desktop_to_string(self):
