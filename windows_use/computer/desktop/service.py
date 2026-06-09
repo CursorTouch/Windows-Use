@@ -159,7 +159,7 @@ class Desktop:
     def get_cursor_location(self) -> tuple[int, int]:
         return uia.GetCursorPos()
 
-    def get_element_under_cursor(self) -> uia.Control|None:
+    def get_element_under_cursor(self) -> uia.Control | None:
         return uia.ControlFromCursor()
 
     def get_apps_from_start_menu(self) -> dict[str, str]:
@@ -173,7 +173,7 @@ class Desktop:
         try:
             reader = csv.DictReader(io.StringIO(apps_info.strip()))
             return {
-                row.get("Name").lower(): row.get("AppID")
+                (row.get("Name") or "").lower(): row.get("AppID")
                 for row in reader
                 if row.get("Name") and row.get("AppID")
             }
@@ -199,7 +199,7 @@ class Desktop:
         except Exception as e:
             return (f"Command execution failed: {type(e).__name__}: {e}", 1)
 
-    def is_window_browser(self, node: uia.Control):
+    def is_window_browser(self, node: uia.Control) -> bool:
         """Give any node of the app and it will return True if the app is a browser, False otherwise."""
         process = Process(node.ProcessId)
         return Browser.has_process(process.name())
@@ -210,7 +210,7 @@ class Desktop:
         command = "Get-Culture | Select-Object Name,DisplayName | ConvertTo-Csv -NoTypeInformation"
         response, _ = self.execute_command(command)
         reader = csv.DictReader(io.StringIO(response))
-        result = "".join([row.get("DisplayName") for row in reader])
+        result = "".join([row.get("DisplayName") or "" for row in reader])
         self._cached_default_language = result
         return result
 
@@ -233,7 +233,7 @@ class Desktop:
         return windows.get(window_name), ""
 
     def resize_app(
-        self, name: str | None = None, size: tuple[int, int] = None, loc: tuple[int, int] = None
+        self, name: str | None = None, size: tuple[int, int] | None = None, loc: tuple[int, int] | None = None
     ) -> tuple[str, int]:
         if name is not None:
             target_app, error = self._find_window_by_name(name)
@@ -250,6 +250,8 @@ class Desktop:
             return f"{target_app.name} is maximized", 1
         else:
             app_control = uia.ControlFromHandle(target_app.handle)
+            if app_control is None:
+                return f"Failed to get control for {target_app.name}", 1
             if loc is None:
                 x = app_control.BoundingRectangle.left
                 y = app_control.BoundingRectangle.top
@@ -274,7 +276,7 @@ class Desktop:
         name: str | None = None,
         loc: tuple[int, int] | None = None,
         size: tuple[int, int] | None = None,
-    ):
+    ) -> str:
         match mode:
             case "launch":
                 response, status, pid = self.launch_app(name)
@@ -325,7 +327,7 @@ class Desktop:
         app_name, _ = matched_app
         appid = apps_map.get(app_name)
         if appid is None:
-            return (name, f"{name.title()} not found in start menu.", 1, 0)
+            return (f"{name.title()} not found in start menu.", 1, 0)
 
         pid = 0
         if os.path.exists(appid) or "\\" in appid:
@@ -341,7 +343,7 @@ class Desktop:
 
         return response, status, pid
 
-    def switch_app(self, name: str):
+    def switch_app(self, name: str) -> tuple[str, int]:
         app, error = self._find_window_by_name(name)
         if app is None:
             return error, 1
@@ -355,7 +357,7 @@ class Desktop:
             content = f"Switched to {app.name.title()} window."
         return content, 0
 
-    def bring_window_to_top(self, target_handle: int):
+    def bring_window_to_top(self, target_handle: int) -> None:
         if not win32gui.IsWindow(target_handle):
             raise ValueError("Invalid window handle")
 
@@ -409,7 +411,9 @@ class Desktop:
         if control is not None:
             return control
         if element_node.hwnd:
-            return uia.ControlFromHandle(element_node.hwnd)
+            control = uia.ControlFromHandle(element_node.hwnd)
+            if control is not None:
+                return control
         raise ValueError(f"No live control available for label {label}")
 
     def get_coordinates_from_label(self, label: int) -> tuple[int, int]:
@@ -417,7 +421,7 @@ class Desktop:
         bounding_rectangle = element_handle.BoundingRectangle
         return bounding_rectangle.xcenter(), bounding_rectangle.ycenter()
 
-    def click(self, loc: tuple[int, int], button: str = "left", clicks: int = 2):
+    def click(self, loc: tuple[int, int], button: str = "left", clicks: int = 2) -> None:
         x, y = loc
         if clicks == 0:
             uia.SetCursorPos(x, y)
@@ -442,7 +446,7 @@ class Desktop:
         caret_position: Literal["start", "end", "none"] = "none",
         clear: Literal["true", "false"] = "false",
         press_enter: Literal["true", "false"] = "false",
-    ):
+    ) -> None:
         x, y = loc
         uia.Click(x, y)
         if caret_position == "start":
@@ -460,7 +464,7 @@ class Desktop:
 
     def scroll(
         self,
-        loc: tuple[int, int] = None,
+        loc: tuple[int, int] | None = None,
         type: Literal["horizontal", "vertical"] = "vertical",
         direction: Literal["up", "down", "left", "right"] = "down",
         wheel_times: int = 1,
@@ -488,16 +492,16 @@ class Desktop:
                 return 'Invalid type. Use "horizontal" or "vertical".'
         return None
 
-    def drag(self, loc: tuple[int, int]):
+    def drag(self, loc: tuple[int, int]) -> None:
         x, y = loc
         cx, cy = uia.GetCursorPos()
         uia.DragTo(cx, cy, x, y)
 
-    def move(self, loc: tuple[int, int]):
+    def move(self, loc: tuple[int, int]) -> None:
         x, y = loc
         uia.MoveTo(x, y, moveSpeed=10)
 
-    def shortcut(self, shortcut: str):
+    def shortcut(self, shortcut: str) -> None:
         keys = shortcut.split("+")
         sendkeys_str = ""
         for key in keys:
@@ -514,8 +518,10 @@ class Desktop:
     def multi_select(
         self,
         press_ctrl: Literal["true", "false"] = "false",
-        elements: list[tuple[int, int] | int] = [],
-    ):
+        elements: list[tuple[int, int]] | None = None,
+    ) -> None:
+        if elements is None:
+            elements = []
         if press_ctrl == "true":
             uia.PressKey(uia.Keys.VK_CONTROL, waitTime=0.05)
         for element in elements:
@@ -524,7 +530,7 @@ class Desktop:
             sleep(0.5)
         uia.ReleaseKey(uia.Keys.VK_CONTROL, waitTime=0.05)
 
-    def multi_edit(self, elements: list[tuple[int, int, str] | tuple[int, str]]):
+    def multi_edit(self, elements: list[tuple[int, int, str] | tuple[int, int]]) -> None:
         for element in elements:
             x, y, text = element
             self.type((x, y), text=text, clear="true")
@@ -547,7 +553,7 @@ class Desktop:
         is_name = "Overlay" in (element.Name or "").strip()
         return no_children or is_name
 
-    def get_controls_handles(self, optimized: bool = False):
+    def get_controls_handles(self, optimized: bool = False) -> set[int]:
         handles = set()
 
         def callback(hwnd, _):
