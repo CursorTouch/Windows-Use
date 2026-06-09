@@ -231,7 +231,7 @@ class Desktop:
         matched = process.extractOne(name, list(windows.keys()), score_cutoff=70)
         if matched is None:
             return None, f"Application {name.title()} not found."
-        window_name, _ = matched
+        window_name, _, _ = matched
         return windows.get(window_name), ""
 
     def resize_app(
@@ -283,6 +283,8 @@ class Desktop:
     ) -> str:
         match mode:
             case "launch":
+                if name is None:
+                    return "App name required for launch mode"
                 response, status, pid = self.launch_app(name)
                 if status != 0:
                     return response
@@ -311,12 +313,16 @@ class Desktop:
                     return f"{name.title()} launched."
                 return f"Launching {name.title()} sent, but window not detected yet."
             case "resize":
+                if name is None:
+                    return "App name required for resize mode"
                 response, status = self.resize_app(name=name, size=size, loc=loc)
                 if status != 0:
                     return response
                 else:
                     return response
             case "switch":
+                if name is None:
+                    return "App name required for switch mode"
                 response, status = self.switch_app(name)
                 if status != 0:
                     return response
