@@ -8,7 +8,6 @@ from typing import Literal, Any, Optional, cast
 from enum import Enum
 from PIL import Image
 from windows_use.inference.types import StopReason
-from windows_use.tool.types import ToolKind
 from windows_use.message.utils import image_to_base64, audio_to_base64
 
 
@@ -113,7 +112,6 @@ class ToolCallContent:
     type: Literal["tool_call"] = "tool_call"
     id: str = ""
     name: str = ""
-    kind: Optional[ToolKind] = None
     args: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
