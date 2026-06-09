@@ -4,12 +4,11 @@ Google Antigravity OAuth flow — standard authorization code + local callback s
 The access token is used as a Bearer token for calls to cloudcode-pa.googleapis.com,
 giving access to Claude and Gemini models via Google's Antigravity IDE quota.
 """
-import os
-
 from __future__ import annotations
 
 import asyncio
 import json
+import os
 import secrets
 import ssl
 import time
