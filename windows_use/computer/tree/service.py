@@ -282,6 +282,8 @@ class Tree:
                 metadata: dict[str, Any] = {}
                 # node is cached — use cached properties
                 element_bounding_box = node.CachedBoundingRectangle
+                if self.dom_bounding_box is None:
+                    return None
                 bounding_box = self.iou_bounding_box(self.dom_bounding_box, element_bounding_box)
                 center = bounding_box.get_center()
                 has_focused = node.CachedHasKeyboardFocus
@@ -326,6 +328,8 @@ class Tree:
             popped = dom_interactive_nodes.pop()
             # child from GetFirstChildControl() is NOT cached — use live access
             node = node.GetFirstChildControl()
+            if node is None or self.dom_bounding_box is None:
+                return None
             control_type = "link"
             value = node.GetPropertyValue(PropertyId.LegacyIAccessibleValueProperty) or ""
             element_bounding_box = node.BoundingRectangle
