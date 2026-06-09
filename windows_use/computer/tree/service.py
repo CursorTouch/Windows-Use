@@ -196,7 +196,8 @@ class Tree:
                 except (UIAException, Exception) as e:
                     retry_counts[handle] = attempt + 1
                     try:
-                        window_name = ControlFromHandle(handle).Name
+                        control = ControlFromHandle(handle)
+                        window_name = control.Name if control else "Unknown"
                     except Exception:
                         window_name = "Unknown"
                     logger.warning(
