@@ -546,7 +546,11 @@ class Desktop:
 
     def multi_edit(self, elements: list[tuple[int, int, str] | tuple[int, int]]) -> None:
         for element in elements:
-            x, y, text = element
+            if len(element) == 3:
+                x, y, text = element
+            else:
+                x, y = element
+                text = ""
             self.type((x, y), text=text, clear="true")
 
     def scrape(self, url: str) -> str:
