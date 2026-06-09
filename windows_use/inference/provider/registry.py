@@ -1,5 +1,6 @@
 from __future__ import annotations
-from operator_use.inference.provider.types import APIProvider, OAuthProvider, ImageProvider, AudioProvider, VideoProvider, AuthType
+from windows_use.inference.provider.types import APIProvider, OAuthProvider, ImageProvider, AudioProvider, VideoProvider, AuthType
+from typing import List
 
 TextProvider = APIProvider | OAuthProvider
 
@@ -33,11 +34,11 @@ class TextProviderRegistry:
             return p.auth_type == AuthType.OAuth
         raise ValueError(f"Provider '{provider}' not found.")
 
-    def get_oauth_providers(self) -> list[OAuthProvider]:
+    def get_oauth_providers(self) -> List[OAuthProvider]:
         """Return all registered OAuth-authenticated providers."""
         return [p for p in self._providers.values() if isinstance(p, OAuthProvider)]
 
-    def get_api_providers(self) -> list[APIProvider]:
+    def get_api_providers(self) -> List[APIProvider]:
         """Return all registered API-key-authenticated providers."""
         return [p for p in self._providers.values() if isinstance(p, APIProvider)]
 
@@ -58,7 +59,7 @@ class TextProviderRegistry:
     @classmethod
     def from_builtins(cls) -> TextProviderRegistry:
         """Construct a registry pre-populated with all builtin text providers."""
-        from operator_use.builtins.providers.text import providers
+        from windows_use.builtins.providers.text import providers
         instance = cls()
         for provider in providers:
             instance.register(provider)
@@ -94,7 +95,7 @@ class ImageProviderRegistry:
     @classmethod
     def from_builtins(cls) -> ImageProviderRegistry:
         """Construct a registry pre-populated with all builtin image providers."""
-        from operator_use.builtins.providers.image import providers
+        from windows_use.builtins.providers.image import providers
         instance = cls()
         for provider in providers:
             instance.register(provider)
@@ -131,7 +132,7 @@ class AudioProviderRegistry:
     @classmethod
     def from_builtins(cls) -> AudioProviderRegistry:
         """Construct a registry pre-populated with all builtin audio providers."""
-        from operator_use.builtins.providers.audio import providers
+        from windows_use.builtins.providers.audio import providers
         instance = cls()
         for provider in providers:
             instance.register(provider)
@@ -168,7 +169,7 @@ class VideoProviderRegistry:
     @classmethod
     def from_builtins(cls) -> VideoProviderRegistry:
         """Construct a registry pre-populated with all builtin video providers."""
-        from operator_use.builtins.providers.video import providers
+        from windows_use.builtins.providers.video import providers
         instance = cls()
         for provider in providers:
             instance.register(provider)

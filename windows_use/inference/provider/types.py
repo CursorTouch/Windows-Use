@@ -5,11 +5,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional, Type, Union, TYPE_CHECKING
 
-from operator_use.inference.types import AuthType, LLMOptions, Transport
+from windows_use.inference.types import AuthType, LLMOptions, Transport
 
 if TYPE_CHECKING:
-    from operator_use.inference.api.text.base import BaseLLMAPI
-    from operator_use.inference.provider.oauth.types import OAuthCredential, OAuthLoginCallbacks, AbortSignal
+    from windows_use.inference.api.text.base import BaseLLMAPI
+    from windows_use.inference.provider.oauth.types import OAuthCredential, OAuthLoginCallbacks, AbortSignal
 
 __all__ = ["AuthType", "APIProvider", "OAuthProvider", "ImageProvider", "AudioProvider", "VideoProvider"]
 

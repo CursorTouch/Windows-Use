@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable, Optional
 import asyncio
 
 if TYPE_CHECKING:
-    from windows_use.inference.api.text.service import LLM
+    from windows_use.inference import LLM
     from windows_use.inference.types import ThinkingLevel
     from windows_use.tool.types import Tool
 

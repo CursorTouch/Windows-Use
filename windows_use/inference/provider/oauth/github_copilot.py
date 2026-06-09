@@ -24,8 +24,8 @@ from typing import Optional
 import certifi
 
 from dataclasses import dataclass
-from operator_use.inference.provider.types import OAuthProvider
-from operator_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
+from windows_use.inference.provider.types import OAuthProvider
+from windows_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
 
 __all__ = ["GitHubCopilotOAuthProvider", "get_copilot_base_url"]
 
@@ -333,5 +333,5 @@ class GitHubCopilotOAuthProvider(OAuthProvider):
     @property
     def api(self):
         """Return the API class that handles requests with this provider's tokens."""
-        from operator_use.inference.api.text.github_copilot_chat import GitHubCopilotChatAPI
+        from windows_use.inference.api.text.github_copilot_chat import GitHubCopilotChatAPI
         return GitHubCopilotChatAPI

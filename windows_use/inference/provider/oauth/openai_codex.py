@@ -24,10 +24,10 @@ import certifi
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 from dataclasses import dataclass
-from operator_use.inference.provider.types import OAuthProvider
-from operator_use.inference.provider.oauth.pkce import generate_pkce
-from operator_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
-from operator_use.inference.provider.oauth.utils import parse_authorization_input, start_oauth_callback_server, await_oauth_code
+from windows_use.inference.provider.types import OAuthProvider
+from windows_use.inference.provider.oauth.pkce import generate_pkce
+from windows_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
+from windows_use.inference.provider.oauth.utils import parse_authorization_input, start_oauth_callback_server, await_oauth_code
 
 __all__ = ["OpenAICodexOAuthProvider"]
 
@@ -301,7 +301,7 @@ class OpenAICodexOAuthProvider(OAuthProvider):
     @property
     def api(self):
         """Return the API class that handles requests with this provider's tokens."""
-        from operator_use.inference.api.text.openai_codex_responses import OpenAICodexResponsesAPI
+        from windows_use.inference.api.text.openai_codex_responses import OpenAICodexResponsesAPI
         return OpenAICodexResponsesAPI
 
     async def validate(self, credential: OAuthCredential, signal: Optional[AbortSignal] = None) -> bool:

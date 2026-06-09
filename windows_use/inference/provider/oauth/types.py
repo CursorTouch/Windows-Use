@@ -2,8 +2,8 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Optional
-from operator_use.inference.provider.types import AuthType
-from operator_use.auth.types import OAuthCredential
+from windows_use.inference.provider.types import AuthType
+from windows_use.auth.types import OAuthCredential
 
 
 __all__ = ["OAuthCredential", "OAuthPrompt", "OAuthAuthInfo", "OAuthLoginCallbacks", "AbortSignal"]

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from windows_use.computer.desktop import Desktop
 from windows_use.message.types import ToolResultContent
 import asyncio
 from contextlib import aclosing
@@ -21,7 +22,7 @@ from windows_use.tool.types import ToolContext, ToolExecutionMode, ToolInvocatio
 from windows_use.message.types import AssistantMessage, ToolCallContent, Role, Usage, TextContent
 
 if TYPE_CHECKING:
-    from windows_use.inference.api.text.service import LLM
+    from windows_use.inference import LLM
     from windows_use.tool.types import Tool
 
 from windows_use.engine.types import (
@@ -49,6 +50,7 @@ class Engine:
     def __init__(
         self,
         llm: LLM,
+        desktop: Desktop,
         tools: list[Tool],
         system_prompt: Optional[str] = None,
         options: Optional[Options] = None,
@@ -60,7 +62,7 @@ class Engine:
         self.options = options or Options()
         self._hooks = hooks
         self._tools: dict[str, Tool] = {t.name: t for t in (tools or [])}
-        self.tool_context = ToolContext(llm=llm, engine=self, hooks=hooks)
+        self.tool_context = ToolContext(desktop=desktop,llm=llm)
         self.state = EngineState(
             llm=llm,
             tools=tools,
@@ -248,7 +250,6 @@ class Engine:
                 content=f"Tool '{tool_call.name}' not found.", metadata={},
             )
 
-        tool_call.kind = tool.kind
         tool_call.metadata['display_name'] = tool.get_display_name(tool_call.args)
         ok, errors = tool.validate(params=tool_call.args)
         if not ok:

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from operator_use.inference.model.types import Model
+from windows_use.inference.model.types import Model
 
 
 class ModelRegistry:
@@ -44,7 +44,7 @@ class ModelRegistry:
     @classmethod
     def from_llm_builtins(cls) -> ModelRegistry:
         """Construct a registry pre-populated with all builtin text/LLM models."""
-        from operator_use.builtins.models.text import models
+        from windows_use.builtins.models.text import models
         instance = cls()
         for model in models:
             instance.register(model)
@@ -53,7 +53,7 @@ class ModelRegistry:
     @classmethod
     def from_image_builtins(cls) -> ModelRegistry:
         """Construct a registry pre-populated with all builtin image models."""
-        from operator_use.builtins.models.image import models
+        from windows_use.builtins.models.image import models
         instance = cls()
         for model in models:
             instance.register(model)
@@ -62,7 +62,7 @@ class ModelRegistry:
     @classmethod
     def from_audio_builtins(cls) -> ModelRegistry:
         """Construct a registry pre-populated with all builtin audio models."""
-        from operator_use.builtins.models.audio import models
+        from windows_use.builtins.models.audio import models
         instance = cls()
         for model in models:
             instance.register(model)
@@ -71,7 +71,7 @@ class ModelRegistry:
     @classmethod
     def from_video_builtins(cls) -> ModelRegistry:
         """Construct a registry pre-populated with all builtin video models."""
-        from operator_use.builtins.models.video import models
+        from windows_use.builtins.models.video import models
         instance = cls()
         for model in models:
             instance.register(model)
@@ -80,12 +80,12 @@ class ModelRegistry:
     @classmethod
     def from_all_builtins(cls) -> ModelRegistry:
         """Construct a registry pre-populated with all builtin models across all modalities."""
-        from operator_use.builtins.models.text import models as llm
-        from operator_use.builtins.models.image import models as image
-        from operator_use.builtins.models.audio import models as audio
-        from operator_use.builtins.models.video import models as video
+        from windows_use.builtins.models.text import models as text
+        from windows_use.builtins.models.image import models as image
+        from windows_use.builtins.models.audio import models as audio
+        from windows_use.builtins.models.video import models as video
         instance = cls()
-        for model in llm + image + audio + video:
+        for model in text + image + audio + video:
             instance.register(model)
         return instance
 

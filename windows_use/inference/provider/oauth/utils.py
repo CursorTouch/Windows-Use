@@ -5,7 +5,7 @@ import asyncio
 import urllib.parse
 from typing import Optional
 
-from operator_use.inference.provider.oauth.types import OAuthLoginCallbacks
+from windows_use.inference.provider.oauth.types import OAuthLoginCallbacks
 
 __all__ = [
     "OAUTH_SUCCESS_HTML",

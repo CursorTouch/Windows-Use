@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Awaitable, Callable, Optional, Type
+from windows_use.computer.desktop import Desktop
+from windows_use.inference import LLM
 from pydantic import BaseModel
 
 @dataclass
@@ -37,6 +39,11 @@ class ToolInvocation:
     params: dict[str, Any] = field(default_factory=dict)
     cwd: str = ""
     name: str = ""
+
+@dataclass
+class ToolContext:
+    desktop:Desktop
+    llm: LLM
 
 
 @dataclass

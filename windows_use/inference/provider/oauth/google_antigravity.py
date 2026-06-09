@@ -21,9 +21,9 @@ from typing import Optional
 import certifi
 
 from dataclasses import dataclass
-from operator_use.inference.provider.types import OAuthProvider
-from operator_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
-from operator_use.inference.provider.oauth.utils import parse_authorization_input, start_oauth_callback_server, await_oauth_code
+from windows_use.inference.provider.types import OAuthProvider
+from windows_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
+from windows_use.inference.provider.oauth.utils import parse_authorization_input, start_oauth_callback_server, await_oauth_code
 
 __all__ = ["GoogleAntigravityOAuthProvider"]
 
@@ -251,7 +251,7 @@ class GoogleAntigravityOAuthProvider(OAuthProvider):
     @property
     def api(self):
         """Return the API class that handles requests with this provider's tokens."""
-        from operator_use.inference.api.text.google_antigravity import GoogleAntigravityAPI
+        from windows_use.inference.api.text.google_antigravity import GoogleAntigravityAPI
         return GoogleAntigravityAPI
 
     async def validate(self, credential: OAuthCredential, signal: Optional[AbortSignal] = None) -> bool:

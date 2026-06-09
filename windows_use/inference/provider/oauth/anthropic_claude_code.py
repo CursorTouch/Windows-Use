@@ -21,10 +21,10 @@ from typing import Optional
 import certifi
 
 from dataclasses import dataclass
-from operator_use.inference.provider.types import OAuthProvider
-from operator_use.inference.provider.oauth.pkce import generate_pkce
-from operator_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
-from operator_use.inference.provider.oauth.utils import parse_authorization_input, start_oauth_callback_server, await_oauth_code
+from windows_use.inference.provider.types import OAuthProvider
+from windows_use.inference.provider.oauth.pkce import generate_pkce
+from windows_use.inference.provider.oauth.types import OAuthAuthInfo, OAuthCredential, OAuthLoginCallbacks, OAuthPrompt, AbortSignal
+from windows_use.inference.provider.oauth.utils import parse_authorization_input, start_oauth_callback_server, await_oauth_code
 
 __all__ = ["AnthropicClaudeCodeOAuthProvider"]
 
@@ -277,7 +277,7 @@ class AnthropicClaudeCodeOAuthProvider(OAuthProvider):
     @property
     def api(self):
         """Return the API class that handles requests with this provider's tokens."""
-        from operator_use.inference.api.text.anthropic_claude_code import AnthropicClaudeCodeAPI
+        from windows_use.inference.api.text.anthropic_claude_code import AnthropicClaudeCodeAPI
         return AnthropicClaudeCodeAPI
 
     async def validate(self, credential: OAuthCredential, signal: Optional[AbortSignal] = None) -> bool:

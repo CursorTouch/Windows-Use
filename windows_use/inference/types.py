@@ -10,8 +10,8 @@ from copy import deepcopy
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from operator_use.message.types import LLMMessage, TextContent, ThinkingContent, ToolCallContent, ImageContent
-    from operator_use.tool.types import Tool
+    from windows_use.message.types import LLMMessage, TextContent, ThinkingContent, ToolCallContent, ImageContent
+    from windows_use.tool.types import Tool
 
 
 # ── Shared enums ──────────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ class LLMContext:
 
 def _default_text_event_data():
     """Return an empty TextContent; used as a field default_factory to avoid mutable defaults."""
-    from operator_use.message.types import TextContent
+    from windows_use.message.types import TextContent
     return TextContent(content="")
 
 
