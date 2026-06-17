@@ -47,7 +47,6 @@ dependencies = [
     "pywin32>=311",
     "comtypes>=1.4.14",
     "qrcode>=8.2",
-    "neonize>=0.3.14.post0",
     "python-telegram-bot>=21.10",
     "pysignalclirestapi>=0.3.24",
     "httpx>=0.28.1",
